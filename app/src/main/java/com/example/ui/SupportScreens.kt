@@ -1,0 +1,1481 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+package com.example.ui
+
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.example.data.*
+import com.example.i18n.Translations
+import com.example.ui.theme.*
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.text.SimpleDateFormat
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+// --- SCREEN: REMINDERS & ALARMS ---
+
+@Composable
+fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+    val lang by viewModel.currentLanguage.collectAsState()
+    val reminderItems by viewModel.reminders.collectAsState()
+    val todayMetricsState by viewModel.todayMetrics.collectAsState()
+    val allMetricsList by viewModel.allDailyMetrics.collectAsState()
+
+    var name by remember { mutableStateOf("") }
+    var time by remember { mutableStateOf("08:00") }
+    var frequency by remember { mutableStateOf("Daily") }
+    var type by remember { mutableStateOf("Dori") }
+    var targetFamily by remember { mutableStateOf("") }
+    var notes by remember { mutableStateOf("") }
+
+    var isAdding by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabTitles = listOf("Dorilar 💊", "Suv ichish 💧", "Taqvim 📅")
+
+    val completedRemindersSet = remember(todayMetricsState) {
+        val set = mutableSetOf<Int>()
+        todayMetricsState?.let { m ->
+            try {
+                val arr = org.json.JSONArray(m.completedRemindersJson)
+                for (i in 0 until arr.length()) {
+                    set.add(arr.getInt(i))
+                }
+            } catch(e: Exception) {}
+        }
+        set
+    }
+
+    Scaffold(
+        topBar = { AppHeader(title = Translations.getString("reminder_title", lang), onBack = onBack) }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
+        ) {
+            // Tab Header
+            TabRow(
+                selectedTabIndex = selectedTab,
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = PrimaryGreen
+            ) {
+                tabTitles.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTab == index,
+                        onClick = { selectedTab = index },
+                        text = { Text(title, fontWeight = FontWeight.Bold, fontSize = 12.sp) }
+                    )
+                }
+            }
+
+            when (selectedTab) {
+                0 -> {
+                    // --- TAB 0: MEDICINE REMINDERS (FIRESTORE) ---
+                    val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                    val firestoreReminders by viewModel.firestoreReminders.collectAsState()
+                    val familyMembers by viewModel.familyMembers.collectAsState()
+                    
+                    var dosage by remember { mutableStateOf("1 ta tabletka") }
+                    var notificationsEnabled by remember { mutableStateOf(true) }
+                    var notificationFrequency by remember { mutableStateOf("Exact time") }
+
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        item {
+                            Button(
+                                onClick = { isAdding = !isAdding },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                            ) {
+                                Icon(
+                                    imageVector = if (isAdding) Icons.Default.Close else Icons.Default.Add,
+                                    contentDescription = null
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (isAdding) "Bekor qilish" else "Yangi dori eslatmasi qo'shish",
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+
+                        if (isAdding) {
+                            item {
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.2f))
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        Text(
+                                            text = "Yangi eslatma tafsilotlari",
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = TextPrimary
+                                            )
+                                        )
+
+                                        // Medicine Name
+                                        OutlinedTextField(
+                                            value = name,
+                                            onValueChange = { name = it },
+                                            label = { Text("Dori nomi") },
+                                            placeholder = { Text("Masalan: Paratsetamol, Kardiomagnil") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = PrimaryGreen,
+                                                unfocusedBorderColor = MedicalBorder
+                                            )
+                                        )
+
+                                        // Dosage Manual & Quick options
+                                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            OutlinedTextField(
+                                                value = dosage,
+                                                onValueChange = { dosage = it },
+                                                label = { Text("Dozasi (Dosage)") },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                singleLine = true,
+                                                shape = RoundedCornerShape(12.dp),
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedBorderColor = PrimaryGreen,
+                                                    unfocusedBorderColor = MedicalBorder
+                                                )
+                                            )
+                                            
+                                            // Quick dosages
+                                            Row(
+                                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                listOf("1 ta tabletka", "2 ta tabletka", "1/2 tabletka", "1 kapsula", "5 ml", "10 ml").forEach { qd ->
+                                                    FilterChip(
+                                                        selected = dosage == qd,
+                                                        onClick = { dosage = qd },
+                                                        label = { Text(qd, fontSize = 11.sp) }
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // Time
+                                        OutlinedTextField(
+                                            value = time,
+                                            onValueChange = { time = it },
+                                            label = { Text("Vaqti") },
+                                            placeholder = { Text("Masalan: 08:00, 14:00, 21:00") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            singleLine = true,
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = PrimaryGreen,
+                                                unfocusedBorderColor = MedicalBorder
+                                            )
+                                        )
+
+                                        // Frequency settings
+                                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text("Takroriylik (Frequency Settings)", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = TextSecondary)
+                                            Row(
+                                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                listOf("Daily" to "Kunlik", "Weekly" to "Haftalik", "Every 12 Hours" to "Har 12 soatda", "Every 8 Hours" to "Har 8 soatda", "Custom" to "Maxsus").forEach { (code, label) ->
+                                                    FilterChip(
+                                                        selected = frequency == code,
+                                                        onClick = { frequency = code },
+                                                        label = { Text(label, fontSize = 12.sp) }
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        // Notifications Configuration Card
+                                        Card(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = CardDefaults.cardColors(containerColor = LightGreen.copy(alpha = 0.3f)),
+                                            border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.15f))
+                                        ) {
+                                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                        Icon(
+                                                            imageVector = if (notificationsEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
+                                                            contentDescription = null,
+                                                            tint = if (notificationsEnabled) PrimaryGreen else Color.Gray,
+                                                            modifier = Modifier.size(20.dp)
+                                                        )
+                                                        Text("Bildirishnomalar (Notifications)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
+                                                    }
+                                                    Switch(
+                                                        checked = notificationsEnabled,
+                                                        onCheckedChange = { notificationsEnabled = it },
+                                                        colors = SwitchDefaults.colors(checkedThumbColor = PrimaryGreen)
+                                                    )
+                                                }
+
+                                                if (notificationsEnabled) {
+                                                    Text("Eslatish vaqti sozlamasi:", fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+                                                    Row(
+                                                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                                    ) {
+                                                        listOf(
+                                                            "Exact time" to "Aynan vaqtida",
+                                                            "5m before" to "5 daqiqa oldin",
+                                                            "15m before" to "15 daqiqa oldin",
+                                                            "30m before" to "30 daqiqa oldin"
+                                                        ).forEach { (code, label) ->
+                                                            FilterChip(
+                                                                selected = notificationFrequency == code,
+                                                                onClick = { notificationFrequency = code },
+                                                                label = { Text(label, fontSize = 11.sp) }
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Target Family Member
+                                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text("Kim uchun (Kim qabul qiladi):", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = TextSecondary)
+                                            
+                                            Row(
+                                                modifier = Modifier.horizontalScroll(rememberScrollState()),
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                // Myself Option
+                                                FilterChip(
+                                                    selected = targetFamily.isEmpty(),
+                                                    onClick = { targetFamily = "" },
+                                                    label = { Text("O'zimga", fontSize = 12.sp) }
+                                                )
+                                                
+                                                // Loaded Family Members
+                                                familyMembers.forEach { member ->
+                                                    FilterChip(
+                                                        selected = targetFamily == member.name,
+                                                        onClick = { targetFamily = member.name },
+                                                        label = { Text(member.name, fontSize = 12.sp) }
+                                                    )
+                                                }
+                                            }
+                                            
+                                            if (targetFamily.isNotEmpty()) {
+                                                Text(
+                                                    text = "Eslatma ${targetFamily} uchun belgilanmoqda",
+                                                    fontSize = 11.sp,
+                                                    color = PremiumPurple,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(start = 2.dp)
+                                                )
+                                            }
+                                        }
+
+                                        // Notes
+                                        OutlinedTextField(
+                                            value = notes,
+                                            onValueChange = { notes = it },
+                                            label = { Text("Eslatma / Izoh") },
+                                            placeholder = { Text("Masalan: Ovqatdan keyin, ko'p suv bilan") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(12.dp),
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedBorderColor = PrimaryGreen,
+                                                unfocusedBorderColor = MedicalBorder
+                                            )
+                                        )
+
+                                        Button(
+                                            onClick = {
+                                                if (name.isNotEmpty() && time.isNotEmpty()) {
+                                                    viewModel.addFirestoreReminder(
+                                                        medicineName = name,
+                                                        dosage = dosage,
+                                                        time = time,
+                                                        frequency = frequency,
+                                                        notificationsEnabled = notificationsEnabled,
+                                                        notificationFrequency = notificationFrequency,
+                                                        targetFamily = targetFamily.ifEmpty { null },
+                                                        notes = notes.ifEmpty { null }
+                                                    )
+                                                    name = ""
+                                                    notes = ""
+                                                    targetFamily = ""
+                                                    isAdding = false
+                                                } else {
+                                                    Toast.makeText(viewModel.getApplication(), "Iltimos, dori nomi va vaqtini kiriting!", Toast.LENGTH_SHORT).show()
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                                            shape = RoundedCornerShape(12.dp)
+                                        ) {
+                                            Text("Eslatmani Saqlash (Firestore)", fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Firestore list header
+                        item {
+                            Text(
+                                text = "Mening dori jadvallarim 🗓️",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = TextPrimary
+                                ),
+                                modifier = Modifier.padding(vertical = 4.dp)
+                            )
+                        }
+
+                        if (firestoreReminders.isEmpty()) {
+                            item {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(
+                                        horizontalAlignment = Alignment.CenterHorizontally,
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text("💊", fontSize = 48.sp)
+                                        Text(
+                                            text = "Hozircha hech qanday dori eslatmasi yo'q.",
+                                            fontWeight = FontWeight.Bold,
+                                            color = TextSecondary,
+                                            textAlign = TextAlign.Center
+                                        )
+                                        Text(
+                                            text = "Dori ichish jadvallarini Firestore-da saqlash va nazorat qilish uchun yuqoridagi tugmani bosing.",
+                                            fontSize = 12.sp,
+                                            color = Color.Gray,
+                                            textAlign = TextAlign.Center,
+                                            modifier = Modifier.padding(horizontal = 24.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        } else {
+                            items(firestoreReminders) { item ->
+                                val isCompletedToday = item.completedDates.contains(todayStr)
+                                
+                                Card(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    border = BorderStroke(1.dp, if (isCompletedToday) SuccessGreen.copy(alpha = 0.25f) else MedicalBorder.copy(alpha = 0.4f)),
+                                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                modifier = Modifier.weight(1f)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(44.dp)
+                                                        .background(if (isCompletedToday) LightGreen else PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(text = "💊", fontSize = 20.sp)
+                                                }
+                                                Spacer(modifier = Modifier.width(12.dp))
+                                                Column {
+                                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                        Text(
+                                                            text = item.medicineName,
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 16.sp,
+                                                            color = TextPrimary
+                                                        )
+                                                        
+                                                        // Dosage badge
+                                                        Box(
+                                                            modifier = Modifier
+                                                                .background(PrimaryGreen.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
+                                                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                        ) {
+                                                            Text(
+                                                                text = item.dosage,
+                                                                fontSize = 10.sp,
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = PrimaryGreen
+                                                            )
+                                                        }
+                                                    }
+                                                    
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                        modifier = Modifier.padding(top = 2.dp)
+                                                    ) {
+                                                        Icon(imageVector = Icons.Default.Schedule, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(12.dp))
+                                                        Text(
+                                                            text = "${item.time} - ${item.frequency}",
+                                                            fontSize = 12.sp,
+                                                            color = TextSecondary,
+                                                            fontWeight = FontWeight.Medium
+                                                        )
+                                                    }
+                                                }
+                                            }
+
+                                            Switch(
+                                                checked = item.isActive,
+                                                onCheckedChange = { viewModel.toggleFirestoreReminderActive(item.id, item.isActive) },
+                                                colors = SwitchDefaults.colors(checkedThumbColor = PrimaryGreen)
+                                            )
+                                        }
+
+                                        // Notification & Target Info Row
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            // Notification chip
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(if (item.notificationsEnabled) Color(0xFFFFF3E0) else Color(0xFFF5F5F5), RoundedCornerShape(8.dp))
+                                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    Icon(
+                                                        imageVector = if (item.notificationsEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
+                                                        contentDescription = null,
+                                                        tint = if (item.notificationsEnabled) Color(0xFFFF9800) else Color.Gray,
+                                                        modifier = Modifier.size(12.dp)
+                                                    )
+                                                    Text(
+                                                        text = if (item.notificationsEnabled) "Eslatma: ${item.notificationFrequency}" else "Eslatma yo'q",
+                                                        fontSize = 11.sp,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = if (item.notificationsEnabled) Color(0xFFE65100) else Color.Gray
+                                                    )
+                                                }
+                                            }
+
+                                            if (item.targetFamilyMember != null) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .background(PremiumPurple.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                        Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = PremiumPurple, modifier = Modifier.size(12.dp))
+                                                        Text(text = item.targetFamilyMember, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PremiumPurple)
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (item.notes != null) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .background(Color(0xFFF9F9F9), RoundedCornerShape(8.dp))
+                                                    .padding(8.dp)
+                                            ) {
+                                                Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                    Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(14.dp))
+                                                    Text(text = item.notes, fontSize = 11.sp, color = TextSecondary, lineHeight = 14.sp)
+                                                }
+                                            }
+                                        }
+
+                                        Divider(color = MedicalBorder.copy(alpha = 0.2f))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            if (item.isActive) {
+                                                if (isCompletedToday) {
+                                                    Row(
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                                        modifier = Modifier
+                                                            .background(LightGreen, RoundedCornerShape(8.dp))
+                                                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                                                    ) {
+                                                        Icon(imageVector = Icons.Default.Done, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
+                                                        Text(text = "Bugun ichildi ✅", fontSize = 12.sp, color = SuccessGreen, fontWeight = FontWeight.Bold)
+                                                    }
+                                                } else {
+                                                    Button(
+                                                        onClick = { viewModel.completeFirestoreReminder(item.id, item.completedDates) },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                                                        shape = RoundedCornerShape(8.dp),
+                                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                                        modifier = Modifier.height(36.dp)
+                                                    ) {
+                                                        Text("Ichdim 💊", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                    }
+                                                }
+                                            } else {
+                                                Text(text = "Eslatma faol emas", fontSize = 11.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+                                            }
+
+                                            IconButton(
+                                                onClick = { viewModel.deleteFirestoreReminder(item.id) },
+                                                modifier = Modifier
+                                                    .background(Color(0xFFFFEBEE), CircleShape)
+                                                    .size(36.dp)
+                                            ) {
+                                                Icon(imageVector = Icons.Default.Delete, contentDescription = "O'chirish", tint = ErrorRed, modifier = Modifier.size(18.dp))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                1 -> {
+                    // --- TAB 1: WATER REMINDERS ---
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        val currentGlasses = todayMetricsState?.waterGlasses ?: 0
+                        val waterGoal = todayMetricsState?.waterGoal ?: 8
+                        val progressFraction = if (waterGoal > 0) currentGlasses.toFloat() / waterGoal else 0f
+
+                        // Hero Water Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center, modifier = Modifier.size(100.dp)) {
+                                    CircularProgressIndicator(
+                                        progress = progressFraction,
+                                        modifier = Modifier.fillMaxSize(),
+                                        color = Color(0x2196F3),
+                                        strokeWidth = 8.dp,
+                                        trackColor = Color.LightGray.copy(alpha = 0.2f)
+                                    )
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(text = "💧", fontSize = 32.sp)
+                                        Text(text = "$currentGlasses / $waterGoal", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
+                                    }
+                                }
+
+                                Text(
+                                    text = if (currentGlasses >= waterGoal) "Ajoyib! Bugungi suv ichish normasi bajarildi! 🏆" else "Suv ichish salomatlik uchun juda muhim!",
+                                    fontWeight = FontWeight.Medium,
+                                    fontSize = 14.sp,
+                                    color = Color.LightGray,
+                                    textAlign = TextAlign.Center
+                                )
+
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    IconButton(
+                                        onClick = { viewModel.updateWaterProgress(-1) },
+                                        modifier = Modifier
+                                            .background(Color.Gray.copy(alpha = 0.1f), CircleShape)
+                                            .size(48.dp)
+                                    ) {
+                                        Text("-", fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    Button(
+                                        onClick = { viewModel.updateWaterProgress(1) },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.height(48.dp)
+                                    ) {
+                                        Text("Stakan suv ichish 💧", fontWeight = FontWeight.Bold)
+                                    }
+
+                                    IconButton(
+                                        onClick = { viewModel.updateWaterProgress(1) },
+                                        modifier = Modifier
+                                            .background(Color.Gray.copy(alpha = 0.1f), CircleShape)
+                                            .size(48.dp)
+                                    ) {
+                                        Text("+", fontSize = 20.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Target Goal Setup Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(text = "Suv ichish maqsadini sozlash", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    listOf(6, 8, 10, 12).forEach { goal ->
+                                        FilterChip(
+                                            selected = waterGoal == goal,
+                                            onClick = { viewModel.updateWaterGoal(goal) },
+                                            label = { Text("$goal stakan") }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Reminder Frequency Card
+                        var selectedFreq by remember { mutableStateOf(1) }
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Text(text = "Eslatma chastotasi (Suv)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    listOf(1 to "Har soat", 2 to "Har 2 soat", 3 to "Har 3 soat").forEach { (hours, label) ->
+                                        FilterChip(
+                                            selected = selectedFreq == hours,
+                                            onClick = { selectedFreq = hours },
+                                            label = { Text(label) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                2 -> {
+                    // --- TAB 2: HEALTH CALENDAR ---
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(rememberScrollState())
+                            .padding(24.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        val calendar = Calendar.getInstance()
+                        val currentYear = calendar.get(Calendar.YEAR)
+                        val currentMonth = calendar.get(Calendar.MONTH)
+                        val daysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+                        val firstDayCal = Calendar.getInstance().apply {
+                            set(Calendar.YEAR, currentYear)
+                            set(Calendar.MONTH, currentMonth)
+                            set(Calendar.DAY_OF_MONTH, 1)
+                        }
+                        val startOffset = (firstDayCal.get(Calendar.DAY_OF_WEEK) + 5) % 7 // Monday-indexed offset
+
+                        var selectedDayInspect by remember { mutableStateOf<Int?>(calendar.get(Calendar.DAY_OF_MONTH)) }
+
+                        Text(
+                            text = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                            color = PrimaryGreen,
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        )
+
+                        // Calendar Grid Card
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                // Weekdays Header
+                                Row(modifier = Modifier.fillMaxWidth()) {
+                                    listOf("D", "S", "C", "P", "J", "S", "Y").forEach { dayLabel ->
+                                        Text(
+                                            text = dayLabel,
+                                            modifier = Modifier.weight(1f),
+                                            textAlign = TextAlign.Center,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.Gray,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                // Grid rows
+                                val totalCells = startOffset + daysInMonth
+                                var currentCell = 0
+
+                                while (currentCell < totalCells) {
+                                    Row(modifier = Modifier.fillMaxWidth()) {
+                                        for (col in 0 until 7) {
+                                            if (currentCell < startOffset || currentCell >= totalCells) {
+                                                Box(modifier = Modifier.weight(1f))
+                                            } else {
+                                                val dayNum = currentCell - startOffset + 1
+                                                val dateStr = String.format("%d-%02d-%02d", currentYear, currentMonth + 1, dayNum)
+                                                
+                                                val dayMetrics = allMetricsList.find { it.date == dateStr }
+                                                val activeCount = reminderItems.count { it.isActive }
+                                                
+                                                val dotColor = when {
+                                                    dayMetrics == null -> Color.Transparent
+                                                    else -> {
+                                                        val completedCount = try { org.json.JSONArray(dayMetrics.completedRemindersJson).length() } catch(e: Exception) { 0 }
+                                                        when {
+                                                            activeCount == 0 -> Color.Gray
+                                                            completedCount >= activeCount -> PrimaryGreen
+                                                            completedCount > 0 -> Color(0xFFFF9800)
+                                                            else -> ErrorRed
+                                                        }
+                                                    }
+                                                }
+
+                                                val isInspected = selectedDayInspect == dayNum
+
+                                                Box(
+                                                    modifier = Modifier
+                                                        .weight(1f)
+                                                        .aspectRatio(1f)
+                                                        .padding(2.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .background(if (isInspected) PrimaryGreen.copy(alpha = 0.2f) else Color.Transparent)
+                                                        .border(
+                                                            width = if (isInspected) 1.dp else 0.dp,
+                                                            color = if (isInspected) PrimaryGreen else Color.Transparent,
+                                                            shape = RoundedCornerShape(8.dp)
+                                                        )
+                                                        .clickable { selectedDayInspect = dayNum },
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                                        Text(text = dayNum.toString(), fontSize = 12.sp, color = Color.White)
+                                                        if (dotColor != Color.Transparent) {
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .size(6.dp)
+                                                                    .background(dotColor, CircleShape)
+                                                            )
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            currentCell++
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Inspect selected day logs
+                        selectedDayInspect?.let { inspectedDay ->
+                            val inspectDateStr = String.format("%d-%02d-%02d", currentYear, currentMonth + 1, inspectedDay)
+                            val dayMetrics = allMetricsList.find { it.date == inspectDateStr }
+
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(
+                                        text = "$inspectDateStr - Kunlik hisobot",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp,
+                                        color = PrimaryGreen
+                                    )
+
+                                    if (dayMetrics == null) {
+                                        Text(text = "Ushbu kunda hech qanday ma'lumot kiritilmagan.", fontSize = 12.sp, color = Color.Gray)
+                                    } else {
+                                        val completedCount = try { org.json.JSONArray(dayMetrics.completedRemindersJson).length() } catch(e: Exception) { 0 }
+                                        Text(text = "🥤 Suv ichilgan: ${dayMetrics.waterGlasses} stakan (Maqsad: ${dayMetrics.waterGoal})", fontSize = 12.sp, color = Color.LightGray)
+                                        Text(text = "💊 Qabul qilingan dorilar: $completedCount", fontSize = 12.sp, color = Color.LightGray)
+                                        if (dayMetrics.weight > 0) {
+                                            Text(text = "⚖️ Vazn: ${dayMetrics.weight} kg", fontSize = 12.sp, color = Color.LightGray)
+                                        }
+                                        if (dayMetrics.bpSystolic > 0) {
+                                            Text(text = "🩸 Qon bosimi: ${dayMetrics.bpSystolic}/${dayMetrics.bpDiastolic} mmHg", fontSize = 12.sp, color = Color.LightGray)
+                                        }
+                                        if (dayMetrics.heartRate > 0) {
+                                            Text(text = "❤️ Puls: ${dayMetrics.heartRate} BPM", fontSize = 12.sp, color = Color.LightGray)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// --- SCREEN: EMERGENCY SOS ---
+
+@Composable
+fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+    val lang by viewModel.currentLanguage.collectAsState()
+    val context = LocalContext.current
+    var isCountingDown by remember { mutableStateOf(false) }
+    var countdownValue by remember { mutableStateOf(5) }
+    var showAddContactDialog by remember { mutableStateOf(false) }
+    var newContactName by remember { mutableStateOf("") }
+    var newContactPhone by remember { mutableStateOf("") }
+
+    val emergencyContacts = remember {
+        mutableStateListOf(
+            Pair("Oila a'zosi (Ota)", "+998 90 123 45 67"),
+            Pair("Yaqin inson (Ona)", "+998 93 987 65 43")
+        )
+    }
+
+    // Pulse Animation setup
+    val infiniteTransition = rememberInfiniteTransition()
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
+    LaunchedEffect(isCountingDown) {
+        if (isCountingDown) {
+            countdownValue = 5
+            while (countdownValue > 0) {
+                delay(1000)
+                countdownValue--
+            }
+            viewModel.triggerSOS()
+            val callIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:103"))
+            context.startActivity(callIntent)
+            isCountingDown = false
+        }
+    }
+
+    if (showAddContactDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddContactDialog = false },
+            title = { Text(text = "Favqulodda kontakt qo'shish", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    OutlinedTextField(
+                        value = newContactName,
+                        onValueChange = { newContactName = it },
+                        label = { Text("Ism yoki aloqa") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = newContactPhone,
+                        onValueChange = { newContactPhone = it },
+                        label = { Text("Telefon raqam") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newContactName.isNotBlank() && newContactPhone.isNotBlank()) {
+                            emergencyContacts.add(Pair(newContactName, newContactPhone))
+                            newContactName = ""
+                            newContactPhone = ""
+                            showAddContactDialog = false
+                            Toast.makeText(context, "Kontakt saqlandi", Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                ) {
+                    Text("Saqlash")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddContactDialog = false }) {
+                    Text("Bekor qilish", color = TextSecondary)
+                }
+            }
+        )
+    }
+
+    Scaffold(
+        topBar = { AppHeader(title = Translations.getString("sos_title", lang), onBack = onBack) }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(horizontal = 16.dp),
+            contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            // 1. High Priority SOS Trigger Header Card
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF2C0B0E)),
+                    border = BorderStroke(1.5.dp, ErrorRed.copy(alpha = 0.6f))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = ErrorRed,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "SHOSHILINCH SOS TIZIMI",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 12.sp,
+                                color = ErrorRed,
+                                letterSpacing = 1.2.sp
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        if (isCountingDown) {
+                            Text(
+                                text = String.format(Translations.getString("sos_countdown", lang), countdownValue),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = ErrorRed,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(
+                                onClick = { isCountingDown = false },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF424242)),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(text = "Bekor qilish", color = Color.White, fontWeight = FontWeight.Bold)
+                            }
+                        } else {
+                            // Pulse Red SOS Trigger Button
+                            Box(
+                                modifier = Modifier
+                                    .size(130.dp)
+                                    .scale(pulseScale)
+                                    .background(ErrorRed.copy(alpha = 0.25f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(100.dp)
+                                        .background(ErrorRed, CircleShape)
+                                        .clickable { isCountingDown = true },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text(
+                                            text = "SOS",
+                                            color = Color.White,
+                                            fontSize = 28.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                        Text(
+                                            text = "BOSING",
+                                            color = Color.White.copy(alpha = 0.9f),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(14.dp))
+
+                            Text(
+                                text = "5 soniyada avtomatik favqulodda chaqiruv jo'natiladi",
+                                fontSize = 12.sp,
+                                color = Color.White.copy(alpha = 0.8f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 2. Quick-Dial Emergency Services Section
+            item {
+                Text(
+                    text = "TEZKOR FAVQULODDA RAQAMLAR",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp,
+                    color = PrimaryGreen,
+                    letterSpacing = 1.1.sp
+                )
+            }
+
+            item {
+                val emergencyServices = listOf(
+                    Triple("103", "Tez Tibbiy Yordam", Color(0xFFD32F2F)),
+                    Triple("101", "Yong'in Xavfsizligi", Color(0xFFE65100)),
+                    Triple("102", "Militsiya / IIB", Color(0xFF1976D2)),
+                    Triple("1050", "FVV Qutqaruv", Color(0xFF388E3C))
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    emergencyServices.chunked(2).forEach { rowItems ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            rowItems.forEach { (number, name, color) ->
+                                Card(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable {
+                                            val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$number"))
+                                            context.startActivity(dialIntent)
+                                        },
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                    border = BorderStroke(1.dp, color.copy(alpha = 0.4f))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(14.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(38.dp)
+                                                .background(color.copy(alpha = 0.15f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PhoneInTalk,
+                                                contentDescription = null,
+                                                tint = color,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(
+                                                text = number,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                fontSize = 18.sp,
+                                                color = color
+                                            )
+                                            Text(
+                                                text = name,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium,
+                                                color = TextSecondary,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. Nearby Hospital Information Section
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "ENG YAQIN SHOSHILINCH SHIFOXONALAR (24/7)",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = PrimaryGreen,
+                        letterSpacing = 1.1.sp
+                    )
+                }
+            }
+
+            val nearbyHospitals = listOf(
+                Triple("Respublika Shoshilinch Tibbiy Yordam Markazi (16-Bosh)", "Toshkent, Chilonzor tumani, Farxod ko'chasi, 2", "+998 71 246 00 18"),
+                Triple("Toshkent Shahar 1-Klinik Shifoxonasi", "Toshkent, Shayxontohur tumani, Navoiy ko'chasi", "+998 71 244 10 03"),
+                Triple("Akfa Medline Shoshilinch Bo'limi", "Toshkent, Olmazor tumani, Kichik halqa yo'li", "+998 71 203 30 03"),
+                Triple("Shox Med Center Emergency 24/7", "Toshkent, Yakkasaroy tumani, Shota Rustaveli", "+998 71 202 02 03"),
+                Triple("Sog'lom Avlod Samarqand Shoshilinch", "Samarqand, Dahbed ko'chasi, 14", "+998 66 233 00 55")
+            )
+
+            items(nearbyHospitals) { (hospitalName, address, phone) ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MedicalBorder)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(PrimaryGreen.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalHospital,
+                                contentDescription = null,
+                                tint = PrimaryGreen,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(14.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = hospitalName,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    color = TextPrimary,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .background(SuccessGreen.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text("24/7", fontSize = 10.sp, fontWeight = FontWeight.Bold, color = SuccessGreen)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = address,
+                                fontSize = 11.sp,
+                                color = TextSecondary,
+                                maxLines = 2
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Tel: $phone",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = PrimaryGreen
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        IconButton(
+                            onClick = {
+                                val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${phone.replace(" ", "")}"))
+                                context.startActivity(dialIntent)
+                            },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(PrimaryGreen.copy(alpha = 0.15f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = "Qo'ng'iroq qilish",
+                                tint = PrimaryGreen,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 4. Emergency Contacts Section
+            item {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "FAVQULODDA A'LOQA KONTAKTLARI",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp,
+                        color = PrimaryGreen,
+                        letterSpacing = 1.1.sp
+                    )
+                    TextButton(onClick = { showAddContactDialog = true }) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = "Qo'shish", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                    }
+                }
+            }
+
+            items(emergencyContacts) { (contactName, phone) ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MedicalBorder)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(ErrorRed.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ContactPhone,
+                                contentDescription = null,
+                                tint = ErrorRed,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = contactName, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                            Text(text = phone, fontSize = 12.sp, color = TextSecondary)
+                        }
+                        IconButton(
+                            onClick = {
+                                val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${phone.replace(" ", "")}"))
+                                context.startActivity(dialIntent)
+                            }
+                        ) {
+                            Icon(imageVector = Icons.Default.Call, contentDescription = "Chaqirish", tint = PrimaryGreen)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// --- SCREEN: HISTORIC TIMELINE LOG ---
+
+@Composable
+fun HistoryScreen(viewModel: AppViewModel) {
+    val lang by viewModel.currentLanguage.collectAsState()
+    val checks by viewModel.symptomChecks.collectAsState()
+    val scope = rememberCoroutineScope()
+
+    Scaffold(
+        topBar = { AppHeader(title = Translations.getString("tab_history", lang)) }
+    ) { innerPadding ->
+        if (checks.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .background(MaterialTheme.colorScheme.background),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(imageVector = Icons.Default.HourglassEmpty, contentDescription = null, modifier = Modifier.size(48.dp), tint = Color.LightGray)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Tarix bo'sh. Qidiruv natijalari bu yerda saqlanadi.", color = Color.Gray)
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(checks) { check ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(imageVector = Icons.Default.Event, contentDescription = null, tint = PrimaryGreen)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(text = "Simptom tekshiruvi: ${check.bodyPart}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                }
+                                IconButton(onClick = {
+                                    scope.launch { viewModel.dao.deleteSymptomCheck(check.id) }
+                                }) {
+                                    Icon(imageVector = Icons.Default.Delete, contentDescription = null, tint = Color.LightGray)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = "Kiritilgan simptomlar: ${check.symptomsInput}", fontSize = 12.sp, color = Color.Gray)
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(text = check.resultJson, fontSize = 12.sp, color = Color.DarkGray, maxLines = 4)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// --- SCREEN: GENERAL CHAT ---
+
+@Composable
+fun GeneralChatScreen(viewModel: AppViewModel) {
+    val lang by viewModel.currentLanguage.collectAsState()
+    val chatMessages by viewModel.dao.getChatMessagesFlow("general").collectAsState(initial = emptyList())
+    var messageText by remember { mutableStateOf("") }
+
+    Scaffold(
+        topBar = { AppHeader(title = Translations.getString("tab_chat", lang)) },
+        bottomBar = {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+                    .navigationBarsPadding(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedTextField(
+                    value = messageText,
+                    onValueChange = { messageText = it },
+                    placeholder = { Text("AI Sog'liq maslahatchisidan so'rang...") },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(24.dp)
+                )
+
+                IconButton(
+                    onClick = {
+                        if (messageText.isNotEmpty()) {
+                            viewModel.sendChatMessage(messageText, "general")
+                            messageText = ""
+                        }
+                    },
+                    modifier = Modifier
+                        .background(PrimaryGreen, CircleShape)
+                        .size(48.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White)
+                }
+            }
+        }
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(MaterialTheme.colorScheme.background)
+                .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(chatMessages) { msg ->
+                val isUser = msg.role == "user"
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (isUser) PrimaryGreen else MaterialTheme.colorScheme.surface
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.widthIn(max = 280.dp)
+                    ) {
+                        Text(
+                            text = msg.content,
+                            color = if (isUser) Color.White else Color.LightGray,
+                            modifier = Modifier.padding(12.dp),
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

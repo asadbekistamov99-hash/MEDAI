@@ -1,0 +1,6 @@
+{
+  "name": "MedAI - Your AI Health Assistant",
+  "description": "Premium multi-language AI medical consultant, real-time family health tracking, lab vision analyzer, smart reminders, and emergency SOS dispatch dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

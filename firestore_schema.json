@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MedAI Firestore Schema Blueprint",
+  "description": "Schema structure design for content, settings, errorLogs, and apiLogs collections",
+  "collections": {
+    "content": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Document ID" },
+        "type": { "type": "string", "enum": ["health_tip", "announcement", "banner", "article"] },
+        "titleUz": { "type": "string" },
+        "titleRu": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "bodyUz": { "type": "string" },
+        "bodyRu": { "type": "string" },
+        "bodyEn": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "publishedAt": { "type": "integer", "description": "UTC Timestamp in milliseconds" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["type", "titleUz", "bodyUz", "publishedAt", "isActive"]
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "enum": ["app_config", "feature_flags", "version_config"], "description": "Document ID determines the setting category" },
+        "app_config": {
+          "type": "object",
+          "properties": {
+            "maintenanceMode": { "type": "boolean" },
+            "supportedLanguages": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "feature_flags": {
+          "type": "object",
+          "properties": {
+            "enableGeminiSymptomCheck": { "type": "boolean" },
+            "enableSosEmergency": { "type": "boolean" },
+            "enableLabResultVision": { "type": "boolean" }
+          }
+        },
+        "version_config": {
+          "type": "object",
+          "properties": {
+            "minSupportedVersion": { "type": "string" },
+            "latestVersion": { "type": "string" },
+            "forceUpdate": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "errorLogs": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Auto-generated Document ID" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "errorMessage": { "type": "string" },
+        "stackTrace": { "type": "string" },
+        "deviceModel": { "type": "string" },
+        "osVersion": { "type": "string" },
+        "appVersion": { "type": "string" },
+        "timestamp": { "type": "integer", "description": "UTC Timestamp in milliseconds" }
+      },
+      "required": ["userId", "errorMessage", "deviceModel", "osVersion", "appVersion", "timestamp"]
+    },
+    "apiLogs": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Auto-generated Document ID" },
+        "userId": { "type": "string" },
+        "endpoint": { "type": "string" },
+        "method": { "type": "string" },
+        "statusCode": { "type": "integer" },
+        "responseTimeMs": { "type": "integer" },
+        "timestamp": { "type": "integer", "description": "UTC Timestamp in milliseconds" }
+      },
+      "required": ["userId", "endpoint", "method", "statusCode", "responseTimeMs", "timestamp"]
+    }
+  }
+}

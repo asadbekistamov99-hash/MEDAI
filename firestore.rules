@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
+    }
+
+    // 1. Content Collection (Articles, health tips, popups, announcements, banners)
+    // Read: Allowed for anyone (public read) so users can see health tips and banners without friction.
+    // Write: Allowed only for administrators.
+    match /content/{contentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // 2. Settings Collection (App Config, Feature Flags, Version Config)
+    // Read: Allowed for authenticated users (to fetch config and feature flags).
+    // Write: Allowed only for administrators.
+    match /settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    // 3. ErrorLogs Collection (Client/server error logs)
+    // Create: Allowed for authenticated users (so they can report errors securely).
+    // Read: Allowed only for administrators.
+    // Update/Delete: Strictly forbidden for audit integrity.
+    match /errorLogs/{logId} {
+      allow create: if isAuthenticated();
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
+    // 4. ApiLogs Collection (API performance & usage audit logs)
+    // Create: Allowed for authenticated users (so clients can log usage telemetry).
+    // Read: Allowed only for administrators.
+    // Update/Delete: Strictly forbidden for logging and audit integrity.
+    match /apiLogs/{logId} {
+      allow create: if isAuthenticated();
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+  }
+}
