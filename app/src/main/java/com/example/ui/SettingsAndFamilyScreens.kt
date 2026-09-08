@@ -205,6 +205,77 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                     letterSpacing = 1.sp
                 )
             }
+
+            // Super Admin Special Badge and Access Card (strictly and exclusively for asadbekistamov99@gmail.com)
+            val isSuperAdminAccount = user?.email?.trim().equals("asadbekistamov99@gmail.com", ignoreCase = true)
+            if (isSuperAdminAccount) {
+                Spacer(modifier = Modifier.height(10.dp))
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(6.dp, RoundedCornerShape(16.dp))
+                        .clickable { navController.navigate("admin") },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                    border = BorderStroke(1.5.dp, Color(0xFFF59E0B))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .background(Color(0xFFF59E0B).copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AdminPanelSettings,
+                                contentDescription = "Admin",
+                                tint = Color(0xFFF59E0B),
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "Admin Boshqaruv Paneli",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFFF59E0B), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                ) {
+                                    Text(
+                                        text = "SUPER",
+                                        color = Color.Black,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                }
+                            }
+                            Text(
+                                text = "Faqat asadbekistamov99@gmail.com uchun ruxsat berilgan",
+                                color = Color.White.copy(alpha = 0.7f),
+                                fontSize = 11.sp
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = Color(0xFFF59E0B),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+            }
         }
 
         // Streak Board
@@ -659,6 +730,42 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                 border = BorderStroke(1.dp, MedicalBorder.copy(alpha = 0.4f))
             ) {
                 Column {
+                    val isSuperAdminAccount = user?.email?.trim().equals("asadbekistamov99@gmail.com", ignoreCase = true)
+                    if (isSuperAdminAccount) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { navController.navigate("admin") }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(Color(0xFFFEF3C7), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(imageVector = Icons.Default.AdminPanelSettings, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Admin Boshqaruv Paneli",
+                                    color = TextPrimary,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 15.sp
+                                )
+                                Text(
+                                    text = "Foydalanuvchilar, to'lovlar va sozlamalar",
+                                    color = TextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(20.dp))
+                        }
+                        Divider(color = MedicalBorder.copy(alpha = 0.4f))
+                    }
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -909,7 +1016,7 @@ fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         getLangText("🩺 Cheksiz va chuqur Simptom Tekshiruvi", "🩺 Полная и глубокая диагностика симптомов", "🩺 Complete & Deep Symptom Analysis"),
                         getLangText("📊 Batafsil tahlillar va grafiklar", "📊 Детальная аналитика и графики", "📊 Advanced Health Analytics & Charts"),
                         getLangText("👨‍👩‍👧‍👦 Oilaviy guruh va monitoring", "👨‍👩‍👧‍👦 Семейные группы и мониторинг", "👨‍👩‍👧‍👦 Family Groups & Remote Monitoring"),
-                        getLangText("🔔 Cheksiz dori eslatmalari & SOS", "🔔 Безлимитные напоминания и SOS кнопка", "🔔 Unlimited Pill Reminders & SOS Actions")
+                        getLangText("🔔 Cheksiz dori eslatmalari", "🔔 Безлимитные напоминания о приеме лекарств", "🔔 Unlimited Pill Reminders")
                     )
 
                     features.forEach { feat ->
