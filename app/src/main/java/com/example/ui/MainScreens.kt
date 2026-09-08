@@ -273,7 +273,7 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                             modifier = Modifier
                                 .size(40.dp)
                                 .background(PrimaryGreen.copy(alpha = 0.1f), CircleShape)
-                                .clickable { /* Hamburger menu tap */ },
+                                .clickable { onNavigate("services") },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -495,13 +495,68 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
 
         // 4. Feature Grid Title
         item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 6.dp)
+                    .clickable { onNavigate("yordamchi") },
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = PrimaryGreen.copy(alpha = 0.1f)),
+                border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.3f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .background(PrimaryGreen, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SmartToy,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                text = "MedAI Yordamchi (4-in-1)",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 15.sp,
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = "Dori aniqlash, Simptom, Statistika & Reminder",
+                                fontSize = 12.sp,
+                                color = TextSecondary
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        tint = PrimaryGreen
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
             Text(
                 text = "MEDAI xizmatlari".uppercase(),
                 fontWeight = FontWeight.Bold,
                 fontSize = 11.sp,
                 color = PrimaryGreen,
                 letterSpacing = 1.2.sp,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
             )
         }
 
@@ -509,6 +564,7 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
         item {
             // Features configuration
             val freeFeatures = listOf(
+                FeatureItem("yordamchi", "MedAI Yordamchi", "Tezkor 4-in-1 yordam", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(PrimaryGreen, DarkGreen))),
                 FeatureItem("symptoms", Translations.getString("feat_symptoms", lang), "Tahlil qilish", Icons.Default.Favorite, Brush.horizontalGradient(colors = listOf(Color(0xFF00897B), Color(0xFF00ACC1)))),
                 FeatureItem("drugs", Translations.getString("feat_med_info", lang), "Tarkibi va foydasi", Icons.Default.LocalPharmacy, Brush.horizontalGradient(colors = listOf(Color(0xFF1565C0), Color(0xFF1976D2)))),
                 FeatureItem("reminder", Translations.getString("feat_reminder", lang), "O'z vaqtida ichish", Icons.Default.Alarm, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFF57C00)))),
@@ -517,18 +573,19 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                 FeatureItem("services", Translations.getString("feat_services", lang), "Kasalxonalar va yordam", Icons.Default.LocalHospital, Brush.horizontalGradient(colors = listOf(Color(0xFFC62828), Color(0xFFE53935))))
             )
 
-            val premiumFeatures = freeFeatures.take(1) + listOf(
+            val premiumFeatures = listOf(
+                FeatureItem("yordamchi", "MedAI Yordamchi", "Smart 4-in-1 yordam", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(PrimaryGreen, DarkGreen)))
+            ) + freeFeatures.drop(1).take(1) + listOf(
                 FeatureItem("ai_doctor", Translations.getString("feat_ai_doctor", lang), "AI Robot-Shifokor", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(Color(0xFF4527A0), Color(0xFF5E35B1)))),
                 FeatureItem("ai_tips", Translations.getString("feat_ai_tips", lang), "Aqlli maslahatlar", Icons.Default.TipsAndUpdates, Brush.horizontalGradient(colors = listOf(Color(0xFF0277BD), Color(0xFF0288D1)))),
                 FeatureItem("drugs", Translations.getString("feat_med_info", lang), "Dori vositalari", Icons.Default.LocalPharmacy, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFF4511E))))
             ) + listOf(
                 FeatureItem("lab", Translations.getString("feat_lab", lang), "Retsept tahlil qilish", Icons.Default.Science, Brush.horizontalGradient(colors = listOf(Color(0xFF00695C), Color(0xFF00897B)))),
                 FeatureItem("reminder", Translations.getString("feat_reminder", lang), "Dori eslatmalari", Icons.Default.Alarm, Brush.horizontalGradient(colors = listOf(Color(0xFFAD1457), Color(0xFFD81B60)))),
-                FeatureItem("sos", "Tez yordam SOS", "Favqulodda yordam", Icons.Default.Shield, Brush.horizontalGradient(colors = listOf(Color(0xFFB71C1C), Color(0xFFE53935)))),
-                FeatureItem("analytics", Translations.getString("feat_analytics", lang), "Grafik ko'rsatkichlar", Icons.Default.BarChart, Brush.horizontalGradient(colors = listOf(Color(0xFF283593), Color(0xFF3949AB))))
+                FeatureItem("analytics", Translations.getString("feat_analytics", lang), "Grafik ko'rsatkichlar", Icons.Default.BarChart, Brush.horizontalGradient(colors = listOf(Color(0xFF283593), Color(0xFF3949AB)))),
+                FeatureItem("notifications", Translations.getString("feat_notifications", lang), "Ogohlantirishlar", Icons.Default.NotificationsActive, Brush.horizontalGradient(colors = listOf(Color(0xFF6A1B9A), Color(0xFF8E24AA))))
             ) + listOf(
                 FeatureItem("family", Translations.getString("feat_family", lang), "Oila a'zolari", Icons.Default.Group, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFFF6D00)))),
-                FeatureItem("sos", "Favqulodda vaziyat", "SOS tezkor yordam", Icons.Default.Emergency, Brush.horizontalGradient(colors = listOf(Color(0xFFC62828), Color(0xFFD32F2F)))),
                 FeatureItem("services", Translations.getString("feat_services", lang), "Klinika xizmatlari", Icons.Default.LocalHospital, Brush.horizontalGradient(colors = listOf(Color(0xFF006064), Color(0xFF00838F)))),
                 FeatureItem("help", Translations.getString("feat_help", lang), "Savol va javoblar", Icons.Default.HelpCenter, Brush.horizontalGradient(colors = listOf(Color(0xFF37474F), Color(0xFF546E7A))))
             )

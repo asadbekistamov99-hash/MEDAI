@@ -15,6 +15,12 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.*
 
+data class SymptomQuestionsResult(
+    val title: String = "",
+    val medicalName: String = "",
+    val questions: List<String> = emptyList()
+)
+
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
     val dao = database.appDao()
@@ -249,6 +255,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _labAnalysisResult = MutableStateFlow<String>("")
     val labAnalysisResult: StateFlow<String> = _labAnalysisResult.asStateFlow()
 
+    // --- MedAI Yordamchi Dedicated States ---
+    private val _pillIdentifyResult = MutableStateFlow<String>("")
+    val pillIdentifyResult: StateFlow<String> = _pillIdentifyResult.asStateFlow()
+
+    private val _isIdentifyingPill = MutableStateFlow(false)
+    val isIdentifyingPill: StateFlow<Boolean> = _isIdentifyingPill.asStateFlow()
+
+    private val _symptomQuestionsData = MutableStateFlow<SymptomQuestionsResult?>(null)
+    val symptomQuestionsData: StateFlow<SymptomQuestionsResult?> = _symptomQuestionsData.asStateFlow()
+
+    private val _isLoadingSymptomQuestions = MutableStateFlow(false)
+    val isLoadingSymptomQuestions: StateFlow<Boolean> = _isLoadingSymptomQuestions.asStateFlow()
+
+    private val _symptomDynamicAnalysisResult = MutableStateFlow("")
+    val symptomDynamicAnalysisResult: StateFlow<String> = _symptomDynamicAnalysisResult.asStateFlow()
+
+    private val _isAnalyzingSymptomAnswers = MutableStateFlow(false)
+    val isAnalyzingSymptomAnswers: StateFlow<Boolean> = _isAnalyzingSymptomAnswers.asStateFlow()
+
     // --- UI Metrics Trackers (Analytics) ---
     private val _dailySteps = MutableStateFlow(7240)
     val dailySteps: StateFlow<Int> = _dailySteps.asStateFlow()
@@ -288,12 +313,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             seedAdminDataIfNeeded()
             
-            // Activate Premium VIP membership for current user
+            // Activate Premium VIP membership for current user and ensure admin authorization
             val existingUser = dao.getCurrentUser()
             if (existingUser != null) {
+                val shouldBeAdmin = existingUser.email.trim().equals("asadbekistamov99@gmail.com", ignoreCase = true)
+                var updatedUser = existingUser
                 if (!existingUser.isPremium) {
                     val oneYearExpiry = System.currentTimeMillis() + 365L * 24 * 3600 * 1000L
-                    dao.insertUser(existingUser.copy(isPremium = true, premiumExpiry = oneYearExpiry))
+                    updatedUser = updatedUser.copy(isPremium = true, premiumExpiry = oneYearExpiry)
+                }
+                if (existingUser.isAdmin != shouldBeAdmin) {
+                    updatedUser = updatedUser.copy(isAdmin = shouldBeAdmin)
+                }
+                if (updatedUser != existingUser) {
+                    dao.insertUser(updatedUser)
                 }
             } else {
                 // If no user exists, create a default active Premium user profile for instant access
@@ -477,14 +510,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loginUser(email: String, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
+            val trimmedEmail = email.trim()
+            val shouldBeAdmin = trimmedEmail.equals("asadbekistamov99@gmail.com", ignoreCase = true)
             // Attempt to login. If exists, we can use it. Otherwise, create a default user profile.
             val current = dao.getCurrentUser()
-            if (current != null && current.email.equals(email, ignoreCase = true)) {
-                dao.insertUser(current.copy(lastActive = System.currentTimeMillis()))
+            if (current != null && current.email.equals(trimmedEmail, ignoreCase = true)) {
+                dao.insertUser(current.copy(
+                    lastActive = System.currentTimeMillis(),
+                    isAdmin = shouldBeAdmin
+                ))
             } else {
                 registerUserSuspend(
-                    name = email.substringBefore("@").replaceFirstChar { it.uppercase() },
-                    email = email,
+                    name = trimmedEmail.substringBefore("@").replaceFirstChar { it.uppercase() },
+                    email = trimmedEmail,
                     phone = "+998 90 123 45 67",
                     dob = "1999-05-15",
                     gender = "male",
@@ -845,6 +883,184 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
             _drugInfoResult.value = resultMap
             _isLoadingDrug.value = false
+        }
+    }
+
+    // --- MedAI Yordamchi Dedicated Methods ---
+
+    fun identifyPill(pillName: String) {
+        viewModelScope.launch {
+            _isIdentifyingPill.value = true
+            _pillIdentifyResult.value = ""
+            val lang = _currentLanguage.value
+
+            val prompt = """
+                Dori nomi: "$pillName".
+                Ushbu dori haqida to'liq va aniq tibbiy yoriqnoma tayyorlang ($lang tilida).
+                
+                Tuzilishi:
+                1. 💊 Asosiy tarkibi va ta'siri (Farmakologik xususiyatlari)
+                2. ⏱️ Qo'llash usuli va dozalari (kattalar, bolalar, ovqatdan oldin/keyin)
+                3. ⚠️ Nojo'ya ta'sirlari va ehtiyot choralari
+                4. 🚫 Qarshi ko'rsatmalar (kimlarga mumkin emas)
+                5. 🔄 Boshqa dorilar bilan o'zaro ta'siri
+                6. 🌡️ Saqlash sharoiti.
+                
+                Matnni juda tushunarli, chiroyli va o'qishli formatda bering.
+            """.trimIndent()
+
+            val response = GeminiClient.generateText(prompt, "Siz tajribali klinik farmakolog shifokorsiz.")
+            _pillIdentifyResult.value = response
+            _isIdentifyingPill.value = false
+
+            val user = currentUser.value
+            if (user != null) {
+                dao.insertUserActivity(UserActivityLog(
+                    userId = user.uid,
+                    screenName = "PillIdentify",
+                    actionType = "pill_identify",
+                    details = "Dori yorig'i olindi: $pillName"
+                ))
+            }
+        }
+    }
+
+    fun getSymptomQuestions(complaint: String) {
+        viewModelScope.launch {
+            _isLoadingSymptomQuestions.value = true
+            _symptomQuestionsData.value = null
+            _symptomDynamicAnalysisResult.value = ""
+            val lang = _currentLanguage.value
+
+            val prompt = """
+                Foydalanuvchi quyidagi shikoyatni kiritdi: "$complaint".
+                Ushbu simptomni aniqroq tahlil qilish va tashxis qo'yish uchun shifokor berishi kerak bo'lgan 3 tadan 5 tagacha eng muhim klinik savollarni shakllantiring ($lang tilida).
+                Shuningdek, simptomning qisqa nomini (title) va tibbiy/ilmiy nomini (medical_name) aniqlang.
+                
+                Javobni FAQAT toza JSON formatida bering:
+                {
+                  "title": "Bosh og'rig'i",
+                  "medical_name": "Cephalea",
+                  "questions": [
+                    "Og'riq boshning qaysi sohasida ko'proq sezilmoqda?",
+                    "Og'riq qachon boshlangan va qanday xarakterga ega (o'tkir, simillovchi, bosuvchi)?",
+                    "Ko'ngil aynishi, ko'z xiralashishi yoki bosh aylanishi bormi?"
+                  ]
+                }
+            """.trimIndent()
+
+            val response = GeminiClient.generateText(prompt, "Siz professional diagnostik shifokorsiz. Faqat to'g'ri JSON qaytaring.")
+            try {
+                val startIdx = response.indexOf("{")
+                val endIdx = response.lastIndexOf("}")
+                if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
+                    val jsonStr = response.substring(startIdx, endIdx + 1)
+                    val json = org.json.JSONObject(jsonStr)
+                    val title = json.optString("title", complaint.take(25))
+                    val medName = json.optString("medical_name", "Klinik simptom")
+                    val qArray = json.optJSONArray("questions")
+                    val questions = mutableListOf<String>()
+                    if (qArray != null) {
+                        for (i in 0 until qArray.length()) {
+                            val qText = qArray.optString(i).trim()
+                            if (qText.isNotEmpty()) questions.add(qText)
+                        }
+                    }
+                    if (questions.isEmpty()) {
+                        questions.add("Belgilar qachondan beri bezovta qilmoqda?")
+                        questions.add("Tana harorati ko'tarilganmi?")
+                        questions.add("Avval ham shunday holat kuzatilganmi?")
+                    }
+                    _symptomQuestionsData.value = SymptomQuestionsResult(title, medName, questions)
+                } else {
+                    _symptomQuestionsData.value = SymptomQuestionsResult(
+                        title = complaint.take(25),
+                        medicalName = "Simptom tekshiruvi",
+                        questions = listOf(
+                            "Belgilar qachondan beri bezovta qilmoqda?",
+                            "Og'riq yoki noqulaylik darajasi (1-10) qanday?",
+                            "Harorat, ko'ngil aynishi kabi qo'shimcha belgilar bormi?"
+                        )
+                    )
+                }
+            } catch (e: Exception) {
+                _symptomQuestionsData.value = SymptomQuestionsResult(
+                    title = complaint.take(25),
+                    medicalName = "Klinik simptom",
+                    questions = listOf(
+                        "Belgilar qachon boshlandi?",
+                        "Og'riq qanday xarakterga ega?",
+                        "Qanday qo'shimcha alomatlar bor?"
+                    )
+                )
+            }
+            _isLoadingSymptomQuestions.value = false
+        }
+    }
+
+    fun analyzeSymptomAnswers(complaint: String, questions: List<String>, answers: List<String>) {
+        viewModelScope.launch {
+            _isAnalyzingSymptomAnswers.value = true
+            _symptomDynamicAnalysisResult.value = ""
+            val lang = _currentLanguage.value
+
+            val qaList = questions.mapIndexed { idx, q ->
+                val ans = answers.getOrElse(idx) { "" }.ifBlank { "Javob ko'rsatilmadi" }
+                "${idx + 1}. $q -> $ans"
+            }.joinToString("\n")
+
+            val prompt = """
+                Birlamchi shikoyat: "$complaint"
+                
+                Klinik savollarga bemor bergan javoblari:
+                $qaList
+                
+                Ushbu ma'lumotlar asosida bemor uchun professional, tushunarli va to'liq tibbiy xulosa bering ($lang tilida):
+                
+                1. 🔍 **Ehtimoliy tashxis va sabablar**:
+                   - Nima sababdan bu holat yuzaga kelgan bo'lishi mumkin?
+                2. 🩺 **Tavsiya etiladigan mutaxassis shifokor**:
+                   - Qaysi ixtisoslikdagi shifokor ko'rigiga borish kerak?
+                3. 🧪 **Tavsiya etiladigan tahlillar**:
+                   - Qanday laboratoriya yoki UTT/MRT tekshiruvlari foydali?
+                4. 💡 **Uy sharoitidagi xavfsiz tavsiyalar**:
+                   - Shifokor qabuligacha nimalar qilish mumkin?
+                5. 🚨 **Favqulodda belgilar (Qizil bayroqlar)**:
+                   - Qanday holatda zudlik bilan 103 ga qo'ng'iroq qilish kerak?
+            """.trimIndent()
+
+            val response = GeminiClient.generateText(prompt, "Siz bosh shifokor va mohir klinik diagnostiksiz.")
+            _symptomDynamicAnalysisResult.value = response
+            _isAnalyzingSymptomAnswers.value = false
+
+            val user = currentUser.value
+            if (user != null) {
+                dao.insertSymptomCheck(
+                    SymptomCheck(
+                        userId = user.uid,
+                        symptomsInput = "$complaint (Savol-javobli tahlil)",
+                        bodyPart = "General",
+                        resultJson = response
+                    )
+                )
+            }
+        }
+    }
+
+    fun addSimpleReminder(medName: String, hhmm: String) {
+        viewModelScope.launch {
+            val user = currentUser.value ?: return@launch
+            val r = ReminderLocal(
+                userId = user.uid,
+                medicineName = medName,
+                time = hhmm,
+                frequency = "Har kuni",
+                type = "medicine",
+                targetFamilyMember = null,
+                notes = "MedAI Yordamchi orqali qo'shildi"
+            )
+            dao.insertReminder(r)
+            Toast.makeText(getApplication(), "Eslatma saqlandi: $medName ($hhmm)", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -2481,10 +2697,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- Firebase Auth & Firestore Admin Integration ---
     val ADMIN_WHITELIST = listOf(
-        "asadbekistamov99@gmail.com",
-        "admin@medai.uz",
-        "manager@medai.uz",
-        "developer@medai.uz"
+        "asadbekistamov99@gmail.com"
     )
 
     fun isUserFirebaseAdmin(): Boolean {
@@ -2494,8 +2707,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val localUser = currentUser.value
             val email = fbUser?.email ?: localUser?.email
             if (email != null) {
-                email.startsWith("asadbekistamov99@gmail.com", ignoreCase = true) ||
-                ADMIN_WHITELIST.any { it.equals(email, ignoreCase = true) }
+                email.trim().equals("asadbekistamov99@gmail.com", ignoreCase = true)
             } else {
                 false
             }
@@ -2503,8 +2715,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val localUser = currentUser.value
             val email = localUser?.email
             if (email != null) {
-                email.startsWith("asadbekistamov99@gmail.com", ignoreCase = true) ||
-                ADMIN_WHITELIST.any { it.equals(email, ignoreCase = true) }
+                email.trim().equals("asadbekistamov99@gmail.com", ignoreCase = true)
             } else {
                 false
             }
