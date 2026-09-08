@@ -229,7 +229,6 @@ fun RowScope.MedicalBottomTabItem(
 
 @Composable
 fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
-    val context = LocalContext.current
     val user by viewModel.currentUser.collectAsState()
     val lang by viewModel.currentLanguage.collectAsState()
     val steps by viewModel.dailySteps.collectAsState()
@@ -249,7 +248,7 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
             .background(Color.Transparent),
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
-        // 1. App Header with Hamburger, Title with Pulse Dot, and Bouncing Bell
+        // 1. App Header: Hamburger, left-aligned brand block with slogan, Bell
         item {
             AnimatedVisibility(
                 visible = animateRows,
@@ -285,69 +284,69 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                             )
                         }
 
-                        // Center: MedAI in ExtraBold PrimaryGreen with green pulse dot
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "MedAI",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 24.sp,
-                                color = PrimaryGreen,
-                                letterSpacing = -0.5.sp
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            // Green pulse dot
-                            val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-                            val pulseScale by infiniteTransition.animateFloat(
-                                initialValue = 0.8f,
-                                targetValue = 1.3f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(1000, easing = EaseInOutSine),
-                                    repeatMode = RepeatMode.Reverse
-                                ),
-                                label = "pulse"
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(6.dp)
-                                    .graphicsLayer {
-                                        scaleX = pulseScale
-                                        scaleY = pulseScale
-                                    }
-                                    .background(SuccessGreen, CircleShape)
-                            )
+                        Spacer(modifier = Modifier.width(12.dp))
 
-                            if (isPremium) {
-                                Spacer(modifier = Modifier.width(8.dp))
-                                // Premium Shimmering Badge
-                                val shimmerTranslate by infiniteTransition.animateFloat(
-                                    initialValue = 0f,
-                                    targetValue = 100f,
-                                    animationSpec = infiniteRepeatable(
-                                        animation = tween(2000, easing = LinearEasing),
-                                        repeatMode = RepeatMode.Restart
-                                    ),
-                                    label = "shimmer"
+                        // Center: MedAI title (left-aligned) with slogan underneath, PREMIUM pill inline
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = "MedAI",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 22.sp,
+                                    color = PrimaryGreen,
+                                    letterSpacing = -0.5.sp
                                 )
-                                Box(
-                                    modifier = Modifier
-                                        .background(
-                                            Brush.linearGradient(
-                                                colors = listOf(PremiumPurple, Color(0xFF9333EA), PremiumPurple),
-                                                start = Offset(shimmerTranslate, 0f),
-                                                end = Offset(shimmerTranslate + 40f, 0f)
-                                            ),
-                                            RoundedCornerShape(8.dp)
-                                        )
-                                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                                ) {
-                                    Text(
-                                        text = "PREMIUM",
-                                        fontSize = 9.sp,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.Bold
+
+                                if (isPremium) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+                                    val shimmerTranslate by infiniteTransition.animateFloat(
+                                        initialValue = 0f,
+                                        targetValue = 100f,
+                                        animationSpec = infiniteRepeatable(
+                                            animation = tween(2000, easing = LinearEasing),
+                                            repeatMode = RepeatMode.Restart
+                                        ),
+                                        label = "shimmer"
                                     )
+                                    Box(
+                                        modifier = Modifier
+                                            .background(
+                                                Brush.linearGradient(
+                                                    colors = listOf(PremiumPurple, Color(0xFF9333EA), PremiumPurple),
+                                                    start = Offset(shimmerTranslate, 0f),
+                                                    end = Offset(shimmerTranslate + 40f, 0f)
+                                                ),
+                                                RoundedCornerShape(8.dp)
+                                            )
+                                            .padding(horizontal = 8.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "PREMIUM",
+                                            fontSize = 9.sp,
+                                            color = Color.White,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
                                 }
                             }
+                            Text(
+                                text = Translations.getString("app_slogan", lang),
+                                fontSize = 11.sp,
+                                color = TextSecondary,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+
+                        if (isPremium) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Default.WorkspacePremium,
+                                contentDescription = "Premium",
+                                tint = Color(0xFFFFB300),
+                                modifier = Modifier.size(22.dp)
+                            )
                         }
 
                         // Right: Bouncing notification bell with red badge inside light circular button
@@ -406,7 +405,7 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
             }
         }
 
-        // 2. Hero Banner: Gradient Background, Greeting, and Mood Pills
+        // 2. Hero Banner: Nature photo background with greeting overlay
         item {
             AnimatedVisibility(
                 visible = animateRows,
@@ -415,89 +414,65 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .height(150.dp)
                         .padding(horizontal = 20.dp, vertical = 12.dp)
                         .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = PrimaryGreen.copy(alpha = 0.2f), spotColor = PrimaryGreen.copy(alpha = 0.2f))
                         .clip(RoundedCornerShape(24.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(PrimaryGreen, DarkGreen)
-                            )
-                        )
                 ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = String.format(Translations.getString("home_greeting", lang), user?.name ?: ""),
-                                    fontSize = 22.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = Color.White,
-                                    letterSpacing = -0.5.sp
+                    // Soft nature background photo
+                    androidx.compose.foundation.Image(
+                        painter = painterResource(id = R.drawable.img_nature_bg),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.matchParentSize()
+                    )
+                    // Darkening scrim so white text stays readable over the photo
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(DarkGreen.copy(alpha = 0.55f), PrimaryGreen.copy(alpha = 0.35f))
                                 )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Bugun qanday his qilyapsiz?",
-                                    fontSize = 13.sp,
-                                    color = Color.White.copy(alpha = 0.85f)
-                                )
-                            }
+                            )
+                    )
 
-                            // Right side: Doctor / Medical icon
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .background(Color.White.copy(alpha = 0.2f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = if (isPremium) Icons.Default.MilitaryTech else Icons.Default.LocalHospital,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(20.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = String.format(Translations.getString("home_greeting", lang), user?.name ?: ""),
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color.White,
+                                letterSpacing = -0.5.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Bugun o'zingizni qanday his qilyapsiz?",
+                                fontSize = 13.sp,
+                                color = Color.White.copy(alpha = 0.9f)
+                            )
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Mood selector pills
-                        var selectedMoodIndex by remember { mutableStateOf(0) }
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
+                        // Right side: Doctor / Medical icon
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(Color.White.copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
                         ) {
-                            listOf(
-                                "😊 Yaxshi" to "Ajoyib! Sog'lig'ingiz a'lo darajada.",
-                                "😐 O'rtacha" to "Sizni tushundim. Ko'proq dam olishga harakat qiling.",
-                                "😔 Yomon" to "Xavotirlanmang, shifokorlarimiz sizga yordam beradi."
-                            ).forEachIndexed { idx, (mood, toastText) ->
-                                val isSelected = selectedMoodIndex == idx
-                                Box(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clip(RoundedCornerShape(50.dp))
-                                        .background(if (isSelected) Color.White else Color.White.copy(alpha = 0.18f))
-                                        .clickable {
-                                            selectedMoodIndex = idx
-                                            Toast.makeText(context, toastText, Toast.LENGTH_SHORT).show()
-                                        }
-                                        .padding(vertical = 8.dp),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = mood,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = if (isSelected) PrimaryGreen else Color.White
-                                    )
-                                }
-                            }
+                            Icon(
+                                imageVector = if (isPremium) Icons.Default.MilitaryTech else Icons.Default.LocalHospital,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
                         }
                     }
                 }
@@ -616,23 +591,37 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
             )
 
             val activeFeatures = if (isPremium) premiumFeatures else freeFeatures
+            val columns = if (isPremium) 4 else 3
 
             Column(modifier = Modifier.padding(horizontal = 12.dp)) {
-                activeFeatures.chunked(2).forEach { rowItems ->
+                activeFeatures.chunked(columns).forEach { rowItems ->
                     Row(modifier = Modifier.fillMaxWidth()) {
                         rowItems.forEach { item ->
-                            HomeFeatureGridCard(
-                                title = item.title,
-                                subtitle = item.subtitle,
-                                icon = item.icon,
-                                brush = item.brush,
-                                isEmergency = false,
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { onNavigate(item.id) }
-                            )
+                            if (isPremium) {
+                                HomeFeatureGridCardColored(
+                                    title = item.title,
+                                    subtitle = item.subtitle,
+                                    icon = item.icon,
+                                    brush = item.brush,
+                                    isEmergency = item.id == "sos",
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { onNavigate(item.id) }
+                                )
+                            } else {
+                                HomeFeatureGridCard(
+                                    title = item.title,
+                                    subtitle = item.subtitle,
+                                    icon = item.icon,
+                                    brush = item.brush,
+                                    isEmergency = item.id == "sos",
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { onNavigate(item.id) }
+                                )
+                            }
                         }
-                        if (rowItems.size < 2) {
+                        repeat(columns - rowItems.size) {
                             Spacer(modifier = Modifier.weight(1f))
                         }
                     }
@@ -640,12 +629,66 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
             }
         }
 
-        // 6. Non-premium Upsell Banner
+        // 6. Quick access: Help Center row
+        item {
+            AnimatedVisibility(
+                visible = animateRows,
+                enter = slideInVertically(initialOffsetY = { 100 }) + fadeIn(animationSpec = tween(900))
+            ) {
+                MedicalCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 4.dp),
+                    onClick = { onNavigate("help") }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .background(LightGreen, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SupportAgent,
+                                contentDescription = "Yordam Markazi",
+                                tint = PrimaryGreen,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Yordam Markazi",
+                                fontWeight = FontWeight.Bold,
+                                color = TextPrimary,
+                                fontSize = 15.sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Savollar va qo'llab-quvvatlash",
+                                fontSize = 12.sp,
+                                color = TextSecondary
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = TextSecondary
+                        )
+                    }
+                }
+            }
+        }
+
+        // 7. Non-premium Upsell Banner
         if (!isPremium) {
             item {
                 AnimatedVisibility(
                     visible = animateRows,
-                    enter = slideInVertically(initialOffsetY = { 100 }) + fadeIn(animationSpec = tween(900))
+                    enter = slideInVertically(initialOffsetY = { 100 }) + fadeIn(animationSpec = tween(1000))
                 ) {
                     MedicalCard(
                         modifier = Modifier
@@ -905,7 +948,7 @@ fun PremiumHealthCard(steps: Int, user: UserLocal?, lang: String) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "$score / 100",
-                        fontSize = 24.sp,
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Black,
                         color = Color.White
                     )
@@ -916,27 +959,14 @@ fun PremiumHealthCard(steps: Int, user: UserLocal?, lang: String) {
                         color = Color(0xFF00E676),
                         fontWeight = FontWeight.Bold
                     )
-                }
 
-                // Vertical Divider Line
-                Box(
-                    modifier = Modifier
-                        .height(54.dp)
-                        .width(1.dp)
-                        .background(Color.White.copy(alpha = 0.2f))
-                )
+                    Spacer(modifier = Modifier.height(14.dp))
 
-                // Right Panel: Steps with Purple/Gold Accent
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 20.dp)
-                ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.DirectionsRun, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
+                        Icon(imageVector = Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "KUNDALIK QADAMLAR",
+                            text = "KUNDALIK FAOLLIK",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White.copy(alpha = 0.6f),
@@ -945,35 +975,38 @@ fun PremiumHealthCard(steps: Int, user: UserLocal?, lang: String) {
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "$steps / 10,000",
-                        fontSize = 24.sp,
+                        text = "$steps qadam",
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Black,
                         color = Color.White
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "${((steps / 10000f) * 100).toInt()}% bajarildi",
-                        fontSize = 11.sp,
+                }
+
+                // Right Panel: Running-figure progress ring
+                val stepsProgress = (steps / 10000f).coerceIn(0f, 1f)
+                val animatedStepsProgress by animateFloatAsState(
+                    targetValue = stepsProgress,
+                    animationSpec = tween(1200, easing = FastOutSlowInEasing),
+                    label = "premiumStepsRing"
+                )
+                Box(
+                    modifier = Modifier.size(80.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        progress = { animatedStepsProgress },
+                        modifier = Modifier.fillMaxSize(),
                         color = Color(0xFFFFD700),
-                        fontWeight = FontWeight.Bold
+                        strokeWidth = 7.dp,
+                        trackColor = Color.White.copy(alpha = 0.15f)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.DirectionsRun,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
-            }
-
-            Spacer(modifier = Modifier.height(18.dp))
-
-            // Bottom: Goal completion thin progress bar
-            val stepsProgress = (steps / 10000f).coerceIn(0f, 1f)
-            Column {
-                LinearProgressIndicator(
-                    progress = stepsProgress,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(CircleShape),
-                    color = Color(0xFF00E676),
-                    trackColor = Color.White.copy(alpha = 0.15f)
-                )
             }
         }
     }
@@ -1073,6 +1106,84 @@ fun HomeFeatureGridCard(
                         overflow = TextOverflow.Ellipsis
                     )
                 }
+            }
+        }
+    }
+}
+
+// Full-color gradient tile used for the Premium feature grid (4 columns)
+@Composable
+fun HomeFeatureGridCardColored(
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    brush: Brush,
+    isEmergency: Boolean = false,
+    modifier: Modifier = Modifier
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(targetValue = if (isPressed) 0.96f else 1.0f, label = "coloredCardScale")
+
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse_outline_colored")
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(800, easing = EaseInOutSine),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha_colored"
+    )
+    val cardBorder = if (isEmergency) BorderStroke(2.dp, Color.White.copy(alpha = pulseAlpha)) else null
+
+    Box(
+        modifier = modifier
+            .padding(6.dp)
+            .height(110.dp)
+            .scale(scale)
+            .shadow(4.dp, RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(18.dp))
+            .background(brush)
+            .then(if (cardBorder != null) Modifier.border(cardBorder.width, cardBorder.brush, RoundedCornerShape(18.dp)) else Modifier)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(Color.White.copy(alpha = 0.22f), CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            Column {
+                Text(
+                    text = title,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 10.sp,
+                    color = Color.White.copy(alpha = 0.85f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }
