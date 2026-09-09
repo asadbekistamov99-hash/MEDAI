@@ -42,6 +42,14 @@ fun AdminScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val isSuperAdmin = viewModel.isSuperAdmin
 
+    // Self-heals the server-side custom claim for accounts that signed in before the
+    // Cloud Function existed, or after functions are (re)deployed — see functions/index.js.
+    LaunchedEffect(isSuperAdmin) {
+        if (isSuperAdmin) {
+            viewModel.ensureAdminClaimIfEligible()
+        }
+    }
+
     if (!isSuperAdmin) {
         // Access Denied Screen
         Scaffold(
@@ -725,9 +733,10 @@ fun PaymentsManagementTab(viewModel: AppViewModel, payments: List<PaymentRequest
         }
 
         item {
-            // There is no real multi-device backend yet: "approve" only grants premium on
-            // THIS device if its locally signed-in user happens to be the requester. Say so,
-            // rather than letting the admin believe every approval reaches the real user.
+            // Approval now reaches the real requester's own device via the per-user
+            // paymentRequests Firestore listener (see AppViewModel.startPaymentRequestsFirestoreListener),
+            // but that requires Firestore rules + Cloud Functions to actually be deployed to a
+            // real Firebase project — say so, rather than implying it's guaranteed.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -744,7 +753,7 @@ fun PaymentsManagementTab(viewModel: AppViewModel, payments: List<PaymentRequest
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Hozircha real backend yo'q: tasdiqlash faqat shu qurilmadagi joriy foydalanuvchi so'rov egasi bo'lsa premium beradi.",
+                    text = "Tasdiqlash so'rov egasining qurilmasiga Firestore orqali yetadi — buning uchun loyiha haqiqiy Firebase'ga deploy qilingan bo'lishi kerak.",
                     fontSize = 11.sp,
                     color = TextSecondary
                 )

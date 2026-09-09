@@ -1148,3 +1148,202 @@ fun GeneralChatScreen(viewModel: AppViewModel) {
         }
     }
 }
+
+// --- SCREEN: SOS EMERGENCY ---
+
+@Composable
+fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+    val context = LocalContext.current
+    val familyMembers by viewModel.familyMembers.collectAsState()
+    val gpsLocation by viewModel.gpsLocation.collectAsState()
+    val acceptedFamily = familyMembers.filter { it.inviteStatus == "accepted" }
+    var sosSent by remember { mutableStateOf(false) }
+
+    fun dial(phone: String) {
+        try {
+            context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
+        } catch (e: Exception) {
+            Toast.makeText(context, "Qo'ng'iroq qilib bo'lmadi", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    Scaffold(
+        topBar = { AppHeader(title = "SOS Favqulodda Yordam", onBack = onBack) },
+        containerColor = MedicalBackground
+    ) { innerPadding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            item {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    val pulseTransition = rememberInfiniteTransition(label = "sosPulse")
+                    val pulseScale by pulseTransition.animateFloat(
+                        initialValue = 1f,
+                        targetValue = 1.06f,
+                        animationSpec = infiniteRepeatable(animation = tween(700), repeatMode = RepeatMode.Reverse),
+                        label = "sosPulseScale"
+                    )
+                    Box(
+                        modifier = Modifier
+                            .size(140.dp)
+                            .scale(pulseScale)
+                            .shadow(16.dp, CircleShape, ambientColor = ErrorRed, spotColor = ErrorRed)
+                            .clip(CircleShape)
+                            .background(Brush.radialGradient(colors = listOf(Color(0xFFEF5350), ErrorRed)))
+                            .clickable {
+                                dial("103")
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Emergency,
+                                contentDescription = "103 ga qo'ng'iroq",
+                                tint = Color.White,
+                                modifier = Modifier.size(40.dp)
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text("103", color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.ExtraBold)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Tez tibbiy yordam chaqirish uchun bosing",
+                        fontSize = 13.sp,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(4.dp, RoundedCornerShape(20.dp)),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MedicalBorder)
+                ) {
+                    Column(modifier = Modifier.padding(18.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(ErrorRed.copy(alpha = 0.12f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = ErrorRed, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Joriy joylashuv", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
+                                Text(gpsLocation, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Button(
+                            onClick = {
+                                viewModel.triggerSOS()
+                                sosSent = true
+                            },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
+                        ) {
+                            Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                if (sosSent) "SOS signali yuborildi ✓" else "Oila a'zolariga SOS signal yuborish",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                Text(
+                    text = "TEZKOR RAQAMLAR".uppercase(),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 11.sp,
+                    color = PrimaryGreen,
+                    letterSpacing = 1.2.sp
+                )
+            }
+
+            item {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                    listOf("103" to "Tez yordam", "102" to "Politsiya", "101" to "Yong'in").forEach { (number, label) ->
+                        Card(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { dial(number) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MedicalBorder)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(vertical = 14.dp).fillMaxWidth(),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(number, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = ErrorRed)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(label, fontSize = 11.sp, color = TextSecondary)
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (acceptedFamily.isNotEmpty()) {
+                item {
+                    Text(
+                        text = "OILA A'ZOLARI".uppercase(),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        color = PrimaryGreen,
+                        letterSpacing = 1.2.sp
+                    )
+                }
+                items(acceptedFamily, key = { it.uid }) { member ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MedicalBorder)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp).fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(LightGreen, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Person, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(member.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                                Text(member.relation, fontSize = 12.sp, color = TextSecondary)
+                            }
+                            IconButton(
+                                onClick = { dial(member.phone) },
+                                modifier = Modifier.size(40.dp).background(PrimaryGreen.copy(alpha = 0.1f), CircleShape)
+                            ) {
+                                Icon(Icons.Default.Call, contentDescription = "Qo'ng'iroq", tint = PrimaryGreen, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

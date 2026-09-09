@@ -65,6 +65,9 @@ interface AppDao {
     @Query("SELECT * FROM payment_requests ORDER BY submittedAt DESC")
     fun getAllPaymentRequestsFlow(): Flow<List<PaymentRequestLocal>>
 
+    @Query("SELECT * FROM payment_requests WHERE id = :id LIMIT 1")
+    suspend fun getPaymentRequestById(id: String): PaymentRequestLocal?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPaymentRequest(request: PaymentRequestLocal)
 

@@ -312,9 +312,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) {
             Log.e("FirebaseInit", "Firebase initialization bypassed/failed: ${e.message}")
         }
-        startAdminLogsFirestoreListener()
-        startPaymentRequestsFirestoreListener()
-
         viewModelScope.launch {
             // Prepopulate some app configuration if not already there
             val config = dao.getAppConfig()
@@ -401,6 +398,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
                     startFirestoreRemindersListener(user.uid)
                     startFirestoreVitalsListener(user.uid)
+
+                    val isAdminUser = user.email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
+                    if (isAdminUser) {
+                        // Only admins are allowed to read adminLogs (see firestore.rules); starting
+                        // this for every user would just fail with permission-denied for everyone else.
+                        startAdminLogsFirestoreListener()
+                    }
+                    startPaymentRequestsFirestoreListener(user.uid, isAdminUser)
 
                     // Load user-specific documents and prescription scans
                     launch {
@@ -558,8 +563,31 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 height = 175.0,
                 weight = 68.0
             )
+            if (email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true)) {
+                ensureAdminClaimIfEligible()
+            }
             onSuccess()
         }
+    }
+
+    // Requests the server-side admin custom claim (see functions/index.js) for the
+    // currently signed-in Firebase Auth user, when it's the configured admin account. This is
+    // what actually makes firestore.rules' isAdmin() check pass — the local isSuperAdmin
+    // property alone only controls what the UI shows, it has no server-side effect. Safe to
+    // call defensively (e.g. every admin-panel open): it no-ops once the claim is already set,
+    // and fails silently (logged only) if Cloud Functions aren't deployed yet.
+    fun ensureAdminClaimIfEligible() {
+        val fbUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
+        if (!(fbUser.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true)) return
+        com.google.firebase.functions.FirebaseFunctions.getInstance()
+            .getHttpsCallable("claimAdminIfEligible")
+            .call()
+            .addOnSuccessListener {
+                Log.d("AdminClaim", "Server-side admin claim confirmed for ${fbUser.email}")
+            }
+            .addOnFailureListener { e ->
+                Log.w("AdminClaim", "Could not confirm server-side admin claim (functions not deployed yet?): ${e.message}")
+            }
     }
 
     fun logout() {
@@ -1272,6 +1300,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleReminderActive(reminder: ReminderLocal) {
         viewModelScope.launch {
             dao.insertReminder(reminder.copy(isActive = !reminder.isActive))
+        }
+    }
+
+    // --- Emergency SOS System ---
+    fun triggerSOS() {
+        viewModelScope.launch {
+            val user = currentUser.value ?: return@launch
+            val loc = gpsLocation.value
+
+            dao.insertNotification(NotificationLocal(
+                userId = user.uid,
+                title = "🆘 SOS signali yuborildi",
+                message = "Joylashuvingiz: $loc. Oila a'zolaringizga xabar yuborildi.",
+                type = "sos"
+            ))
+            Toast.makeText(getApplication(), "SOS signali faollashtirildi! Favqulodda yordam jo'natilmoqda.", Toast.LENGTH_LONG).show()
+
+            // Alert accepted family members as per specifications
+            sendSimulatedPush(
+                "🆘 ${user.name} SOS signal yubordi!",
+                "Unga yordam kerak! Joylashuv: https://maps.google.com/?q=$loc",
+                "sos"
+            )
         }
     }
 
@@ -2670,10 +2721,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private var adminLogsListenerRegistration: com.google.firebase.firestore.ListenerRegistration? = null
+
     private fun startAdminLogsFirestoreListener() {
         try {
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-            db.collection("adminLogs")
+            adminLogsListenerRegistration?.remove()
+            adminLogsListenerRegistration = db.collection("adminLogs")
                 .addSnapshotListener { snapshots, e ->
                     if (e != null) {
                         Log.w("FirestoreListener", "Listen failed.", e)
@@ -3007,10 +3061,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private var paymentRequestsListenerRegistration: com.google.firebase.firestore.ListenerRegistration? = null
 
-    private fun startPaymentRequestsFirestoreListener() {
+    // Admins mirror every request (for the review list); regular users may only query their
+    // own (firestore.rules rejects an unfiltered list query from a non-admin outright). When a
+    // request the current device itself submitted flips to "approved"/"rejected" here, this is
+    // what actually grants premium / notifies the real requester's device — previously that
+    // only ever happened on whichever device the admin used to call approvePayment().
+    private fun startPaymentRequestsFirestoreListener(userId: String, isAdmin: Boolean) {
         try {
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
-            paymentRequestsListenerRegistration = db.collection("paymentRequests")
+            paymentRequestsListenerRegistration?.remove()
+            var query: com.google.firebase.firestore.Query = db.collection("paymentRequests")
+            if (!isAdmin) {
+                query = query.whereEqualTo("userId", userId)
+            }
+            paymentRequestsListenerRegistration = query
                 .addSnapshotListener { snapshots, e ->
                     if (e != null) {
                         Log.w("FirestoreListener", "Payment listen failed.", e)
@@ -3022,7 +3086,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                             for (doc in snapshots.documentChanges) {
                                 val data = doc.document.data
                                 val id = doc.document.id
-                                val userId = data["userId"] as? String ?: ""
+                                val requestUserId = data["userId"] as? String ?: ""
                                 val userName = data["userName"] as? String ?: ""
                                 val userEmail = data["userEmail"] as? String ?: ""
                                 val userPhone = data["userPhone"] as? String ?: ""
@@ -3033,9 +3097,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                                 val reviewedAt = (data["reviewedAt"] as? Number)?.toLong()
                                 val reviewedBy = data["reviewedBy"] as? String
 
+                                val previous = dao.getPaymentRequestById(id)
                                 val request = PaymentRequestLocal(
                                     id = id,
-                                    userId = userId,
+                                    userId = requestUserId,
                                     userName = userName,
                                     userEmail = userEmail,
                                     userPhone = userPhone,
@@ -3047,6 +3112,34 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                                     reviewedBy = reviewedBy
                                 )
                                 dao.insertPaymentRequest(request)
+
+                                // Only react on this device if it's the actual requester, and
+                                // only on the transition into approved/rejected (not every
+                                // re-sync), so premium isn't re-granted/re-notified repeatedly.
+                                val justDecided = previous?.status == "pending" && status != "pending"
+                                if (!isAdmin && requestUserId == userId && justDecided) {
+                                    if (status == "approved") {
+                                        val me = dao.getCurrentUser()
+                                        if (me != null && me.uid == userId) {
+                                            val cal = Calendar.getInstance()
+                                            cal.add(Calendar.DAY_OF_YEAR, 30)
+                                            dao.insertUser(me.copy(isPremium = true, premiumExpiry = cal.timeInMillis))
+                                        }
+                                        dao.insertNotification(NotificationLocal(
+                                            userId = userId,
+                                            title = "🎉 Premium faollashtirildi!",
+                                            message = "To'lov tasdiqlandi. Barcha premium imkoniyatlardan cheksiz foydalanishingiz mumkin!",
+                                            type = "premium"
+                                        ))
+                                    } else if (status == "rejected") {
+                                        dao.insertNotification(NotificationLocal(
+                                            userId = userId,
+                                            title = "❌ To'lov rad etildi",
+                                            message = "Rad etilish sababi: $rejectionReason. Iltimos, qaytadan urinib ko'ring.",
+                                            type = "premium"
+                                        ))
+                                    }
+                                }
                             }
                         }
                     }
@@ -3059,6 +3152,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         super.onCleared()
         remindersListenerRegistration?.remove()
+        vitalsListenerRegistration?.remove()
+        adminLogsListenerRegistration?.remove()
         paymentRequestsListenerRegistration?.remove()
     }
 }

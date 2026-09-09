@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">MedAI</string>
+    <!--
+      Google Sign-In (Credential Manager + Firebase Auth) needs your Firebase project's
+      OAuth Web Client ID here, not the Android client ID:
+      Firebase console -> Authentication -> Sign-in method -> Google -> Web SDK configuration
+      -> Web client ID. A google-services.json for this app must also be added under app/.
+      Until this is replaced, Google Sign-In fails gracefully with a clear error instead of
+      crashing.
+    -->
+    <string name="google_web_client_id" translatable="false">REPLACE_WITH_YOUR_FIREBASE_WEB_CLIENT_ID</string>
 </resources>

@@ -72,6 +72,31 @@ The database uses four primary root collections:
     - `responseTimeMs` (integer): Latency measurement in ms
     - `timestamp` (integer): Epoch timestamp in milliseconds
 
+### 2.5. `adminLogs` Collection
+- **Path**: `/adminLogs/{logId}` (Auto-generated UUIDs)
+- **Purpose**: Audit trail of every admin action (block/unblock user, extend premium, approve/reject payment, content/config changes), written by `AppViewModel.logAdminAction()`.
+- **Fields**:
+    - `adminEmail` (string): The acting admin's email, resolved dynamically at write time
+    - `action` (string): E.g. `"Block User"`, `"Approve Payment"`
+    - `targetUser` (string): Name/ID of the affected user
+    - `details` (string): Human-readable description
+    - `timestamp` (integer): Epoch timestamp in milliseconds
+
+### 2.6. `paymentRequests` Collection
+- **Path**: `/paymentRequests/{requestId}`
+- **Purpose**: Premium payment proof (check screenshot) submissions and admin review.
+- **Fields**: `userId`, `userName`, `userEmail`, `userPhone`, `checkImageUrl` (base64 data URI), `status` (`"pending"` | `"approved"` | `"rejected"`), `rejectionReason`, `submittedAt`, `reviewedAt`, `reviewedBy`.
+
+### 2.7. `medicationReminders` Collection
+- **Path**: `/medicationReminders/{reminderId}`
+- **Purpose**: Cross-device sync for medication reminders.
+- **Fields**: `userId`, `medicineName`, `dosage`, `time`, `frequency`, `notificationsEnabled`, `notificationFrequency`, `isActive`, `targetFamilyMember`, `notes`, `completedDates` (array), `timestamp`.
+
+### 2.8. `vitals` Collection
+- **Path**: `/vitals/{vitalId}` (id pattern: `vitals_{uid}_{yyyy-MM-dd}`, one document per user per day)
+- **Purpose**: Cross-device sync for daily heart rate / blood pressure / weight logs.
+- **Fields**: `userId`, `date`, `timestamp`, `heartRate`, `bpSystolic`, `bpDiastolic`, `weight`, `note`.
+
 ---
 
 ## 3. Document Security Rules (`firestore.rules`)
@@ -79,7 +104,9 @@ The database uses four primary root collections:
 The security policy implements **principle of least privilege**:
 -   **Content** is readable by all users, ensuring immediate loading. Writes are exclusively reserved for verified Admins.
 -   **Settings** require authentication to view (preventing public crawling of configurations) and Admin level to change.
--   **Logs (`errorLogs` and `apiLogs`)** permit write operations (creates) from authenticated application users. Document updates, deletes, and reads are heavily restricted to protect telemetry integrity.
+-   **Logs (`errorLogs`, `apiLogs`, `adminLogs`)** permit write operations (creates) from authenticated application users where applicable. Document updates, deletes, and (for `adminLogs`) all access are heavily restricted to protect telemetry/audit integrity.
+-   **PaymentRequests, MedicationReminders, Vitals** are scoped per-user: a user may only create/read/update their own documents (matched by `userId == request.auth.uid`); admins can read across all users to review/manage.
+-   **"Admin" is a Firebase custom claim** (`request.auth.token.admin == true`), set server-side by the Cloud Functions in `functions/index.js` — never trust a client-supplied admin flag. See that file for how the claim gets granted.
 
 ---
 
@@ -109,4 +136,14 @@ firebase use --add
 
 # 4. Deploy all Firestore configuration files simultaneously
 firebase deploy --only firestore
+
+# 5. Install the Cloud Functions' dependencies, then deploy them
+#    (this is what actually grants the admin custom claim — see functions/index.js)
+cd functions && npm install && cd ..
+firebase deploy --only functions
 ```
+
+After deploying functions, sign in to the app once with the configured admin Google
+account (`SUPER_ADMIN_EMAIL` in `AppViewModel.kt`, kept in sync with `functions/index.js`) —
+the admin custom claim is granted automatically on that sign-in, and the Admin Panel
+self-heals it on every open after that (see `AppViewModel.ensureAdminClaimIfEligible()`).

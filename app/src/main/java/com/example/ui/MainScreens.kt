@@ -561,6 +561,7 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
             // Features configuration
             val freeFeatures = listOf(
                 FeatureItem("yordamchi", "MedAI Yordamchi", "Tezkor 4-in-1 yordam", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(PrimaryGreen, DarkGreen))),
+                FeatureItem("sos", "Tez yordam SOS", "Favqulodda yordam", Icons.Default.Emergency, Brush.horizontalGradient(colors = listOf(Color(0xFFB71C1C), Color(0xFFE53935)))),
                 FeatureItem("symptoms", Translations.getString("feat_symptoms", lang), "Tahlil qilish", Icons.Default.Favorite, Brush.horizontalGradient(colors = listOf(Color(0xFF00897B), Color(0xFF00ACC1)))),
                 FeatureItem("drugs", Translations.getString("feat_med_info", lang), "Tarkibi va foydasi", Icons.Default.LocalPharmacy, Brush.horizontalGradient(colors = listOf(Color(0xFF1565C0), Color(0xFF1976D2)))),
                 FeatureItem("reminder", Translations.getString("feat_reminder", lang), "O'z vaqtida ichish", Icons.Default.Alarm, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFF57C00)))),
@@ -570,8 +571,9 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
             )
 
             val premiumFeatures = listOf(
-                FeatureItem("yordamchi", "MedAI Yordamchi", "Smart 4-in-1 yordam", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(PrimaryGreen, DarkGreen)))
-            ) + freeFeatures.drop(1).take(1) + listOf(
+                FeatureItem("yordamchi", "MedAI Yordamchi", "Smart 4-in-1 yordam", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(PrimaryGreen, DarkGreen))),
+                FeatureItem("sos", "Favqulodda vaziyat", "SOS tezkor yordam", Icons.Default.Emergency, Brush.horizontalGradient(colors = listOf(Color(0xFFC62828), Color(0xFFD32F2F))))
+            ) + freeFeatures.drop(2).take(1) + listOf(
                 FeatureItem("ai_doctor", Translations.getString("feat_ai_doctor", lang), "AI Robot-Shifokor", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(Color(0xFF4527A0), Color(0xFF5E35B1)))),
                 FeatureItem("ai_tips", Translations.getString("feat_ai_tips", lang), "Aqlli maslahatlar", Icons.Default.TipsAndUpdates, Brush.horizontalGradient(colors = listOf(Color(0xFF0277BD), Color(0xFF0288D1)))),
                 FeatureItem("drugs", Translations.getString("feat_med_info", lang), "Dori vositalari", Icons.Default.LocalPharmacy, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFF4511E))))
@@ -599,6 +601,7 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                                     subtitle = item.subtitle,
                                     icon = item.icon,
                                     brush = item.brush,
+                                    isEmergency = item.id == "sos",
                                     modifier = Modifier
                                         .weight(1f)
                                         .clickable { onNavigate(item.id) }
@@ -609,6 +612,7 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                                     subtitle = item.subtitle,
                                     icon = item.icon,
                                     brush = item.brush,
+                                    isEmergency = item.id == "sos",
                                     modifier = Modifier
                                         .weight(1f)
                                         .clickable { onNavigate(item.id) }
