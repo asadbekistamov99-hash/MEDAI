@@ -16,6 +16,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -73,25 +75,35 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(MedicalBackground)
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Section 1: Symptoms Search/Input
             Text(
-                text = if (lang == "uz") "1. Belgilarni kiriting" else if (lang == "ru") "1. Введите симптомы" else "1. Enter Symptoms",
-                style = MaterialTheme.typography.titleMedium,
+                text = (if (lang == "uz") "1. Belgilarni kiriting" else if (lang == "ru") "1. Введите симптомы" else "1. Enter Symptoms").uppercase(),
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = PrimaryGreen,
+                letterSpacing = 1.sp
             )
 
             OutlinedTextField(
                 value = symptomsText,
                 onValueChange = { symptomsText = it },
-                placeholder = { Text(Translations.getString("symptom_input_placeholder", lang)) },
+                placeholder = { Text(Translations.getString("symptom_input_placeholder", lang), color = TextSecondary.copy(alpha = 0.6f)) },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
+                textStyle = androidx.compose.ui.text.TextStyle(color = TextPrimary, fontSize = 15.sp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color(0xFFF8FFFE),
+                    unfocusedContainerColor = Color(0xFFF8FFFE),
+                    focusedBorderColor = PrimaryGreen,
+                    unfocusedBorderColor = MedicalBorder,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                ),
                 trailingIcon = {
                     IconButton(onClick = { viewModel.checkSymptoms(symptomsText, selectedBodyPart, selectedDurationCode, selectedSeverityCode) }) {
                         Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = PrimaryGreen)
@@ -123,10 +135,11 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
             // Section 2: Body Area Map Picker Layout
             Text(
-                text = if (lang == "uz") "2. Tana sohasini tanlang" else if (lang == "ru") "2. Выберите область тела" else "2. Select Body Area",
-                style = MaterialTheme.typography.titleMedium,
+                text = (if (lang == "uz") "2. Tana sohasini tanlang" else if (lang == "ru") "2. Выберите область тела" else "2. Select Body Area").uppercase(),
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = PrimaryGreen,
+                letterSpacing = 1.sp
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -137,16 +150,16 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(if (selected) PrimaryGreen else MaterialTheme.colorScheme.surface)
-                            .border(1.dp, if (selected) PrimaryGreen else Color.Gray.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(if (selected) PrimaryGreen else Color.White)
+                            .border(1.dp, if (selected) PrimaryGreen else MedicalBorder, RoundedCornerShape(14.dp))
                             .clickable { selectedBodyPart = code }
                             .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = label,
-                            color = if (selected) Color.White else Color.LightGray,
+                            color = if (selected) Color.White else TextSecondary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp
                         )
@@ -156,10 +169,11 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
             // Section 3: Duration
             Text(
-                text = if (lang == "uz") "3. Belgilar davomiyligi" else if (lang == "ru") "3. Продолжительность симптомов" else "3. Duration of Symptoms",
-                style = MaterialTheme.typography.titleMedium,
+                text = (if (lang == "uz") "3. Belgilar davomiyligi" else if (lang == "ru") "3. Продолжительность симптомов" else "3. Duration of Symptoms").uppercase(),
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = PrimaryGreen,
+                letterSpacing = 1.sp
             )
             Row(
                 modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -177,10 +191,11 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
             // Section 4: Severity
             Text(
-                text = if (lang == "uz") "4. Belgilar og'irligi" else if (lang == "ru") "4. Тяжесть симптомов" else "4. Symptom Severity",
-                style = MaterialTheme.typography.titleMedium,
+                text = (if (lang == "uz") "4. Belgilar og'irligi" else if (lang == "ru") "4. Тяжесть симптомов" else "4. Symptom Severity").uppercase(),
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = PrimaryGreen,
+                letterSpacing = 1.sp
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -189,24 +204,24 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 severityOptions.forEach { (display, code) ->
                     val isSelected = selectedSeverityCode == code
                     val dotColor = when (code) {
-                        "Mild" -> Color(0xFF00C853)
-                        "Moderate" -> Color(0xFFFFAB00)
-                        else -> Color(0xFFD50000)
+                        "Mild" -> SuccessGreen
+                        "Moderate" -> WarningOrange
+                        else -> ErrorRed
                     }
                     val selectedBgColor = when (code) {
-                        "Mild" -> Color(0xFF00C853).copy(alpha = 0.15f)
-                        "Moderate" -> Color(0xFFFFAB00).copy(alpha = 0.15f)
-                        else -> Color(0xFFD50000).copy(alpha = 0.15f)
+                        "Mild" -> SuccessGreen.copy(alpha = 0.12f)
+                        "Moderate" -> WarningOrange.copy(alpha = 0.12f)
+                        else -> ErrorRed.copy(alpha = 0.12f)
                     }
-                    val borderColor = if (isSelected) dotColor else Color.Gray.copy(alpha = 0.4f)
-                    val bgColor = if (isSelected) selectedBgColor else MaterialTheme.colorScheme.surface
+                    val borderColor = if (isSelected) dotColor else MedicalBorder
+                    val bgColor = if (isSelected) selectedBgColor else Color.White
 
                     Box(
                         modifier = Modifier
                             .weight(1f)
-                            .clip(RoundedCornerShape(12.dp))
+                            .clip(RoundedCornerShape(14.dp))
                             .background(bgColor)
-                            .border(1.dp, borderColor, RoundedCornerShape(12.dp))
+                            .border(1.dp, borderColor, RoundedCornerShape(14.dp))
                             .clickable { selectedSeverityCode = code }
                             .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center
@@ -218,7 +233,7 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Box(modifier = Modifier.size(8.dp).background(dotColor, CircleShape))
                             Text(
                                 text = display,
-                                color = if (isSelected) Color.White else Color.LightGray,
+                                color = if (isSelected) dotColor else TextSecondary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
                             )
@@ -278,7 +293,7 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     text = if (lang == "uz") "Oxirgi tekshiruvlar" else if (lang == "ru") "Последние проверки" else "Recent Checks",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = Color.White
+                    color = TextPrimary
                 )
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -302,13 +317,13 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             if (insightText.isNotEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.15f)),
-                    shape = RoundedCornerShape(12.dp)
+                    colors = CardDefaults.cardColors(containerColor = LightGreen.copy(alpha = 0.6f)),
+                    shape = RoundedCornerShape(14.dp)
                 ) {
                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(imageVector = Icons.Default.TrendingUp, contentDescription = null, tint = PrimaryGreen)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = insightText, fontSize = 13.sp, color = Color.White)
+                        Text(text = insightText, fontSize = 13.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -342,17 +357,17 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 if (matchedAllergies.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = ErrorRed.copy(alpha = 0.15f)),
-                        border = BorderStroke(1.dp, ErrorRed),
-                        shape = RoundedCornerShape(12.dp)
+                        colors = CardDefaults.cardColors(containerColor = ErrorRed.copy(alpha = 0.1f)),
+                        border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.4f)),
+                        shape = RoundedCornerShape(14.dp)
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = ErrorRed)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = if (lang == "uz") "⚠️ Diqqat! Bu dori sizga allergiya qilishi mumkin:" 
-                                           else if (lang == "ru") "⚠️ Внимание! Это лекарство может вызвать аллергию:" 
+                                    text = if (lang == "uz") "⚠️ Diqqat! Bu dori sizga allergiya qilishi mumkin:"
+                                           else if (lang == "ru") "⚠️ Внимание! Это лекарство может вызвать аллергию:"
                                            else "⚠️ Warning! This medicine may cause an allergy:",
                                     color = ErrorRed,
                                     fontWeight = FontWeight.Bold,
@@ -361,7 +376,7 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = matchedAllergies.joinToString(", "),
-                                    color = Color.White,
+                                    color = ErrorRed,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp
                                 )
@@ -371,27 +386,34 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 }
 
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.3f))
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(6.dp, RoundedCornerShape(20.dp), ambientColor = PrimaryGreen.copy(alpha = 0.15f), spotColor = PrimaryGreen.copy(alpha = 0.15f)),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = BorderStroke(1.dp, MedicalBorder)
                 ) {
                     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
-                            Icon(imageVector = Icons.Default.Assessment, contentDescription = null, tint = PrimaryGreen)
+                            Box(
+                                modifier = Modifier.size(36.dp).background(PrimaryGreen.copy(alpha = 0.12f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(imageVector = Icons.Default.Assessment, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(18.dp))
+                            }
                             Text(
                                 text = if (lang == "uz") "Tahlil natijalari" else if (lang == "ru") "Результаты анализа" else "Analysis Results",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = Color.White
+                                color = TextPrimary
                             )
                         }
 
-                        Divider(color = Color.Gray.copy(alpha = 0.2f))
+                        Divider(color = MedicalBorder)
 
                         // Selected Metadata summary for context
                         Row(
@@ -422,16 +444,17 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardColors(
                                 containerColor = ErrorRed.copy(alpha = 0.05f),
-                                contentColor = Color.LightGray,
+                                contentColor = TextSecondary,
                                 disabledContainerColor = Color.Transparent,
                                 disabledContentColor = Color.Transparent
                             ),
-                            border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.3f))
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.25f))
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 Text(text = Translations.getString("disclaimer_title", lang), color = ErrorRed, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(text = Translations.getString("disclaimer_desc", lang), color = Color.Gray, fontSize = 11.sp)
+                                Text(text = Translations.getString("disclaimer_desc", lang), color = TextSecondary, fontSize = 11.sp)
                             }
                         }
                     }
@@ -467,7 +490,7 @@ fun RichMarkdownText(text: String, modifier: Modifier = Modifier) {
                     Text(
                         text = bulletText,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.LightGray,
+                        color = TextPrimary,
                         lineHeight = 20.sp
                     )
                 }
@@ -478,7 +501,7 @@ fun RichMarkdownText(text: String, modifier: Modifier = Modifier) {
                     val parts = trimmed.split("**")
                     parts.forEachIndexed { index, part ->
                         if (index % 2 == 1) {
-                            builder.pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold, color = Color.White))
+                            builder.pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold, color = PrimaryGreen))
                             builder.append(part)
                             builder.pop()
                         } else {
@@ -490,7 +513,7 @@ fun RichMarkdownText(text: String, modifier: Modifier = Modifier) {
                 Text(
                     text = annotatedString,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.LightGray,
+                    color = TextPrimary,
                     lineHeight = 20.sp
                 )
             }
@@ -515,40 +538,49 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 onBack = onBack,
                 actions = {
                     IconButton(onClick = { viewModel.clearChatHistory("doctor") }) {
-                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Clear Chat", tint = Color.Gray)
+                        Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = "Clear Chat", tint = TextSecondary)
                     }
                 }
             )
         },
         bottomBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-                    .navigationBarsPadding(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = messageText,
-                    onValueChange = { messageText = it },
-                    placeholder = { Text("Dori, kasallik yoki tahlil haqida so'rang...") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(24.dp)
-                )
-
-                IconButton(
-                    onClick = {
-                        if (messageText.isNotEmpty()) {
-                            viewModel.sendChatMessage(messageText, "doctor")
-                            messageText = ""
-                        }
-                    },
+            Surface(color = Color.White, shadowElevation = 8.dp) {
+                Row(
                     modifier = Modifier
-                        .background(PrimaryGreen, CircleShape)
-                        .size(48.dp)
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                        .navigationBarsPadding(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White)
+                    OutlinedTextField(
+                        value = messageText,
+                        onValueChange = { messageText = it },
+                        placeholder = { Text("Dori, kasallik yoki tahlil haqida so'rang...", color = TextSecondary.copy(alpha = 0.6f)) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(24.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(color = TextPrimary, fontSize = 14.sp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF8FFFE),
+                            unfocusedContainerColor = Color(0xFFF8FFFE),
+                            focusedBorderColor = PremiumPurple,
+                            unfocusedBorderColor = MedicalBorder
+                        )
+                    )
+
+                    IconButton(
+                        onClick = {
+                            if (messageText.isNotEmpty()) {
+                                viewModel.sendChatMessage(messageText, "doctor")
+                                messageText = ""
+                            }
+                        },
+                        modifier = Modifier
+                            .background(Brush.horizontalGradient(listOf(PremiumPurple, Color(0xFF5E35B1))), CircleShape)
+                            .size(48.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White)
+                    }
                 }
             }
         }
@@ -557,13 +589,13 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(MedicalBackground)
         ) {
             // Quick Chat Chips
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(8.dp)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
                     .horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -576,41 +608,90 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     FilterChip(
                         selected = false,
                         onClick = { messageText = chip },
-                        label = { Text(chip) }
+                        label = { Text(chip) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = Color.White,
+                            labelColor = TextSecondary
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = false,
+                            borderColor = MedicalBorder
+                        )
                     )
                 }
             }
 
-            LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(chatMessages) { msg ->
-                    val isUser = msg.role == "user"
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
-                    ) {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isUser) PrimaryGreen else MaterialTheme.colorScheme.surface
-                            ),
-                            shape = RoundedCornerShape(
-                                topStart = 16.dp,
-                                topEnd = 16.dp,
-                                bottomStart = if (isUser) 16.dp else 0.dp,
-                                bottomEnd = if (isUser) 0.dp else 16.dp
-                            ),
-                            modifier = Modifier.widthIn(max = 280.dp)
+            if (chatMessages.isEmpty()) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier.size(72.dp).background(PremiumLight, CircleShape),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = msg.content,
-                                color = if (isUser) Color.White else Color.LightGray,
-                                modifier = Modifier.padding(12.dp),
-                                fontSize = 14.sp
-                            )
+                            Icon(imageVector = Icons.Default.SmartToy, contentDescription = null, tint = PremiumPurple, modifier = Modifier.size(34.dp))
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = when (lang) {
+                                "uz" -> "AI Shifokoringiz tinglashga tayyor"
+                                "ru" -> "Ваш AI-врач готов вас выслушать"
+                                else -> "Your AI Doctor is ready to help"
+                            },
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            color = TextPrimary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = when (lang) {
+                                "uz" -> "Savolingizni yozing yoki yuqoridagi tugmalardan tanlang"
+                                "ru" -> "Напишите вопрос или выберите один из чипов выше"
+                                else -> "Type your question or pick a chip above"
+                            },
+                            fontSize = 12.sp,
+                            color = TextSecondary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(vertical = 12.dp)
+                ) {
+                    items(chatMessages) { msg ->
+                        val isUser = msg.role == "user"
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+                        ) {
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isUser) PremiumPurple else Color.White
+                                ),
+                                shape = RoundedCornerShape(
+                                    topStart = 16.dp,
+                                    topEnd = 16.dp,
+                                    bottomStart = if (isUser) 16.dp else 4.dp,
+                                    bottomEnd = if (isUser) 4.dp else 16.dp
+                                ),
+                                border = if (isUser) null else BorderStroke(1.dp, MedicalBorder),
+                                elevation = CardDefaults.cardElevation(defaultElevation = if (isUser) 0.dp else 1.dp),
+                                modifier = Modifier.widthIn(max = 280.dp)
+                            ) {
+                                Text(
+                                    text = msg.content,
+                                    color = if (isUser) Color.White else TextPrimary,
+                                    modifier = Modifier.padding(12.dp),
+                                    fontSize = 14.sp,
+                                    lineHeight = 19.sp
+                                )
+                            }
                         }
                     }
                 }
@@ -642,19 +723,29 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(MedicalBackground)
         ) {
             // personalized user details card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                shape = RoundedCornerShape(16.dp)
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(18.dp),
+                border = BorderStroke(1.dp, MedicalBorder)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(text = "Shaxsiy tavsiya tahlili", fontWeight = FontWeight.Bold, color = PrimaryGreen)
-                    Text(text = "AI shaxsiy parametrlaringiz (Bo'y, vazn, jins) asosida maslahat beradi", fontSize = 11.sp, color = Color.Gray)
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier.size(40.dp).background(PrimaryGreen.copy(alpha = 0.12f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(text = "Shaxsiy tavsiya tahlili", fontWeight = FontWeight.Bold, color = TextPrimary, fontSize = 14.sp)
+                        Text(text = "AI shaxsiy parametrlaringiz (Bo'y, vazn, jins) asosida maslahat beradi", fontSize = 11.sp, color = TextSecondary)
+                    }
                 }
             }
 
@@ -676,28 +767,55 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     FilterChip(
                         selected = isSelected,
                         onClick = { selectedTab = code },
-                        label = { Text(label) }
+                        label = { Text(label, fontWeight = FontWeight.Bold) },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = Color.White,
+                            labelColor = TextSecondary,
+                            selectedContainerColor = PrimaryGreen,
+                            selectedLabelColor = Color.White
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = isSelected,
+                            borderColor = MedicalBorder,
+                            selectedBorderColor = PrimaryGreen
+                        )
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(horizontal = 24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 if (isLoading) {
-                    CircularProgressIndicator(color = PrimaryGreen)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = PrimaryGreen)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = when (lang) {
+                                "uz" -> "Maslahat tayyorlanmoqda..."
+                                "ru" -> "Готовим совет..."
+                                else -> "Preparing your tip..."
+                            },
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
                 } else {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(6.dp, RoundedCornerShape(24.dp), ambientColor = PrimaryGreen.copy(alpha = 0.12f), spotColor = PrimaryGreen.copy(alpha = 0.12f)),
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = BorderStroke(1.dp, MedicalBorder)
                     ) {
                         Column(
                             modifier = Modifier.padding(24.dp),
@@ -724,7 +842,7 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 text = tipContent,
                                 fontSize = 16.sp,
                                 textAlign = TextAlign.Center,
-                                color = Color.DarkGray,
+                                color = TextPrimary,
                                 lineHeight = 24.sp
                             )
                         }
@@ -737,10 +855,12 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(24.dp)
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen, contentColor = Color.White)
             ) {
+                Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(text = Translations.getString("ai_tips_refresh", lang), fontWeight = FontWeight.Bold)
             }
         }
@@ -778,7 +898,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(MedicalBackground)
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -787,12 +907,21 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text(Translations.getString("drug_search_placeholder", lang)) },
+                placeholder = { Text(Translations.getString("drug_search_placeholder", lang), color = TextSecondary.copy(alpha = 0.6f)) },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(14.dp),
+                textStyle = androidx.compose.ui.text.TextStyle(color = TextPrimary, fontSize = 15.sp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Color(0xFFF8FFFE),
+                    unfocusedContainerColor = Color(0xFFF8FFFE),
+                    focusedBorderColor = AccentCyan,
+                    unfocusedBorderColor = MedicalBorder,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                ),
                 trailingIcon = {
                     IconButton(onClick = { viewModel.searchDrugInfo(searchQuery) }) {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = PrimaryGreen)
+                        Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = AccentCyan)
                     }
                 }
             )
@@ -803,7 +932,13 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Qidiruv tarixi", fontSize = 12.sp, color = Color.Gray)
+                Text(
+                    text = "Qidiruv tarixi".uppercase(),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextSecondary,
+                    letterSpacing = 1.sp
+                )
                 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     // Prescription Scanner Trigger
@@ -864,9 +999,9 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 if (matchedAllergies.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = ErrorRed.copy(alpha = 0.15f)),
-                        border = BorderStroke(1.dp, ErrorRed),
-                        shape = RoundedCornerShape(12.dp)
+                        colors = CardDefaults.cardColors(containerColor = ErrorRed.copy(alpha = 0.1f)),
+                        border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.4f)),
+                        shape = RoundedCornerShape(14.dp)
                     ) {
                         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.Cancel, contentDescription = null, tint = ErrorRed)
@@ -876,7 +1011,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                        else if (lang == "ru") "❌ Это лекарство вам не подходит — у вас аллергия на ${matchedAllergies.joinToString(", ")}"
                                        else "❌ This medicine is not suitable for you — you have allergy to ${matchedAllergies.joinToString(", ")}",
                                 fontSize = 12.sp,
-                                color = Color.White,
+                                color = ErrorRed,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -884,19 +1019,19 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 } else {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = PrimaryGreen.copy(alpha = 0.15f)),
-                        border = BorderStroke(1.dp, PrimaryGreen),
-                        shape = RoundedCornerShape(12.dp)
+                        colors = CardDefaults.cardColors(containerColor = SuccessGreen.copy(alpha = 0.1f)),
+                        border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f)),
+                        shape = RoundedCornerShape(14.dp)
                     ) {
                         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = PrimaryGreen)
+                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (lang == "uz") "✅ Bu dori allergiyangiz bilan mos keladi"
                                        else if (lang == "ru") "✅ Это лекарство совместимо с вашей аллергией"
                                        else "✅ This medicine is compatible with your allergies",
                                 fontSize = 12.sp,
-                                color = Color.White,
+                                color = SuccessGreen,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -906,19 +1041,36 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = PrimaryGreen)
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        CircularProgressIndicator(color = AccentCyan)
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = when (lang) {
+                                "uz" -> "Ma'lumot izlanmoqda..."
+                                "ru" -> "Идёт поиск..."
+                                else -> "Searching..."
+                            },
+                            fontSize = 12.sp,
+                            color = TextSecondary
+                        )
+                    }
                 }
             } else if (drugResult != null) {
                 drugResult?.forEach { (key, value) ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, MedicalBorder)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
-                            Text(text = key, fontWeight = FontWeight.Bold, color = PrimaryGreen, fontSize = 14.sp)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(text = value, fontSize = 13.sp, color = Color.LightGray)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(6.dp).background(AccentCyan, CircleShape))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(text = key, fontWeight = FontWeight.Bold, color = AccentCyan, fontSize = 14.sp)
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(text = value, fontSize = 13.sp, color = TextPrimary, lineHeight = 19.sp)
                         }
                     }
                 }
@@ -940,10 +1092,10 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = if (lang == "uz") "Skanerlashni simulyatsiya qilish uchun retsept turlardan birini tanlang va yuboring." 
+                        text = if (lang == "uz") "Skanerlashni simulyatsiya qilish uchun retsept turlardan birini tanlang va yuboring."
                                else "Выберите тип рецепта для симуляции сканирования.",
                         fontSize = 13.sp,
-                        color = Color.LightGray
+                        color = TextSecondary
                     )
 
                     val presets = listOf(
@@ -958,10 +1110,10 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 viewModel.scanPrescriptionImage(mockPrescriptionBase64)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            shape = RoundedCornerShape(8.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = LightGreen, contentColor = PrimaryGreen),
+                            shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text(text = title, color = Color.White, fontSize = 12.sp)
+                            Text(text = title, color = PrimaryGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
 
@@ -970,11 +1122,11 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 CircularProgressIndicator(color = PrimaryGreen)
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text("Skanerlanmoqda...", fontSize = 12.sp, color = Color.LightGray)
+                                Text("Skanerlanmoqda...", fontSize = 12.sp, color = TextSecondary)
                             }
                         }
                     } else if (prescriptionScanResult.isNotEmpty()) {
-                        Divider()
+                        Divider(color = MedicalBorder)
                         Text(
                             text = "Natija:",
                             fontWeight = FontWeight.Bold,
@@ -987,7 +1139,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 .heightIn(max = 180.dp)
                                 .verticalScroll(rememberScrollState())
                         ) {
-                            Text(text = prescriptionScanResult, fontSize = 12.sp, color = Color.LightGray)
+                            Text(text = prescriptionScanResult, fontSize = 12.sp, color = TextPrimary)
                         }
                     }
                 }
@@ -1017,10 +1169,10 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = if (lang == "uz") "Tekshirish uchun 2 dan 5 tagacha dori nomini yozing:" 
+                        text = if (lang == "uz") "Tekshirish uchun 2 dan 5 tagacha dori nomini yozing:"
                                else "Введите от 2 до 5 лекарств для проверки:",
                         fontSize = 13.sp,
-                        color = Color.LightGray
+                        color = TextSecondary
                     )
 
                     drugInputs.forEachIndexed { idx, value ->
@@ -1063,8 +1215,8 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     }
 
                     if (interactionResult.isNotEmpty()) {
-                        Divider()
-                        
+                        Divider(color = MedicalBorder)
+
                         // Parse status marker
                         val isSafe = interactionResult.contains("STATUS: SAFE")
                         val isCaution = interactionResult.contains("STATUS: CAUTION")
@@ -1072,9 +1224,9 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
                         val (statusText, statusColor) = when {
                             isSafe -> "✅ Xavfsiz (Safe)" to PrimaryGreen
-                            isCaution -> "⚠️ Ehtiyot bo'ling (Caution)" to Color(0xFFFF9800)
+                            isCaution -> "⚠️ Ehtiyot bo'ling (Caution)" to WarningOrange
                             isDangerous -> "❌ Birga ichmang! (Dangerous)" to ErrorRed
-                            else -> "Natija" to Color.White
+                            else -> "Natija" to TextPrimary
                         }
 
                         Card(
@@ -1104,7 +1256,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     .replace("STATUS: DANGEROUS", "")
                                     .trim(),
                                 fontSize = 12.sp,
-                                color = Color.LightGray
+                                color = TextPrimary
                             )
                         }
                     }
@@ -1198,7 +1350,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(MedicalBackground)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
@@ -1207,8 +1359,9 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = LightGreen.copy(alpha = 0.5f)),
+                    border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.15f))
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
@@ -1251,12 +1404,12 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surface)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Color.White)
                         .border(
                             width = 2.dp,
-                            color = if (selectedImageUri != null) PrimaryGreen else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            shape = RoundedCornerShape(16.dp)
+                            color = if (selectedImageUri != null) PrimaryGreen else MedicalBorder,
+                            shape = RoundedCornerShape(18.dp)
                         )
                         .clickable {
                             imagePickerLauncher.launch("image/*")
@@ -1319,11 +1472,11 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 textAlign = TextAlign.Center,
-                                color = Color.Gray
+                                color = TextSecondary
                             )
                             Button(
                                 onClick = { selectedPresetIndex = null },
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer),
+                                colors = ButtonDefaults.buttonColors(containerColor = LightGreen, contentColor = PrimaryGreen),
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                 modifier = Modifier.height(32.dp)
@@ -1357,7 +1510,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Text(
                                 text = Translations.getString("lab_upload_hint", lang),
                                 fontSize = 11.sp,
-                                color = Color.Gray
+                                color = TextSecondary
                             )
                         }
                     }
@@ -1443,10 +1596,13 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             if (labResultText.isNotEmpty()) {
                 item {
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.25f))
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = PrimaryGreen.copy(alpha = 0.12f), spotColor = PrimaryGreen.copy(alpha = 0.12f)),
+                        shape = RoundedCornerShape(18.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                        border = BorderStroke(1.dp, MedicalBorder)
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(
@@ -1455,8 +1611,13 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.Science, contentDescription = null, tint = PrimaryGreen)
-                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Box(
+                                        modifier = Modifier.size(32.dp).background(PrimaryGreen.copy(alpha = 0.12f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Science, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(16.dp))
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
                                     Text(
                                         text = when (lang) {
                                             "uz" -> "Tahlil Natijalari"
@@ -1470,10 +1631,10 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 IconButton(
                                     onClick = { viewModel.clearLabAnalysisResult() }
                                 ) {
-                                    Icon(imageVector = Icons.Default.Close, contentDescription = "Clear result", tint = Color.Gray)
+                                    Icon(imageVector = Icons.Default.Close, contentDescription = "Clear result", tint = TextSecondary)
                                 }
                             }
-                            Divider()
+                            Divider(color = MedicalBorder)
 
                             // Normal/Borderline/Abnormal Indicators
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
@@ -1511,11 +1672,14 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 item {
                     Text(
                         text = when (lang) {
-                            "uz" -> "O'tmishdagi tahlillar 📁"
-                            "ru" -> "История анализов 📁"
-                            else -> "History of Analyses 📁"
-                        },
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = TextPrimary),
+                            "uz" -> "O'tmishdagi tahlillar"
+                            "ru" -> "История анализов"
+                            else -> "History of Analyses"
+                        }.uppercase(),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryGreen,
+                        letterSpacing = 1.sp,
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
@@ -1525,9 +1689,9 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { showFullHistoryDialogText = record.analysisText },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MedicalBorder.copy(alpha = 0.4f))
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, MedicalBorder)
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(
@@ -1560,7 +1724,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                 SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(it))
                                             } ?: "Yaqinda",
                                             fontSize = 11.sp,
-                                            color = Color.Gray
+                                            color = TextSecondary
                                         )
                                     }
                                 }
@@ -1636,7 +1800,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 }
             },
             shape = RoundedCornerShape(16.dp),
-            containerColor = MaterialTheme.colorScheme.surface
+            containerColor = Color.White
         )
     }
 }
