@@ -54,6 +54,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
     val lang by viewModel.currentLanguage.collectAsState()
     val user by viewModel.currentUser.collectAsState()
     val medicalDocs by viewModel.medicalDocuments.collectAsState()
+    val context = LocalContext.current
 
     var showLogoutDialog by remember { mutableStateOf(false) }
 
@@ -824,9 +825,43 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                         Spacer(modifier = Modifier.weight(1f))
                         Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
                     }
-                    
+
                     Divider(color = MedicalBorder.copy(alpha = 0.2f))
-                    
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val intent = Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://claude.ai/code/artifact/d55f2334-c8df-41ef-b060-65046cfa7965")
+                                )
+                                context.startActivity(intent)
+                            }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(AccentCyan.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(imageVector = Icons.Default.PrivacyTip, contentDescription = null, tint = AccentCyan, modifier = Modifier.size(18.dp))
+                        }
+                        Spacer(modifier = Modifier.width(16.dp))
+                        Text(
+                            text = "Maxfiylik siyosati",
+                            color = TextPrimary,
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 15.sp
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(20.dp))
+                    }
+
+                    Divider(color = MedicalBorder.copy(alpha = 0.2f))
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
