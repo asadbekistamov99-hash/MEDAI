@@ -734,6 +734,8 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit, viewModel: AppViewModel) {
 @Composable
 fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit, viewModel: AppViewModel) {
     val lang by viewModel.currentLanguage.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -747,7 +749,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
     var weight by remember { mutableStateOf("70") }
 
     var passwordVisible by remember { mutableStateOf(false) }
-    var showGoogleChooser by remember { mutableStateOf(false) }
+    var isGoogleSigningIn by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -1000,7 +1002,21 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                 item {
                     // Google Sign-In white card
                     OutlinedButton(
-                        onClick = { showGoogleChooser = true },
+                        onClick = {
+                            if (!isGoogleSigningIn) {
+                                isGoogleSigningIn = true
+                                scope.launch {
+                                    val result = com.example.auth.GoogleAuthHelper.signIn(context)
+                                    isGoogleSigningIn = false
+                                    result.onSuccess { account ->
+                                        viewModel.loginWithGoogle(account.name, account.email, onSuccess = { onRegisterSuccess() })
+                                    }.onFailure { e ->
+                                        Toast.makeText(context, e.localizedMessage ?: "Google orqali ro'yxatdan o'tishda xatolik", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            }
+                        },
+                        enabled = !isGoogleSigningIn,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(54.dp),
@@ -1008,18 +1024,22 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                         border = BorderStroke(1.5.dp, MedicalBorder),
                         colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(text = "G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(text = "o", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(text = "o", color = Color(0xFFFBBC05), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(text = "g", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(text = "l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(text = "e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(text = Translations.getString("google_sign_in", lang), color = TextPrimary, fontWeight = FontWeight.Bold)
+                        if (isGoogleSigningIn) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = PrimaryGreen)
+                        } else {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(text = "G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text(text = "o", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text(text = "o", color = Color(0xFFFBBC05), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text(text = "g", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text(text = "l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Text(text = "e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(text = Translations.getString("google_sign_in", lang), color = TextPrimary, fontWeight = FontWeight.Bold)
+                            }
                         }
                     }
                 }
@@ -1033,17 +1053,6 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
             }
         }
     }
-
-    if (showGoogleChooser) {
-        GoogleAccountsSelectorDialog(
-            onDismiss = { showGoogleChooser = false },
-            onAccountSelected = { name, email ->
-                showGoogleChooser = false
-                viewModel.loginWithGoogle(name, email, onSuccess = { onRegisterSuccess() })
-            },
-            lang = lang
-        )
-    }
 }
 
 // --- SCREEN 4: LOGIN SCREEN ---
@@ -1051,10 +1060,12 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
 @Composable
 fun LoginScreen(onNavigateToRegister: () -> Unit, onLoginSuccess: () -> Unit, viewModel: AppViewModel) {
     val lang by viewModel.currentLanguage.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var showGoogleChooser by remember { mutableStateOf(false) }
+    var isGoogleSigningIn by remember { mutableStateOf(false) }
 
     Box(
         modifier = Modifier
@@ -1169,7 +1180,21 @@ fun LoginScreen(onNavigateToRegister: () -> Unit, onLoginSuccess: () -> Unit, vi
 
                 // Google Sign-In Button with border and light theme colors
                 OutlinedButton(
-                    onClick = { showGoogleChooser = true },
+                    onClick = {
+                        if (!isGoogleSigningIn) {
+                            isGoogleSigningIn = true
+                            scope.launch {
+                                val result = com.example.auth.GoogleAuthHelper.signIn(context)
+                                isGoogleSigningIn = false
+                                result.onSuccess { account ->
+                                    viewModel.loginWithGoogle(account.name, account.email, onSuccess = { onLoginSuccess() })
+                                }.onFailure { e ->
+                                    Toast.makeText(context, e.localizedMessage ?: "Google orqali kirishda xatolik", Toast.LENGTH_LONG).show()
+                                }
+                            }
+                        }
+                    },
+                    enabled = !isGoogleSigningIn,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),
@@ -1177,18 +1202,22 @@ fun LoginScreen(onNavigateToRegister: () -> Unit, onLoginSuccess: () -> Unit, vi
                     border = BorderStroke(1.5.dp, MedicalBorder),
                     colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(text = "G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text(text = "o", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text(text = "o", color = Color(0xFFFBBC05), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text(text = "g", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text(text = "l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Text(text = "e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(text = Translations.getString("google_sign_in", lang), color = TextPrimary, fontWeight = FontWeight.Bold)
+                    if (isGoogleSigningIn) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = PrimaryGreen)
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text(text = "G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(text = "o", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(text = "o", color = Color(0xFFFBBC05), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(text = "g", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(text = "l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(text = "e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(text = Translations.getString("google_sign_in", lang), color = TextPrimary, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
 
@@ -1196,195 +1225,6 @@ fun LoginScreen(onNavigateToRegister: () -> Unit, onLoginSuccess: () -> Unit, vi
 
                 TextButton(onClick = onNavigateToRegister) {
                     Text(text = Translations.getString("no_account_yet", lang), color = PrimaryGreen, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-    }
-
-    if (showGoogleChooser) {
-        GoogleAccountsSelectorDialog(
-            onDismiss = { showGoogleChooser = false },
-            onAccountSelected = { name, email ->
-                showGoogleChooser = false
-                viewModel.loginWithGoogle(name, email, onSuccess = { onLoginSuccess() })
-            },
-            lang = lang
-        )
-    }
-}
-
-@Composable
-fun GoogleAccountsSelectorDialog(
-    onDismiss: () -> Unit,
-    onAccountSelected: (name: String, email: String) -> Unit,
-    lang: String
-) {
-    androidx.compose.ui.window.Dialog(
-        onDismissRequest = onDismiss,
-        properties = androidx.compose.ui.window.DialogProperties(
-            usePlatformDefaultWidth = false
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f))
-                .clickable(onClick = onDismiss),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(enabled = false) {}
-                    .padding(horizontal = 0.dp),
-                shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MedicalBorder)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .width(36.dp)
-                            .height(4.dp)
-                            .clip(CircleShape)
-                            .background(Color.Gray.copy(alpha = 0.2f))
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(text = "G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                        Text(text = "o", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                        Text(text = "o", color = Color(0xFFFBBC05), fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                        Text(text = "g", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                        Text(text = "l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                        Text(text = "e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 24.sp)
-                    }
-                    
-                    Spacer(modifier = Modifier.height(12.dp))
-                    
-                    Text(
-                        text = Translations.getString("google_choose_account", lang),
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
-                        color = TextPrimary
-                    )
-                    
-                    Text(
-                        text = Translations.getString("google_continue_to", lang),
-                        fontSize = 13.sp,
-                        color = TextSecondary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    val accounts = listOf(
-                        Pair("Asadbek Istamov", SUPER_ADMIN_EMAIL),
-                        Pair("Asadbek Health", "asadbek.health@gmail.com"),
-                        Pair("Istamov Personal", "istamov.personal@gmail.com")
-                    )
-                    
-                    accounts.forEach { account ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable {
-                                    onAccountSelected(account.first, account.second)
-                                }
-                                .padding(vertical = 12.dp, horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(
-                                        if (account.second.contains("99")) PrimaryGreen else AccentCyan
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = account.first.take(1),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
-                                    color = Color.White
-                                )
-                            }
-                            
-                            Spacer(modifier = Modifier.width(16.dp))
-                            
-                            Column(modifier = Modifier.weight(1.0f)) {
-                                Text(
-                                    text = account.first,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                    color = TextPrimary
-                                )
-                                Text(
-                                    text = account.second,
-                                    fontSize = 13.sp,
-                                    color = TextSecondary
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                    
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(12.dp))
-                            .clickable {
-                                onAccountSelected("Yangi Foydalanuvchi", "new.user@gmail.com")
-                            }
-                            .padding(vertical = 12.dp, horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(LightGreen),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = null,
-                                tint = PrimaryGreen
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = Translations.getString("google_add_account", lang),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            color = PrimaryGreen
-                        )
-                    }
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Text(
-                        text = Translations.getString("google_terms", lang),
-                        fontSize = 11.sp,
-                        color = TextSecondary,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 15.sp,
-                        modifier = Modifier.padding(horizontal = 12.dp)
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         }
