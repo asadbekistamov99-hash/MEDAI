@@ -27,6 +27,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -113,147 +114,168 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         item {
-            // Page header: left-aligned icon badge + title/subtitle, matching the app's header pattern
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = PrimaryGreen,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = "Profil",
-                        fontWeight = FontWeight.ExtraBold,
-                        fontSize = 20.sp,
-                        color = TextPrimary,
-                        letterSpacing = (-0.5).sp
-                    )
-                    Text(
-                        text = "Shaxsiy ma'lumotlar va sozlamalar",
-                        fontSize = 12.sp,
-                        color = TextSecondary
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Premium or Free Avatar
             val isPremium = user?.isPremium ?: false
-            val borderBrush = if (isPremium) {
-                Brush.sweepGradient(listOf(PremiumPurple, AccentCyan, PremiumPurple))
-            } else {
-                Brush.sweepGradient(listOf(PrimaryGreen, AccentCyan, PrimaryGreen))
-            }
-            
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .shadow(8.dp, CircleShape)
-                    .background(Color.White, CircleShape)
-                    .border(3.dp, borderBrush, CircleShape)
-                    .padding(4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(CircleShape)
-                        .background(if (isPremium) PremiumPurple.copy(alpha = 0.1f) else PrimaryGreen.copy(alpha = 0.1f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val initialChar = user?.name?.firstOrNull()?.toString()?.uppercase() ?: "U"
-                    Text(
-                        text = initialChar,
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = if (isPremium) PremiumPurple else PrimaryGreen,
-                            fontSize = 40.sp
-                        )
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Name and Email with perfect contrast
-            Text(
-                text = user?.name ?: "Foydalanuvchi",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = TextPrimary,
-                    fontSize = 24.sp
-                ),
-                textAlign = TextAlign.Center
-            )
-            
-            Text(
-                text = user?.email ?: "email@example.com",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.Medium,
-                    color = TextSecondary
-                ),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 2.dp)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Plan Badge with custom gradients
-            val badgeBrush = if (isPremium) {
-                Brush.linearGradient(listOf(PremiumPurple, Color(0xFF8E24AA)))
+            val heroBrush = if (isPremium) {
+                Brush.linearGradient(listOf(PremiumPurple, Color(0xFF4C1D95)))
             } else {
                 Brush.linearGradient(listOf(PrimaryGreen, DarkGreen))
             }
-            
-            Row(
+
+            // Hero card: gradient background + soft decorative circles, matching the richer
+            // treatment used on the home screen banner instead of a bare white header.
+            Box(
                 modifier = Modifier
-                    .shadow(4.dp, RoundedCornerShape(20.dp))
-                    .background(badgeBrush, RoundedCornerShape(20.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
-                    .padding(horizontal = 20.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    .fillMaxWidth()
+                    .shadow(10.dp, RoundedCornerShape(28.dp))
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(heroBrush)
             ) {
-                Icon(
-                    imageVector = if (isPremium) Icons.Default.WorkspacePremium else Icons.Default.Shield,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
+                // Decorative background circles
+                Box(
+                    modifier = Modifier
+                        .size(180.dp)
+                        .offset(x = 220.dp, y = (-70).dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.08f))
                 )
-                Text(
-                    text = if (isPremium) "PREMIUM FOYDALANUVCHI" else "BEPUL REJIM",
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp,
-                    letterSpacing = 1.sp
+                Box(
+                    modifier = Modifier
+                        .size(110.dp)
+                        .offset(x = (-40).dp, y = 130.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.07f))
                 )
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "PROFIL",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.75f),
+                            letterSpacing = 1.5.sp
+                        )
+                        Spacer(modifier = Modifier.weight(1f))
+                        IconButton(
+                            onClick = { navController.navigate("notifications") },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Sozlamalar",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Avatar
+                    Box(
+                        modifier = Modifier
+                            .size(96.dp)
+                            .shadow(6.dp, CircleShape)
+                            .background(Color.White, CircleShape)
+                            .padding(4.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .background(if (isPremium) PremiumPurple.copy(alpha = 0.12f) else PrimaryGreen.copy(alpha = 0.12f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val initialChar = user?.name?.firstOrNull()?.toString()?.uppercase() ?: "U"
+                            Text(
+                                text = initialChar,
+                                style = MaterialTheme.typography.displayLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (isPremium) PremiumPurple else PrimaryGreen,
+                                    fontSize = 38.sp
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Text(
+                        text = user?.name ?: "Foydalanuvchi",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            color = Color.White,
+                            fontSize = 22.sp
+                        ),
+                        textAlign = TextAlign.Center
+                    )
+                    Text(
+                        text = user?.email ?: "email@example.com",
+                        fontSize = 13.sp,
+                        color = Color.White.copy(alpha = 0.8f),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .background(Color.White.copy(alpha = 0.16f), RoundedCornerShape(20.dp))
+                            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
+                            .padding(horizontal = 18.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isPremium) Icons.Default.WorkspacePremium else Icons.Default.Shield,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(15.dp)
+                        )
+                        Text(
+                            text = if (isPremium) "PREMIUM FOYDALANUVCHI" else "BEPUL REJIM",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.5.sp,
+                            letterSpacing = 1.sp
+                        )
+                    }
+                }
             }
 
             // Super Admin Special Badge and Access Card (strictly and exclusively for SUPER_ADMIN_EMAIL)
+            // Uses a deep-teal brand gradient with a gold accent instead of pure black/orange,
+            // so it reads as "elevated" rather than clashing with the rest of the palette.
             if (viewModel.isSuperAdmin) {
-                Spacer(modifier = Modifier.height(10.dp))
-                Card(
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(6.dp, RoundedCornerShape(16.dp))
-                        .clickable { navController.navigate("admin") },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                    border = BorderStroke(1.5.dp, WarningOrange)
+                        .shadow(8.dp, RoundedCornerShape(18.dp))
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(Brush.linearGradient(listOf(Color(0xFF012A24), DarkGreen)))
+                        .border(1.dp, Color(0xFFFFC978).copy(alpha = 0.35f), RoundedCornerShape(18.dp))
+                        .clickable { navController.navigate("admin") }
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(120.dp)
+                            .offset(x = 260.dp, y = (-40).dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFFC978).copy(alpha = 0.08f))
+                    )
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -263,13 +285,13 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                         Box(
                             modifier = Modifier
                                 .size(42.dp)
-                                .background(WarningOrange.copy(alpha = 0.2f), CircleShape),
+                                .background(Color(0xFFFFC978).copy(alpha = 0.18f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AdminPanelSettings,
                                 contentDescription = "Admin",
-                                tint = WarningOrange,
+                                tint = Color(0xFFFFC978),
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -285,12 +307,12 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Box(
                                     modifier = Modifier
-                                        .background(WarningOrange, RoundedCornerShape(4.dp))
+                                        .background(Color(0xFFFFC978), RoundedCornerShape(4.dp))
                                         .padding(horizontal = 5.dp, vertical = 1.dp)
                                 ) {
                                     Text(
                                         text = "SUPER",
-                                        color = Color.Black,
+                                        color = Color(0xFF012A24),
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.ExtraBold
                                     )
@@ -305,7 +327,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
                             contentDescription = null,
-                            tint = WarningOrange,
+                            tint = Color(0xFFFFC978),
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -313,16 +335,23 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
             }
         }
 
-        // Streak Board
+        // Streak Board — warm gradient card with a decorative watermark flame, not flat white
         item {
-            Card(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.15f))
+                    .shadow(6.dp, RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Brush.linearGradient(listOf(Color(0xFFF57C00), Color(0xFFFFA726))))
             ) {
+                Text(
+                    text = "🔥",
+                    fontSize = 90.sp,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .offset(x = 26.dp, y = 6.dp)
+                        .alpha(0.16f)
+                )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -331,12 +360,11 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
-                            .background(Color(0xFFFFF3E0), CircleShape)
-                            .border(1.dp, Color(0xFFFFB74D), CircleShape),
+                            .size(52.dp)
+                            .background(Color.White.copy(alpha = 0.22f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(text = "🔥", fontSize = 28.sp)
+                        Text(text = "🔥", fontSize = 26.sp)
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
@@ -344,12 +372,12 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                             text = "${user?.healthScore?.let { (it / 15).coerceAtLeast(1) } ?: 5} Kunlik Salomatlik Seriyasi!",
                             fontWeight = FontWeight.ExtraBold,
                             fontSize = 16.sp,
-                            color = TextPrimary
+                            color = Color.White
                         )
                         Text(
                             text = "Har kuni ilovaga kirib salomatligingizni nazorat qiling va seriyani davom ettiring!",
                             fontSize = 12.sp,
-                            color = TextSecondary,
+                            color = Color.White.copy(alpha = 0.85f),
                             lineHeight = 16.sp,
                             modifier = Modifier.padding(top = 2.dp)
                         )
@@ -358,30 +386,26 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
             }
         }
 
-        // Stats summary row
+        // Stats summary row — soft gradient-tinted cards instead of flat white
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Card(
+                Box(
                     modifier = Modifier
                         .weight(1f)
-                        .shadow(4.dp, RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MedicalBorder.copy(alpha = 0.4f))
+                        .shadow(3.dp, RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Brush.linearGradient(listOf(LightGreen, Color.White)))
+                        .border(1.dp, PrimaryGreen.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                        .padding(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(LightGreen, CircleShape),
+                                .background(Color.White, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(imageVector = Icons.Default.Height, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
@@ -394,24 +418,20 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                     }
                 }
 
-                Card(
+                Box(
                     modifier = Modifier
                         .weight(1f)
-                        .shadow(4.dp, RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MedicalBorder.copy(alpha = 0.4f))
+                        .shadow(3.dp, RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Brush.linearGradient(listOf(LightGreen, Color.White)))
+                        .border(1.dp, PrimaryGreen.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
+                        .padding(16.dp)
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(LightGreen, CircleShape),
+                                .background(Color.White, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(imageVector = Icons.Default.MonitorWeight, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))

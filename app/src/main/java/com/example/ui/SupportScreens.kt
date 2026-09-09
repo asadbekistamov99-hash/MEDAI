@@ -923,42 +923,92 @@ fun HistoryScreen(viewModel: AppViewModel) {
     Scaffold(
         topBar = { AppHeader(title = Translations.getString("tab_history", lang)) }
     ) { innerPadding ->
-        if (checks.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(MedicalBackground),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(MedicalBackground)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            item {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(6.dp, RoundedCornerShape(20.dp))
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Brush.linearGradient(listOf(PrimaryGreen, DarkGreen)))
+                ) {
                     Box(
-                        modifier = Modifier.size(72.dp).background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(imageVector = Icons.Default.HourglassEmpty, contentDescription = null, modifier = Modifier.size(32.dp), tint = PrimaryGreen)
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text("Tarix bo'sh", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextPrimary)
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        "Qidiruv natijalari bu yerda saqlanadi.",
-                        fontSize = 12.sp,
-                        color = TextSecondary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 32.dp)
+                        modifier = Modifier
+                            .size(140.dp)
+                            .offset(x = 260.dp, y = (-50).dp)
+                            .clip(CircleShape)
+                            .background(Color.White.copy(alpha = 0.08f))
                     )
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(52.dp)
+                                .background(Color.White.copy(alpha = 0.18f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(imageVector = Icons.Default.History, contentDescription = null, tint = Color.White, modifier = Modifier.size(26.dp))
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
+                        Text(
+                            text = "Tibbiy Qidiruv va Tahlillar Tarixi",
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 17.sp,
+                            color = Color.White,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Bu yerda siz o'tkazgan barcha simptom tekshiruvlari, AI tahlillari va salomatlik xulosalaringiz xronologik tartibda saqlanadi.",
+                            fontSize = 12.sp,
+                            color = Color.White.copy(alpha = 0.85f),
+                            textAlign = TextAlign.Center,
+                            lineHeight = 16.sp
+                        )
+                    }
                 }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(MedicalBackground)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+
+            if (checks.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 28.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Box(
+                                modifier = Modifier.size(72.dp).background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(imageVector = Icons.Default.HourglassEmpty, contentDescription = null, modifier = Modifier.size(32.dp), tint = PrimaryGreen)
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text("Tarix bo'sh", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextPrimary)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                "Qidiruv natijalari bu yerda saqlanadi.",
+                                fontSize = 12.sp,
+                                color = TextSecondary,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(horizontal = 32.dp)
+                            )
+                        }
+                    }
+                }
+            } else {
                 items(checks) { check ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -1065,43 +1115,121 @@ fun GeneralChatScreen(viewModel: AppViewModel) {
         }
     ) { innerPadding ->
         if (chatMessages.isEmpty()) {
-            Box(
+            val quickQuestions = listOf(
+                "💊" to "Qaysi dorilarni birga ichish xavfli?",
+                "💧" to "Kuniga qancha suv ichish tavsiya qilinadi?",
+                "🩸" to "Qon bosimini tabiiy tushirish yo'llari",
+                "🤕" to "Bosh og'rig'i va charchoq sabablari nima?",
+                "🍅" to "Immunitetni oshirish uchun qanday taomlar kerak?"
+            )
+            LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .background(MedicalBackground),
-                contentAlignment = Alignment.Center
+                    .background(MedicalBackground)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                item {
                     Box(
-                        modifier = Modifier.size(72.dp).background(LightGreen, CircleShape),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(6.dp, RoundedCornerShape(22.dp))
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(Brush.linearGradient(listOf(LightGreen, Color(0xFFE3F6F2))))
+                            .border(1.dp, PrimaryGreen.copy(alpha = 0.15f), RoundedCornerShape(22.dp))
+                            .padding(22.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(imageVector = Icons.Default.Chat, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(34.dp))
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Box(
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .shadow(4.dp, CircleShape)
+                                    .background(Brush.linearGradient(listOf(PrimaryGreen, DarkGreen)), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(imageVector = Icons.Default.SmartToy, contentDescription = null, tint = Color.White, modifier = Modifier.size(30.dp))
+                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(6.dp).background(SuccessGreen, CircleShape))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = when (lang) {
+                                        "uz" -> "AI Tibbiy Maslahatchi • 24/7 Onlayn"
+                                        "ru" -> "AI консультант • 24/7 онлайн"
+                                        else -> "AI Health Advisor • 24/7 Online"
+                                    },
+                                    fontSize = 11.5.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = DarkGreen
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = when (lang) {
+                                    "uz" -> "Salom! Sizga qanday yordam bera olaman?"
+                                    "ru" -> "Привет! Чем я могу вам помочь?"
+                                    else -> "Hi! How can I help you today?"
+                                },
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 17.sp,
+                                color = TextPrimary,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = when (lang) {
+                                    "uz" -> "Sog'liq, alomatlar, to'g'ri ovqatlanish yoki tahlil natijalari bo'yicha savollaringizni bering."
+                                    "ru" -> "Задайте вопрос о здоровье, симптомах, питании или результатах анализов."
+                                    else -> "Ask about symptoms, nutrition, or your lab results."
+                                },
+                                fontSize = 12.5.sp,
+                                color = TextSecondary,
+                                textAlign = TextAlign.Center,
+                                lineHeight = 17.sp
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = when (lang) {
-                            "uz" -> "AI Sog'liq maslahatchisi"
-                            "ru" -> "AI консультант по здоровью"
-                            else -> "AI Health Advisor"
-                        },
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 15.sp,
-                        color = TextPrimary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = when (lang) {
-                            "uz" -> "Sog'liq bilan bog'liq savolingizni yozing"
-                            "ru" -> "Напишите свой вопрос о здоровье"
-                            else -> "Ask any health-related question"
-                        },
-                        fontSize = 12.sp,
-                        color = TextSecondary,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(horizontal = 32.dp)
-                    )
+                }
+
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.width(3.dp).height(14.dp).background(PrimaryGreen, RoundedCornerShape(2.dp)))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Tezkor savollar (bir bosishda so'rang):",
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextSecondary
+                        )
+                    }
+                }
+
+                items(quickQuestions) { (emoji, question) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(2.dp, RoundedCornerShape(14.dp))
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color.White)
+                            .border(1.dp, MedicalBorder, RoundedCornerShape(14.dp))
+                            .clickable { viewModel.sendChatMessage(question, "general") }
+                            .padding(horizontal = 14.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = emoji, fontSize = 18.sp)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text(
+                            text = question,
+                            fontSize = 13.5.sp,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         } else {
