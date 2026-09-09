@@ -112,8 +112,43 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         item {
+            // Page header: left-aligned icon badge + title/subtitle, matching the app's header pattern
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = PrimaryGreen,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Profil",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 20.sp,
+                        color = TextPrimary,
+                        letterSpacing = (-0.5).sp
+                    )
+                    Text(
+                        text = "Shaxsiy ma'lumotlar va sozlamalar",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
+                }
+            }
+
             Spacer(modifier = Modifier.height(8.dp))
-            
+
             // Premium or Free Avatar
             val isPremium = user?.isPremium ?: false
             val borderBrush = if (isPremium) {
@@ -216,7 +251,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                         .clickable { navController.navigate("admin") },
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
-                    border = BorderStroke(1.5.dp, Color(0xFFF59E0B))
+                    border = BorderStroke(1.5.dp, WarningOrange)
                 ) {
                     Row(
                         modifier = Modifier
@@ -227,13 +262,13 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                         Box(
                             modifier = Modifier
                                 .size(42.dp)
-                                .background(Color(0xFFF59E0B).copy(alpha = 0.2f), CircleShape),
+                                .background(WarningOrange.copy(alpha = 0.2f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.AdminPanelSettings,
                                 contentDescription = "Admin",
-                                tint = Color(0xFFF59E0B),
+                                tint = WarningOrange,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -249,7 +284,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Box(
                                     modifier = Modifier
-                                        .background(Color(0xFFF59E0B), RoundedCornerShape(4.dp))
+                                        .background(WarningOrange, RoundedCornerShape(4.dp))
                                         .padding(horizontal = 5.dp, vertical = 1.dp)
                                 ) {
                                     Text(
@@ -269,7 +304,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                         Icon(
                             imageVector = Icons.Default.ChevronRight,
                             contentDescription = null,
-                            tint = Color(0xFFF59E0B),
+                            tint = WarningOrange,
                             modifier = Modifier.size(22.dp)
                         )
                     }
@@ -331,7 +366,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .shadow(2.dp, RoundedCornerShape(16.dp)),
+                        .shadow(4.dp, RoundedCornerShape(16.dp)),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     border = BorderStroke(1.dp, MedicalBorder.copy(alpha = 0.4f))
@@ -357,11 +392,11 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                         }
                     }
                 }
-                
+
                 Card(
                     modifier = Modifier
                         .weight(1f)
-                        .shadow(2.dp, RoundedCornerShape(16.dp)),
+                        .shadow(4.dp, RoundedCornerShape(16.dp)),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                     border = BorderStroke(1.dp, MedicalBorder.copy(alpha = 0.4f))
@@ -428,7 +463,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                             Box(
                                 modifier = Modifier
                                     .size(42.dp)
-                                    .background(if (isUnlocked) PrimaryGreen.copy(alpha = 0.2f) else Color.Gray.copy(alpha = 0.1f), CircleShape),
+                                    .background(if (isUnlocked) PrimaryGreen.copy(alpha = 0.2f) else TextSecondary.copy(alpha = 0.1f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Text(text = ach.second.takeLast(2), fontSize = 18.sp)
@@ -439,19 +474,19 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                                     text = ach.second.dropLast(2).trim(),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 14.sp,
-                                    color = if (isUnlocked) TextPrimary else Color.Gray
+                                    color = if (isUnlocked) TextPrimary else TextSecondary
                                 )
                                 Text(
                                     text = ach.third,
                                     fontSize = 11.sp,
-                                    color = if (isUnlocked) TextSecondary else Color.Gray.copy(alpha = 0.7f),
+                                    color = if (isUnlocked) TextSecondary else TextSecondary.copy(alpha = 0.7f),
                                     lineHeight = 14.sp
                                 )
                             }
                             if (isUnlocked) {
                                 Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen)
                             } else {
-                                Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = Color.Gray.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
+                                Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = TextSecondary.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
                             }
                         }
                     }
@@ -740,10 +775,10 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                             Box(
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .background(Color(0xFFFEF3C7), CircleShape),
+                                    .background(WarningOrange.copy(alpha = 0.15f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.Default.AdminPanelSettings, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(20.dp))
+                                Icon(imageVector = Icons.Default.AdminPanelSettings, contentDescription = null, tint = WarningOrange, modifier = Modifier.size(20.dp))
                             }
                             Spacer(modifier = Modifier.width(16.dp))
                             Column(modifier = Modifier.weight(1f)) {
@@ -759,7 +794,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                                     fontSize = 11.sp
                                 )
                             }
-                            Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = Color(0xFFD97706), modifier = Modifier.size(20.dp))
+                            Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = WarningOrange, modifier = Modifier.size(20.dp))
                         }
                         Divider(color = MedicalBorder.copy(alpha = 0.4f))
                     }
@@ -802,7 +837,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(Color(0xFFFFEBEE), CircleShape),
+                                .background(ErrorRed.copy(alpha = 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(imageVector = Icons.Default.ExitToApp, contentDescription = null, tint = ErrorRed, modifier = Modifier.size(18.dp))
@@ -894,7 +929,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
             },
             dismissButton = {
                 TextButton(onClick = { showDocUploadDialog = false }) {
-                    Text("Bekor qilish", color = Color.Gray)
+                    Text("Bekor qilish", color = TextSecondary)
                 }
             }
         )
@@ -963,12 +998,16 @@ fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .border(1.dp, PremiumPurple, RoundedCornerShape(20.dp)),
+                    .shadow(8.dp, RoundedCornerShape(20.dp), ambientColor = PremiumPurple.copy(alpha = 0.3f), spotColor = PremiumPurple.copy(alpha = 0.3f))
+                    .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(20.dp)),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = PremiumPurple.copy(alpha = 0.12f))
+                colors = CardDefaults.cardColors(containerColor = PremiumPurple)
             ) {
                 Column(
-                    modifier = Modifier.padding(24.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Brush.horizontalGradient(listOf(PremiumPurple, Color(0xFF9333EA))))
+                        .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -984,7 +1023,7 @@ fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             "Все профессиональные функции разблокируются",
                             "Unlock all professional features completely"
                         ),
-                        color = PrimaryGreen,
+                        color = Color.White.copy(alpha = 0.85f),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -993,7 +1032,9 @@ fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
             // Feature Checklist (Premium Advantages)
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(4.dp, RoundedCornerShape(20.dp)),
                 shape = RoundedCornerShape(20.dp),
                 border = BorderStroke(1.dp, MedicalBorder),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -1040,7 +1081,9 @@ fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
             // Pay details
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(4.dp, RoundedCornerShape(20.dp)),
                 shape = RoundedCornerShape(20.dp),
                 border = BorderStroke(1.dp, MedicalBorder),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
@@ -1154,20 +1197,30 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
         ) {
             // Header Info Card
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(4.dp, RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MedicalBorder)
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("👨‍👩‍👧‍👦", fontSize = 36.sp)
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(LightGreen, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("👨‍👩‍👧‍👦", fontSize = 26.sp)
+                    }
                     Column {
                         Text(
                             text = getLangText("Oilaviy sog'liq markazi", "Семейный центр здоровья", "Family Health Center"),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onSurface)
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = TextPrimary)
                         )
                         Text(
                             text = getLangText(
@@ -1175,7 +1228,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 "Добавляйте членов семьи, следите за их здоровьем и управляйте календарем прививок.",
                                 "Add family members, monitor shared health records, and track detailed immunization schedules."
                             ),
-                            style = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            style = MaterialTheme.typography.bodySmall.copy(color = TextSecondary)
                         )
                     }
                 }
@@ -1211,7 +1264,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         }
                     },
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentCyan.copy(alpha = 0.12f), contentColor = AccentCyan),
                     modifier = Modifier.width(110.dp)
                 ) {
                     Text(text = getLangText("Taklif etish", "Пригласить", "Invite"), fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -1254,29 +1307,40 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             // Family Weekly Summary
             Text(text = getLangText("Haftalik Salomatlik Hisoboti 📊", "Еженедельный отчет здоровья 📊", "Weekly Health Summary 📊"), fontWeight = FontWeight.Bold, color = PrimaryGreen, fontSize = 14.sp)
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(2.dp, RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MedicalBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(text = getLangText("Ushbu hafta oilaviy salomatlik juda yaxshi!", "На этой неделе здоровье семьи отличное!", "Family health is superb this week!"), fontWeight = FontWeight.Bold, color = PrimaryGreen, fontSize = 13.sp)
-                    Text(text = getLangText("• Suv ichish normasi bajarilishi: 94%", "• Норма воды выполнена на: 94%", "• Water goal completed: 94%"), fontSize = 12.sp, color = Color.Gray)
-                    Text(text = getLangText("• Dorilarni o'z vaqtida ichish: 88%", "• Прием лекарств вовремя: 88%", "• Medication adherence: 88%"), fontSize = 12.sp, color = Color.Gray)
-                    Text(text = getLangText("• O'rtacha oilaviy ball: 86%", "• Средний балл семьи: 86%", "• Average family score: 86%"), fontSize = 12.sp, color = Color.Gray)
+                    Text(text = getLangText("• Suv ichish normasi bajarilishi: 94%", "• Норма воды выполнена на: 94%", "• Water goal completed: 94%"), fontSize = 12.sp, color = TextSecondary)
+                    Text(text = getLangText("• Dorilarni o'z vaqtida ichish: 88%", "• Прием лекарств вовремя: 88%", "• Medication adherence: 88%"), fontSize = 12.sp, color = TextSecondary)
+                    Text(text = getLangText("• O'rtacha oilaviy ball: 86%", "• Средний балл семьи: 86%", "• Average family score: 86%"), fontSize = 12.sp, color = TextSecondary)
                 }
             }
 
             // Live monitoring list
-            Text(text = Translations.getString("family_member_live", lang), fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 14.sp)
+            Text(
+                text = Translations.getString("family_member_live", lang).uppercase(),
+                fontWeight = FontWeight.Bold,
+                color = PrimaryGreen,
+                fontSize = 11.sp,
+                letterSpacing = 1.2.sp
+            )
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 family.forEach { member ->
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .shadow(4.dp, RoundedCornerShape(16.dp))
                             .clickable { selectedMemberForDetail = member },
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.1f))
+                        border = BorderStroke(1.dp, MedicalBorder)
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(
@@ -1288,10 +1352,9 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     Box(
                                         modifier = Modifier
                                             .size(48.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                                            .background(LightGreen, CircleShape)
                                     ) {
-                                        Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxSize().padding(8.dp))
+                                        Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.fillMaxSize().padding(8.dp))
                                     }
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
@@ -1319,7 +1382,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                 member.relation
                                             ),
                                             fontSize = 12.sp,
-                                            color = Color.Gray
+                                            color = TextSecondary
                                         )
                                         Text(text = "${Translations.getString("family_steps", lang)}: ${member.stepsToday}", fontSize = 11.sp, color = PrimaryGreen)
                                     }
@@ -1337,7 +1400,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 }
                             }
 
-                            Divider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f))
+                            Divider(color = MedicalBorder.copy(alpha = 0.08f))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1540,7 +1603,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             },
             dismissButton = {
                 TextButton(onClick = { showAddMemberDialog = false }) {
-                    Text(getLangText("Bekor qilish", "Отмена", "Cancel"), color = Color.Gray)
+                    Text(getLangText("Bekor qilish", "Отмена", "Cancel"), color = TextSecondary)
                 }
             }
         )
@@ -1589,12 +1652,12 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Text(
                                 text = getLangText("Oila a'zosi salomatlik profili", "Профиль здоровья члена семьи", "Family Health Profile"),
                                 fontSize = 11.sp,
-                                color = Color.Gray
+                                color = TextSecondary
                             )
                         }
                     }
                     IconButton(onClick = { selectedMemberForDetail = null }) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color.Gray)
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
                     }
                 }
             },
@@ -1664,7 +1727,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                         Text(
                                             text = getLangText("Hozircha emlashlar yo'q", "Пока прививок нет", "No immunizations scheduled yet"),
                                             fontSize = 12.sp,
-                                            color = Color.Gray,
+                                            color = TextSecondary,
                                             textAlign = TextAlign.Center
                                         )
                                     }
@@ -1674,11 +1737,11 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
                                         colors = CardDefaults.cardColors(
-                                            containerColor = if (vac.status == "Completed") SuccessGreen.copy(alpha = 0.05f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                                            containerColor = if (vac.status == "Completed") SuccessGreen.copy(alpha = 0.05f) else WarningOrange.copy(alpha = 0.06f)
                                         ),
                                         border = BorderStroke(
                                             width = 1.dp,
-                                            color = if (vac.status == "Completed") SuccessGreen.copy(alpha = 0.2f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.1f)
+                                            color = if (vac.status == "Completed") SuccessGreen.copy(alpha = 0.2f) else MedicalBorder.copy(alpha = 0.1f)
                                         )
                                     ) {
                                         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1689,7 +1752,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             ) {
                                                 Column(modifier = Modifier.weight(1f)) {
                                                     Text(text = vac.vaccineName, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
-                                                    Text(text = getLangText("Kasallik: ", "Болезнь: ", "Disease: ") + vac.targetDisease, fontSize = 11.sp, color = Color.Gray)
+                                                    Text(text = getLangText("Kasallik: ", "Болезнь: ", "Disease: ") + vac.targetDisease, fontSize = 11.sp, color = TextSecondary)
                                                 }
                                                 // Status Badge
                                                 Box(
@@ -1778,7 +1841,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             // Blood Pressure Card
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                                colors = CardDefaults.cardColors(containerColor = LightGreen.copy(alpha = 0.5f))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp),
@@ -1789,7 +1852,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                         Text("🩸", fontSize = 24.sp)
                                         Column {
                                             Text(getLangText("Arterial Bosim", "Артериальное давление", "Blood Pressure"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                            Text(getLangText("Normal ko'rsatkich: 120/80 mm sim.ust", "Норма: 120/80 мм рт.ст.", "Normal: 120/80 mmHg"), fontSize = 11.sp, color = Color.Gray)
+                                            Text(getLangText("Normal ko'rsatkich: 120/80 mm sim.ust", "Норма: 120/80 мм рт.ст.", "Normal: 120/80 mmHg"), fontSize = 11.sp, color = TextSecondary)
                                         }
                                     }
                                     Text(
@@ -1804,7 +1867,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             // Heart Rate Card
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                                colors = CardDefaults.cardColors(containerColor = LightGreen.copy(alpha = 0.5f))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp),
@@ -1815,7 +1878,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                         Text("💓", fontSize = 24.sp)
                                         Column {
                                             Text(getLangText("Yurak urishi (Puls)", "Пульс", "Heart Rate"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                            Text(getLangText("Normal: daqiqasiga 60-90 marta", "Норма: 60-90 уд/мин", "Normal: 60-90 bpm"), fontSize = 11.sp, color = Color.Gray)
+                                            Text(getLangText("Normal: daqiqasiga 60-90 marta", "Норма: 60-90 уд/мин", "Normal: 60-90 bpm"), fontSize = 11.sp, color = TextSecondary)
                                         }
                                     }
                                     Text(
@@ -1830,7 +1893,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             // Activity steps
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                                colors = CardDefaults.cardColors(containerColor = LightGreen.copy(alpha = 0.5f))
                             ) {
                                 Row(
                                     modifier = Modifier.padding(12.dp),
@@ -1841,7 +1904,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                         Text("🏃", fontSize = 24.sp)
                                         Column {
                                             Text(getLangText("Kunlik qadamlar faolligi", "Шаги за сегодня", "Daily Step Activity"), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                            Text(getLangText("Kunlik maqsad: 10,000 qadam", "Цель: 10,000 шагов", "Target: 10,000 steps"), fontSize = 11.sp, color = Color.Gray)
+                                            Text(getLangText("Kunlik maqsad: 10,000 qadam", "Цель: 10,000 шагов", "Target: 10,000 steps"), fontSize = 11.sp, color = TextSecondary)
                                         }
                                     }
                                     Text(
@@ -1858,15 +1921,15 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             // Vitals Logger Box
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.15f)),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f))
+                                colors = CardDefaults.cardColors(containerColor = AccentCyan.copy(alpha = 0.08f)),
+                                border = BorderStroke(1.dp, AccentCyan.copy(alpha = 0.2f))
                             ) {
                                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(
                                         text = getLangText("Yangi ko'rsatkichlarni kiritish ✍️", "Записать новые показатели ✍️", "Log New Vital Readings ✍️"),
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                        color = AccentCyan
                                     )
 
                                     Row(
@@ -1922,7 +1985,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                         },
                                         modifier = Modifier.fillMaxWidth().height(36.dp),
                                         shape = RoundedCornerShape(8.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan),
                                         contentPadding = PaddingValues(0.dp)
                                     ) {
                                         Text(getLangText("Ko'rsatkichlarni saqlash", "Сохранить показатели", "Save Vitals"), fontSize = 12.sp, fontWeight = FontWeight.Bold)
@@ -2000,7 +2063,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 },
                 dismissButton = {
                     TextButton(onClick = { completedVaccineRecord = null }) {
-                        Text(getLangText("Bekor qilish", "Отмена", "Cancel"), color = Color.Gray)
+                        Text(getLangText("Bekor qilish", "Отмена", "Cancel"), color = TextSecondary)
                     }
                 }
             )
@@ -2088,7 +2151,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 },
                 dismissButton = {
                     TextButton(onClick = { showAddVaccineDialog = false }) {
-                        Text(getLangText("Bekor qilish", "Отмена", "Cancel"), color = Color.Gray)
+                        Text(getLangText("Bekor qilish", "Отмена", "Cancel"), color = TextSecondary)
                     }
                 }
             )
@@ -2154,7 +2217,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             },
             dismissButton = {
                 TextButton(onClick = { selectedMemberForReminder = null }) {
-                    Text(getLangText("Bekor qilish", "Отмена", "Cancel"), color = Color.Gray)
+                    Text(getLangText("Bekor qilish", "Отмена", "Cancel"), color = TextSecondary)
                 }
             }
         )
@@ -2228,9 +2291,12 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     0 -> {
                         // --- WEIGHT & BMI TAB ---
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(2.dp, RoundedCornerShape(16.dp)),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MedicalBorder)
                         ) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Text(text = "Tana Vazni Indeksi (BMI) Kalkulyatori", fontWeight = FontWeight.Bold, color = PrimaryGreen, fontSize = 15.sp)
@@ -2269,7 +2335,7 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     border = BorderStroke(1.dp, bmiColor)
                                 ) {
                                     Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(text = "Sizning BMI ko'rsatkichingiz:", fontSize = 12.sp, color = Color.LightGray)
+                                        Text(text = "Sizning BMI ko'rsatkichingiz:", fontSize = 12.sp, color = TextSecondary)
                                         Text(text = String.format("%.1f", bmi), fontWeight = FontWeight.Bold, fontSize = 28.sp, color = bmiColor)
                                         Text(text = bmiCategory, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = bmiColor)
                                     }
@@ -2292,12 +2358,15 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         }
 
                         // Last 7 days Weight chart
-                        Text(text = "Oxirgi vazn o'zgarishlari", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 13.sp)
+                        Text(text = "Oxirgi vazn o'zgarishlari", fontWeight = FontWeight.Bold, color = TextSecondary, fontSize = 13.sp)
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(160.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                .height(160.dp)
+                                .shadow(2.dp, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MedicalBorder)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -2309,13 +2378,13 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 val recentMetrics = allMetricsList.takeLast(7)
                                 if (recentMetrics.isEmpty()) {
                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Text(text = "Ma'lumotlar kam", color = Color.Gray, fontSize = 12.sp)
+                                        Text(text = "Ma'lumotlar kam", color = TextSecondary, fontSize = 12.sp)
                                     }
                                 } else {
                                     recentMetrics.forEachIndexed { index, metric ->
                                         if (metric.weight > 0) {
                                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                Text(text = "${metric.weight.toInt()}", fontSize = 10.sp, color = Color.White)
+                                                Text(text = "${metric.weight.toInt()}", fontSize = 10.sp, color = TextPrimary)
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Box(
                                                     modifier = Modifier
@@ -2325,7 +2394,7 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                         .background(PrimaryGreen)
                                                 )
                                                 Spacer(modifier = Modifier.height(4.dp))
-                                                Text(text = metric.date.takeLast(2), fontSize = 10.sp, color = Color.Gray)
+                                                Text(text = metric.date.takeLast(2), fontSize = 10.sp, color = TextSecondary)
                                             }
                                         }
                                     }
@@ -2338,15 +2407,18 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             "ru" -> "Динамика здоровья (Recharts & Firestore)"
                             else -> "Health Dynamics (Recharts & Firestore)"
                         }
-                        Text(text = trendsLabel0, fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 13.sp)
+                        Text(text = trendsLabel0, fontWeight = FontWeight.Bold, color = TextSecondary, fontSize = 13.sp)
                         RechartsHealthTrends(viewModel = viewModel)
                     }
                     1 -> {
                         // --- PRESSURE & PULSE TAB ---
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(2.dp, RoundedCornerShape(16.dp)),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MedicalBorder)
                         ) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Text(text = "Qon bosimi va Puls (Yurak urishi)", fontWeight = FontWeight.Bold, color = PrimaryGreen, fontSize = 15.sp)
@@ -2391,7 +2463,7 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     border = BorderStroke(1.dp, bpColor)
                                 ) {
                                     Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                                        Text(text = "Tahlil:", fontSize = 11.sp, color = Color.LightGray)
+                                        Text(text = "Tahlil:", fontSize = 11.sp, color = TextSecondary)
                                         Text(text = bpStatus, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = bpColor, textAlign = TextAlign.Center)
                                     }
                                 }
@@ -2416,12 +2488,15 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         }
 
                         // Last 7 days Pulse Rate Chart
-                        Text(text = "Puls (Yurak urishi) o'zgarishi (BPM)", fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 13.sp)
+                        Text(text = "Puls (Yurak urishi) o'zgarishi (BPM)", fontWeight = FontWeight.Bold, color = TextSecondary, fontSize = 13.sp)
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(160.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                .height(160.dp)
+                                .shadow(2.dp, RoundedCornerShape(16.dp)),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MedicalBorder)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -2433,13 +2508,13 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 val recentMetrics = allMetricsList.takeLast(7)
                                 if (recentMetrics.isEmpty()) {
                                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                        Text(text = "Ma'lumotlar kam", color = Color.Gray, fontSize = 12.sp)
+                                        Text(text = "Ma'lumotlar kam", color = TextSecondary, fontSize = 12.sp)
                                     }
                                 } else {
                                     recentMetrics.forEachIndexed { index, metric ->
                                         if (metric.heartRate > 0) {
                                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                Text(text = "${metric.heartRate}", fontSize = 10.sp, color = Color.White)
+                                                Text(text = "${metric.heartRate}", fontSize = 10.sp, color = TextPrimary)
                                                 Spacer(modifier = Modifier.height(4.dp))
                                                 Box(
                                                     modifier = Modifier
@@ -2449,7 +2524,7 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                         .background(Color(0xFFE91E63))
                                                 )
                                                 Spacer(modifier = Modifier.height(4.dp))
-                                                Text(text = metric.date.takeLast(2), fontSize = 10.sp, color = Color.Gray)
+                                                Text(text = metric.date.takeLast(2), fontSize = 10.sp, color = TextSecondary)
                                             }
                                         }
                                     }
@@ -2462,15 +2537,18 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             "ru" -> "Динамика здоровья (Recharts & Firestore)"
                             else -> "Health Dynamics (Recharts & Firestore)"
                         }
-                        Text(text = trendsLabel1, fontWeight = FontWeight.Bold, color = Color.Gray, fontSize = 13.sp)
+                        Text(text = trendsLabel1, fontWeight = FontWeight.Bold, color = TextSecondary, fontSize = 13.sp)
                         RechartsHealthTrends(viewModel = viewModel)
                     }
                     2 -> {
                         // --- SLEEP & NUTRITION TAB ---
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(2.dp, RoundedCornerShape(16.dp)),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MedicalBorder)
                         ) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                                 Text(text = "Kunlik uyqu va ovqatlanish jurnali", fontWeight = FontWeight.Bold, color = PrimaryGreen, fontSize = 15.sp)
@@ -2512,7 +2590,7 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 Divider()
 
                                 // Food Input Section
-                                Text(text = "Taom qo'shish", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
+                                Text(text = "Taom qo'shish", fontWeight = FontWeight.Bold, color = PrimaryGreen, fontSize = 13.sp)
 
                                 OutlinedTextField(
                                     value = mealTitleInput,
@@ -2573,9 +2651,12 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         } ?: 0
 
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(2.dp, RoundedCornerShape(12.dp)),
                             shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            border = BorderStroke(1.dp, MedicalBorder)
                         ) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Row(
@@ -2583,7 +2664,7 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Text(text = "Bugungi ovqatlanish", fontWeight = FontWeight.Bold)
+                                    Text(text = "Bugungi ovqatlanish", fontWeight = FontWeight.Bold, color = TextPrimary)
                                     Text(text = "$totalCalories / 2000 kcal", fontWeight = FontWeight.Bold, color = PrimaryGreen)
                                 }
 
@@ -2591,7 +2672,7 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     progress = (totalCalories.toFloat() / 2000f).coerceAtMost(1f),
                                     modifier = Modifier.fillMaxWidth(),
                                     color = PrimaryGreen,
-                                    trackColor = Color.LightGray.copy(alpha = 0.2f)
+                                    trackColor = MedicalBorder
                                 )
 
                                 val mealList = remember(todayMetricsState?.mealsJson) {
@@ -2617,8 +2698,8 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween
                                     ) {
-                                        Text(text = "• $title ($type)", fontSize = 12.sp, color = Color.LightGray)
-                                        Text(text = "$calories kcal", fontSize = 12.sp, color = Color.White)
+                                        Text(text = "• $title ($type)", fontSize = 12.sp, color = TextSecondary)
+                                        Text(text = "$calories kcal", fontSize = 12.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
                                     }
                                 }
                             }
@@ -2651,7 +2732,7 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 Column(modifier = Modifier.padding(16.dp)) {
                                     Text(text = "🥗 AI Parhezshunos maslahati:", fontWeight = FontWeight.Bold, color = PremiumPurple, fontSize = 14.sp)
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text(text = nutritionAnalysisResult, fontSize = 13.sp, color = Color.LightGray)
+                                    Text(text = nutritionAnalysisResult, fontSize = 13.sp, color = TextPrimary)
                                 }
                             }
                         }
@@ -2708,7 +2789,7 @@ fun ServicesScreen(viewModel: AppViewModel, onBack: () -> Unit, onNavigateToUpgr
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50.dp))
                                 .background(if (isSelected) PrimaryGreen else Color.White)
-                                .border(1.dp, if (isSelected) PrimaryGreen else Color(0xFFE0F2F1), RoundedCornerShape(50.dp))
+                                .border(1.dp, if (isSelected) PrimaryGreen else MedicalBorder, RoundedCornerShape(50.dp))
                                 .clickable { selectedCity = city }
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                         ) {
@@ -2743,7 +2824,7 @@ fun ServicesScreen(viewModel: AppViewModel, onBack: () -> Unit, onNavigateToUpgr
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50.dp))
                                 .background(if (isSelected) PrimaryGreen else MaterialTheme.colorScheme.surface)
-                                .border(1.dp, if (isSelected) PrimaryGreen else MaterialTheme.colorScheme.outline, RoundedCornerShape(50.dp))
+                                .border(1.dp, if (isSelected) PrimaryGreen else MedicalBorder, RoundedCornerShape(50.dp))
                                 .clickable { selectedSpecialty = spec }
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                         ) {
@@ -2844,7 +2925,7 @@ fun ServicesScreen(viewModel: AppViewModel, onBack: () -> Unit, onNavigateToUpgr
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        border = BorderStroke(1.dp, MedicalBorder)
                     ) {
                         Box(modifier = Modifier.padding(24.dp), contentAlignment = Alignment.Center) {
                             Text(
@@ -2862,7 +2943,7 @@ fun ServicesScreen(viewModel: AppViewModel, onBack: () -> Unit, onNavigateToUpgr
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                         shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+                        border = BorderStroke(1.dp, MedicalBorder)
                     ) {
                         Row(
                             modifier = Modifier
@@ -2933,39 +3014,93 @@ fun HelpCenterScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 .padding(innerPadding)
                 .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(text = "Tez-tez so'raladigan savollar (FAQ)", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            // Hero header card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(4.dp, RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MedicalBorder)
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.HelpCenter, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(24.dp))
+                    }
+                    Column {
+                        Text(text = "Tez-tez so'raladigan savollar", fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = TextPrimary)
+                        Text(text = "Savolingizga javob toping yoki qo'llab-quvvatlash xizmatiga yozing", fontSize = 12.sp, color = TextSecondary)
+                    }
+                }
+            }
+
+            Text(
+                text = "FAQ".uppercase(),
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.sp,
+                color = PrimaryGreen,
+                letterSpacing = 1.2.sp
+            )
 
             listOf(
                 "MedAI nima?" to "MedAI - bu sun'iy intellektga asoslangan shaxsiy tibbiy maslahatchi va salomatlik tahlilchisidir.",
                 "Premium plan nima bera oladi?" to "Premium plan barcha shifokor chatlari, vision laborator tahlil va oilaviy kuzatuvni faollashtiradi."
             ).forEach { (q, a) ->
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(2.dp, RoundedCornerShape(16.dp)),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MedicalBorder)
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(text = "Q: $q", fontWeight = FontWeight.Bold, color = PrimaryGreen)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(text = "A: $a", fontSize = 13.sp, color = Color.LightGray)
+                    Row(modifier = Modifier.padding(16.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(AccentCyan.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(imageVector = Icons.Default.HelpOutline, contentDescription = null, tint = AccentCyan, modifier = Modifier.size(18.dp))
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = q, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(text = a, fontSize = 13.sp, color = TextSecondary, lineHeight = 18.sp)
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 onClick = { /* Simulated Telegram Support */ },
                 colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
-                modifier = Modifier.fillMaxWidth()
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
             ) {
                 Icon(imageVector = Icons.Default.Chat, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Telegram Support orqali bog'lanish")
+                Text(text = "Telegram Support orqali bog'lanish", fontWeight = FontWeight.Bold)
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
@@ -3052,8 +3187,27 @@ fun NotificationsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(imageVector = Icons.Default.NotificationsNone, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(54.dp))
-                    Text("Hozircha hech qanday bildirishnoma yo'q.", color = Color.Gray)
+                    Box(
+                        modifier = Modifier
+                            .size(84.dp)
+                            .background(PrimaryGreen.copy(alpha = 0.08f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.NotificationsNone, contentDescription = null, tint = PrimaryGreen.copy(alpha = 0.6f), modifier = Modifier.size(40.dp))
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Hozircha hech qanday bildirishnoma yo'q.",
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Yangi bildirishnomalar shu yerda paydo bo'ladi",
+                        color = TextSecondary,
+                        fontSize = 12.sp
+                    )
                 }
             }
         } else {
@@ -3067,22 +3221,36 @@ fun NotificationsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             ) {
                 items(list) { item ->
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(2.dp, RoundedCornerShape(16.dp)),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        border = BorderStroke(1.dp, MedicalBorder)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(
+                                        (if (item.type == "sos") ErrorRed else PrimaryGreen).copy(alpha = 0.12f),
+                                        CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
                                 Icon(
                                     imageVector = if (item.type == "sos") Icons.Default.Warning else Icons.Default.Notifications,
                                     contentDescription = null,
-                                    tint = if (item.type == "sos") ErrorRed else PrimaryGreen
+                                    tint = if (item.type == "sos") ErrorRed else PrimaryGreen,
+                                    modifier = Modifier.size(20.dp)
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = item.title, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(text = item.message, fontSize = 12.sp, color = Color.LightGray)
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(text = item.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(text = item.message, fontSize = 12.sp, color = TextSecondary, lineHeight = 16.sp)
+                            }
                         }
                     }
                 }

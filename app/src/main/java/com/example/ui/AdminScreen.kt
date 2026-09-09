@@ -15,7 +15,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -26,6 +28,11 @@ import com.example.data.*
 import com.example.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
+
+// Extra per-section accent colors for the admin panel, in the same spirit as the
+// home screen's colored feature-grid tiles (PrimaryGreen stays the overall brand anchor).
+private val AdminIndigo = Color(0xFF4F46E5)
+private val AdminSlate = Color(0xFF475569)
 
 @Composable
 fun AdminScreen(
@@ -46,23 +53,30 @@ fun AdminScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.background)
+                    .background(MedicalBackground)
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(
+                            elevation = 10.dp,
+                            shape = RoundedCornerShape(24.dp),
+                            ambientColor = ErrorRed.copy(alpha = 0.18f),
+                            spotColor = ErrorRed.copy(alpha = 0.18f)
+                        ),
+                    shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.3f))
+                    border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.25f))
                 ) {
                     Column(
-                        modifier = Modifier.padding(24.dp),
+                        modifier = Modifier.padding(28.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(72.dp)
+                                .size(76.dp)
                                 .background(ErrorRed.copy(alpha = 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
@@ -70,15 +84,15 @@ fun AdminScreen(
                                 imageVector = Icons.Default.GppBad,
                                 contentDescription = null,
                                 tint = ErrorRed,
-                                modifier = Modifier.size(42.dp)
+                                modifier = Modifier.size(40.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(18.dp))
                         Text(
                             text = "Ruxsat Berilmagan",
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = ErrorRed
+                            fontWeight = FontWeight.ExtraBold,
+                            color = TextPrimary
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
@@ -88,11 +102,14 @@ fun AdminScreen(
                             textAlign = TextAlign.Center,
                             lineHeight = 18.sp
                         )
-                        Spacer(modifier = Modifier.height(20.dp))
+                        Spacer(modifier = Modifier.height(22.dp))
                         Button(
                             onClick = onBack,
                             colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
-                            shape = RoundedCornerShape(12.dp)
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
                         ) {
                             Text("Bosh sahifaga qaytish", fontWeight = FontWeight.Bold)
                         }
@@ -119,6 +136,8 @@ fun AdminScreen(
 
     var selectedTab by remember { mutableStateOf(0) }
     val tabTitles = listOf("Foydalanuvchilar", "To'lovlar", "Tizim", "Tibbiy CMS", "Jurnallar")
+    val tabIcons = listOf(Icons.Default.Group, Icons.Default.ReceiptLong, Icons.Default.AdminPanelSettings, Icons.Default.MedicalServices, Icons.Default.History)
+    val tabColors = listOf(PrimaryGreen, AccentCyan, AdminIndigo, SecondaryGreen, AdminSlate)
 
     Scaffold(
         topBar = {
@@ -158,14 +177,15 @@ fun AdminScreen(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Box(
                                     modifier = Modifier
-                                        .background(Color(0xFFF59E0B), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                        .background(WarningOrange, RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 7.dp, vertical = 2.dp)
                                 ) {
                                     Text(
                                         text = "SUPER",
                                         fontSize = 9.sp,
                                         fontWeight = FontWeight.ExtraBold,
-                                        color = Color.Black
+                                        color = Color.White,
+                                        letterSpacing = 0.5.sp
                                     )
                                 }
                             }
@@ -194,25 +214,22 @@ fun AdminScreen(
                         MetricBadge(label = "Xatolar", count = unresolvedErrors.toString(), color = if (unresolvedErrors > 0) ErrorRed else SuccessGreen)
                     }
 
-                    // Navigation Tabs
-                    TabRow(
-                        selectedTabIndex = selectedTab,
-                        containerColor = MaterialTheme.colorScheme.surface,
-                        contentColor = PrimaryGreen,
-                        divider = { Divider(color = MedicalBorder.copy(alpha = 0.5f)) }
+                    // Navigation Tabs — polished segmented pill switcher
+                    Divider(color = MedicalBorder.copy(alpha = 0.5f))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         tabTitles.forEachIndexed { index, title ->
-                            Tab(
+                            AdminTabPill(
+                                title = title,
+                                icon = tabIcons[index],
                                 selected = selectedTab == index,
-                                onClick = { selectedTab = index },
-                                text = {
-                                    Text(
-                                        text = title,
-                                        fontSize = 11.sp,
-                                        fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Medium,
-                                        maxLines = 1
-                                    )
-                                }
+                                accent = tabColors[index],
+                                onClick = { selectedTab = index }
                             )
                         }
                     }
@@ -257,17 +274,81 @@ fun AdminScreen(
 private fun MetricBadge(label: String, count: String, color: Color) {
     Surface(
         color = color.copy(alpha = 0.1f),
-        shape = RoundedCornerShape(10.dp),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.3f))
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.25f))
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(7.dp)
         ) {
             Text(text = label, fontSize = 11.sp, color = TextSecondary)
             Text(text = count, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = color)
         }
+    }
+}
+
+// Polished segmented-pill tab item used by the admin panel's main and sub tab switchers.
+@Composable
+private fun AdminTabPill(
+    title: String,
+    icon: ImageVector,
+    selected: Boolean,
+    accent: Color,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(if (selected) accent.copy(alpha = 0.12f) else Color.Transparent)
+            .then(
+                if (selected) Modifier.border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                else Modifier
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 13.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (selected) accent else TextSecondary,
+            modifier = Modifier.size(15.dp)
+        )
+        Text(
+            text = title,
+            fontSize = 11.sp,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+            color = if (selected) accent else TextSecondary,
+            maxLines = 1
+        )
+    }
+}
+
+// Centered icon + text empty-state, used across the admin panel's list tabs.
+@Composable
+private fun AdminEmptyState(
+    icon: ImageVector,
+    text: String,
+    accent: Color = TextSecondary
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 36.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .background(accent.copy(alpha = 0.1f), CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(28.dp))
+        }
+        Spacer(modifier = Modifier.height(12.dp))
+        Text(text = text, fontSize = 13.sp, color = TextSecondary, textAlign = TextAlign.Center)
     }
 }
 
@@ -307,23 +388,42 @@ fun UsersManagementTab(viewModel: AppViewModel, users: List<UserSystem>) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        // Section header
+        item {
+            Text(
+                text = "FOYDALANUVCHILARNI BOSHQARISH".uppercase(),
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.sp,
+                color = PrimaryGreen,
+                letterSpacing = 1.2.sp,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+        }
+
         // Search & Cold Users broadcast action
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 6.dp,
+                        shape = RoundedCornerShape(18.dp),
+                        ambientColor = PrimaryGreen.copy(alpha = 0.1f),
+                        spotColor = PrimaryGreen.copy(alpha = 0.1f)
+                    ),
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, MedicalBorder)
             ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
-                        placeholder = { Text("Foydalanuvchini ism, email yoki telefon orqali qidirish...") },
+                        placeholder = { Text("Ism, email yoki telefon orqali qidirish...", fontSize = 13.sp) },
                         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryGreen) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = PrimaryGreen,
                             unfocusedBorderColor = MedicalBorder
@@ -340,7 +440,12 @@ fun UsersManagementTab(viewModel: AppViewModel, users: List<UserSystem>) {
                             FilterChip(
                                 selected = selectedFilter == f,
                                 onClick = { selectedFilter = f },
-                                label = { Text(f, fontSize = 11.sp) }
+                                label = { Text(f, fontSize = 11.sp) },
+                                shape = RoundedCornerShape(10.dp),
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = PrimaryGreen.copy(alpha = 0.15f),
+                                    selectedLabelColor = PrimaryGreen
+                                )
                             )
                         }
                     }
@@ -348,8 +453,10 @@ fun UsersManagementTab(viewModel: AppViewModel, users: List<UserSystem>) {
                     Button(
                         onClick = { viewModel.sendNotificationToColdUsers() },
                         colors = ButtonDefaults.buttonColors(containerColor = AccentCyan),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Campaign, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(8.dp))
@@ -361,14 +468,11 @@ fun UsersManagementTab(viewModel: AppViewModel, users: List<UserSystem>) {
 
         if (filteredUsers.isEmpty()) {
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("Mos foydalanuvchilar topilmadi.", color = TextSecondary)
-                }
+                AdminEmptyState(
+                    icon = Icons.Default.Search,
+                    text = "Mos foydalanuvchilar topilmadi.",
+                    accent = PrimaryGreen
+                )
             }
         } else {
             items(filteredUsers, key = { it.uid }) { user ->
@@ -437,8 +541,15 @@ fun UserSystemCard(
     val lastActiveStr = remember(user.lastActive) { sdf.format(Date(user.lastActive)) }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 4.dp,
+                shape = RoundedCornerShape(18.dp),
+                ambientColor = PrimaryGreen.copy(alpha = 0.08f),
+                spotColor = PrimaryGreen.copy(alpha = 0.08f)
+            ),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(
             1.dp,
@@ -451,7 +562,7 @@ fun UserSystemCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(46.dp)
                         .clip(CircleShape)
                         .background(
                             if (user.isBanned) ErrorRed.copy(alpha = 0.2f)
@@ -484,8 +595,8 @@ fun UserSystemCard(
                             Spacer(modifier = Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
-                                    .background(PremiumPurple, RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                                    .background(PremiumPurple, RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text("VIP", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                             }
@@ -494,8 +605,8 @@ fun UserSystemCard(
                             Spacer(modifier = Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
-                                    .background(ErrorRed, RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 5.dp, vertical = 1.dp)
+                                    .background(ErrorRed, RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text("BLOK", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                             }
@@ -515,8 +626,8 @@ fun UserSystemCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MedicalBackground, RoundedCornerShape(10.dp))
-                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                    .background(MedicalBackground, RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -603,14 +714,26 @@ fun PaymentsManagementTab(viewModel: AppViewModel, payments: List<PaymentRequest
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            Text(
+                text = "TO'LOV SO'ROVLARI".uppercase(),
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.sp,
+                color = AccentCyan,
+                letterSpacing = 1.2.sp,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+        }
+
+        item {
             // There is no real multi-device backend yet: "approve" only grants premium on
             // THIS device if its locally signed-in user happens to be the requester. Say so,
             // rather than letting the admin believe every approval reaches the real user.
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(WarningOrange.copy(alpha = 0.1f), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .background(WarningOrange.copy(alpha = 0.1f), RoundedCornerShape(14.dp))
+                    .border(1.dp, WarningOrange.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -639,7 +762,12 @@ fun PaymentsManagementTab(viewModel: AppViewModel, payments: List<PaymentRequest
                     FilterChip(
                         selected = filterStatus == st,
                         onClick = { filterStatus = st },
-                        label = { Text(st, fontSize = 11.sp) }
+                        label = { Text(st, fontSize = 11.sp) },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = AccentCyan.copy(alpha = 0.15f),
+                            selectedLabelColor = AccentCyan
+                        )
                     )
                 }
             }
@@ -647,14 +775,11 @@ fun PaymentsManagementTab(viewModel: AppViewModel, payments: List<PaymentRequest
 
         if (filtered.isEmpty()) {
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(40.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text("To'lov so'rovlari mavjud emas.", color = TextSecondary)
-                }
+                AdminEmptyState(
+                    icon = Icons.Default.ReceiptLong,
+                    text = "To'lov so'rovlari mavjud emas.",
+                    accent = AccentCyan
+                )
             }
         } else {
             items(filtered, key = { it.id }) { req ->
@@ -726,8 +851,15 @@ fun PaymentItemCard(
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 4.dp,
+                shape = RoundedCornerShape(18.dp),
+                ambientColor = statusColor.copy(alpha = 0.1f),
+                spotColor = statusColor.copy(alpha = 0.1f)
+            ),
+        shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(1.dp, statusColor.copy(alpha = 0.3f))
     ) {
@@ -753,8 +885,8 @@ fun PaymentItemCard(
 
                 Box(
                     modifier = Modifier
-                        .background(statusColor.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                        .background(statusColor.copy(alpha = 0.15f), RoundedCornerShape(10.dp))
+                        .padding(horizontal = 9.dp, vertical = 5.dp)
                 ) {
                     Text(
                         text = statusText,
@@ -769,17 +901,17 @@ fun PaymentItemCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MedicalBackground, RoundedCornerShape(10.dp))
+                    .background(MedicalBackground, RoundedCornerShape(12.dp))
                     .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .background(PrimaryGreen.copy(alpha = 0.15f), RoundedCornerShape(8.dp)),
+                        .background(AccentCyan.copy(alpha = 0.15f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, tint = PrimaryGreen)
+                    Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, tint = AccentCyan)
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -800,9 +932,11 @@ fun PaymentItemCard(
                 ) {
                     Button(
                         onClick = onApprove,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
@@ -811,9 +945,11 @@ fun PaymentItemCard(
 
                     Button(
                         onClick = onReject,
-                        shape = RoundedCornerShape(10.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(42.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
@@ -862,13 +998,31 @@ fun SystemControlTab(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
+        item {
+            Text(
+                text = "TIZIM BOSHQARUVI".uppercase(),
+                fontWeight = FontWeight.Bold,
+                fontSize = 11.sp,
+                color = AdminIndigo,
+                letterSpacing = 1.2.sp,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
+        }
+
         // 1. Maintenance Mode Switch Card
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = RoundedCornerShape(18.dp),
+                        ambientColor = WarningOrange.copy(alpha = 0.1f),
+                        spotColor = WarningOrange.copy(alpha = 0.1f)
+                    ),
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, if (config?.maintenanceMode == true) ErrorRed else MedicalBorder)
+                border = BorderStroke(1.dp, if (config?.maintenanceMode == true) ErrorRed.copy(alpha = 0.5f) else MedicalBorder)
             ) {
                 Row(
                     modifier = Modifier
@@ -877,18 +1031,25 @@ fun SystemControlTab(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Construction, contentDescription = null, tint = WarningOrange)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Texnik xizmat rejimi (Maintenance)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Row(modifier = Modifier.weight(1f)) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .background(WarningOrange.copy(alpha = 0.15f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(imageVector = Icons.Default.Construction, contentDescription = null, tint = WarningOrange, modifier = Modifier.size(22.dp))
                         }
-                        Text(
-                            text = "Yoqilganda oddiy foydalanuvchilar kirishi to'xtatiladi, faqat admin ishlay oladi.",
-                            fontSize = 11.sp,
-                            color = TextSecondary,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Texnik xizmat rejimi (Maintenance)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                            Text(
+                                text = "Yoqilganda oddiy foydalanuvchilar kirishi to'xtatiladi, faqat admin ishlay oladi.",
+                                fontSize = 11.sp,
+                                color = TextSecondary,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
                     }
 
                     Switch(
@@ -903,13 +1064,31 @@ fun SystemControlTab(
         // 2. Feature Flags Control
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = RoundedCornerShape(18.dp),
+                        ambientColor = AdminIndigo.copy(alpha = 0.08f),
+                        spotColor = AdminIndigo.copy(alpha = 0.08f)
+                    ),
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, MedicalBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Funksiyalar Boshqaruvi (Feature Flags)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(AdminIndigo.copy(alpha = 0.15f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(imageVector = Icons.Default.Assessment, contentDescription = null, tint = AdminIndigo, modifier = Modifier.size(18.dp))
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("Funksiyalar Boshqaruvi (Feature Flags)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                    }
 
                     FeatureSwitchRow("Symptom Checker (Alomatlar)", symptomChecked) { symptomChecked = it }
                     FeatureSwitchRow("AI Shifokor (Doctor)", doctorChecked) { doctorChecked = it }
@@ -928,8 +1107,10 @@ fun SystemControlTab(
                                 analytics = analyticsChecked
                             )
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
                     ) {
                         Text("Funksiyalarni Saqlash", fontWeight = FontWeight.Bold, fontSize = 12.sp)
@@ -941,13 +1122,31 @@ fun SystemControlTab(
         // 3. App Version & Force Update
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = RoundedCornerShape(18.dp),
+                        ambientColor = AccentCyan.copy(alpha = 0.08f),
+                        spotColor = AccentCyan.copy(alpha = 0.08f)
+                    ),
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, MedicalBorder)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Ilova Versiyasi & Majburiy Yangilanish", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(AccentCyan.copy(alpha = 0.15f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = AccentCyan, modifier = Modifier.size(18.dp))
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Text("Ilova Versiyasi & Majburiy Yangilanish", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                    }
 
                     OutlinedTextField(
                         value = minVersionText,
@@ -955,7 +1154,11 @@ fun SystemControlTab(
                         label = { Text("Minimal versiya (masalan 1.0.1)") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = AccentCyan,
+                            unfocusedBorderColor = MedicalBorder
+                        )
                     )
 
                     Row(
@@ -963,7 +1166,7 @@ fun SystemControlTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Majburiy yangilash (Force Update)", fontSize = 12.sp)
+                        Text("Majburiy yangilash (Force Update)", fontSize = 12.sp, color = TextPrimary)
                         Switch(
                             checked = forceUpdateChecked,
                             onCheckedChange = { forceUpdateChecked = it }
@@ -981,9 +1184,11 @@ fun SystemControlTab(
                                 storeUrl = "https://play.google.com"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
                     ) {
                         Text("Versiyani Saqlash", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
@@ -994,8 +1199,15 @@ fun SystemControlTab(
         // 4. Pop-up Banner & Announcement
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(
+                        elevation = 4.dp,
+                        shape = RoundedCornerShape(18.dp),
+                        ambientColor = PremiumPurple.copy(alpha = 0.08f),
+                        spotColor = PremiumPurple.copy(alpha = 0.08f)
+                    ),
+                shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                 border = BorderStroke(1.dp, MedicalBorder)
             ) {
@@ -1005,7 +1217,18 @@ fun SystemControlTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Global Banner & E'lon", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(PremiumPurple.copy(alpha = 0.15f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(imageVector = Icons.Default.Campaign, contentDescription = null, tint = PremiumPurple, modifier = Modifier.size(18.dp))
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("Global Banner & E'lon", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                        }
                         Switch(
                             checked = announceActive,
                             onCheckedChange = { announceActive = it }
@@ -1017,7 +1240,11 @@ fun SystemControlTab(
                         onValueChange = { announceTextUz = it },
                         label = { Text("E'lon matni (O'zbekcha)") },
                         modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PremiumPurple,
+                            unfocusedBorderColor = MedicalBorder
+                        )
                     )
 
                     Button(
@@ -1030,9 +1257,11 @@ fun SystemControlTab(
                                 color = "#2E7D32"
                             )
                         },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PremiumPurple)
                     ) {
                         Text("E'lonni Saqlash", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
@@ -1047,7 +1276,7 @@ private fun FeatureSwitchRow(label: String, checked: Boolean, onCheckedChange: (
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp),
+            .padding(vertical = 3.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -1077,14 +1306,39 @@ fun MedicalCmsTab(
     var showAddTipDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(
-            selectedTabIndex = cmsSubTab,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = PrimaryGreen
-        ) {
-            Tab(selected = cmsSubTab == 0, onClick = { cmsSubTab = 0 }, text = { Text("Kasalliklar (${diseases.size})", fontSize = 11.sp) })
-            Tab(selected = cmsSubTab == 1, onClick = { cmsSubTab = 1 }, text = { Text("Dorilar (${medicines.size})", fontSize = 11.sp) })
-            Tab(selected = cmsSubTab == 2, onClick = { cmsSubTab = 2 }, text = { Text("Maslahatlar (${tips.size})", fontSize = 11.sp) })
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    AdminTabPill(
+                        title = "Kasalliklar (${diseases.size})",
+                        icon = Icons.Default.HealthAndSafety,
+                        selected = cmsSubTab == 0,
+                        accent = SecondaryGreen,
+                        onClick = { cmsSubTab = 0 }
+                    )
+                    AdminTabPill(
+                        title = "Dorilar (${medicines.size})",
+                        icon = Icons.Default.Medication,
+                        selected = cmsSubTab == 1,
+                        accent = SecondaryGreen,
+                        onClick = { cmsSubTab = 1 }
+                    )
+                    AdminTabPill(
+                        title = "Maslahatlar (${tips.size})",
+                        icon = Icons.Default.TipsAndUpdates,
+                        selected = cmsSubTab == 2,
+                        accent = SecondaryGreen,
+                        onClick = { cmsSubTab = 2 }
+                    )
+                }
+                Divider(color = MedicalBorder.copy(alpha = 0.5f))
+            }
         }
 
         when (cmsSubTab) {
@@ -1098,9 +1352,11 @@ fun MedicalCmsTab(
                     item {
                         Button(
                             onClick = { showAddDiseaseDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SecondaryGreen)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
@@ -1108,10 +1364,27 @@ fun MedicalCmsTab(
                         }
                     }
 
+                    if (diseases.isEmpty()) {
+                        item {
+                            AdminEmptyState(
+                                icon = Icons.Default.HealthAndSafety,
+                                text = "Kasalliklar ro'yxati bo'sh.",
+                                accent = SecondaryGreen
+                            )
+                        }
+                    }
+
                     items(diseases) { d ->
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = 3.dp,
+                                    shape = RoundedCornerShape(16.dp),
+                                    ambientColor = SecondaryGreen.copy(alpha = 0.06f),
+                                    spotColor = SecondaryGreen.copy(alpha = 0.06f)
+                                ),
+                            shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             border = BorderStroke(1.dp, MedicalBorder)
                         ) {
@@ -1119,13 +1392,21 @@ fun MedicalCmsTab(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(SecondaryGreen.copy(alpha = 0.15f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.HealthAndSafety, contentDescription = null, tint = SecondaryGreen, modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = d.nameUz, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text(text = d.nameUz, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
                                     Text(text = "Alomatlar: ${d.symptomsUz}", fontSize = 11.sp, color = TextSecondary)
-                                    Text(text = "Mutaxassis: ${d.specialistType} • Daraja: ${d.severity}", fontSize = 10.sp, color = PrimaryGreen)
+                                    Text(text = "Mutaxassis: ${d.specialistType} • Daraja: ${d.severity}", fontSize = 10.sp, color = SecondaryGreen)
                                 }
                                 IconButton(onClick = { viewModel.deleteDisease(d.id) }) {
                                     Icon(Icons.Default.Delete, contentDescription = "Delete", tint = ErrorRed, modifier = Modifier.size(18.dp))
@@ -1145,9 +1426,11 @@ fun MedicalCmsTab(
                     item {
                         Button(
                             onClick = { showAddMedicineDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SecondaryGreen)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
@@ -1155,10 +1438,27 @@ fun MedicalCmsTab(
                         }
                     }
 
+                    if (medicines.isEmpty()) {
+                        item {
+                            AdminEmptyState(
+                                icon = Icons.Default.Medication,
+                                text = "Dorilar ro'yxati bo'sh.",
+                                accent = SecondaryGreen
+                            )
+                        }
+                    }
+
                     items(medicines) { m ->
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = 3.dp,
+                                    shape = RoundedCornerShape(16.dp),
+                                    ambientColor = SecondaryGreen.copy(alpha = 0.06f),
+                                    spotColor = SecondaryGreen.copy(alpha = 0.06f)
+                                ),
+                            shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             border = BorderStroke(1.dp, MedicalBorder)
                         ) {
@@ -1166,13 +1466,21 @@ fun MedicalCmsTab(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(SecondaryGreen.copy(alpha = 0.15f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Medication, contentDescription = null, tint = SecondaryGreen, modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = m.name, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text(text = m.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
                                     Text(text = "Dozasi: ${m.dosage} • Toifasi: ${m.category}", fontSize = 11.sp, color = TextSecondary)
-                                    Text(text = m.description, fontSize = 10.sp, color = Color.Gray, maxLines = 2)
+                                    Text(text = m.description, fontSize = 10.sp, color = TextSecondary, maxLines = 2)
                                 }
                                 IconButton(onClick = { viewModel.deleteMedicine(m.id) }) {
                                     Icon(Icons.Default.Delete, contentDescription = "Delete", tint = ErrorRed, modifier = Modifier.size(18.dp))
@@ -1192,9 +1500,11 @@ fun MedicalCmsTab(
                     item {
                         Button(
                             onClick = { showAddTipDialog = true },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(46.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = SecondaryGreen)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
@@ -1202,10 +1512,27 @@ fun MedicalCmsTab(
                         }
                     }
 
+                    if (tips.isEmpty()) {
+                        item {
+                            AdminEmptyState(
+                                icon = Icons.Default.TipsAndUpdates,
+                                text = "Maslahatlar ro'yxati bo'sh.",
+                                accent = SecondaryGreen
+                            )
+                        }
+                    }
+
                     items(tips) { t ->
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(
+                                    elevation = 3.dp,
+                                    shape = RoundedCornerShape(16.dp),
+                                    ambientColor = SecondaryGreen.copy(alpha = 0.06f),
+                                    spotColor = SecondaryGreen.copy(alpha = 0.06f)
+                                ),
+                            shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                             border = BorderStroke(1.dp, MedicalBorder)
                         ) {
@@ -1213,11 +1540,19 @@ fun MedicalCmsTab(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(SecondaryGreen.copy(alpha = 0.15f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.TipsAndUpdates, contentDescription = null, tint = SecondaryGreen, modifier = Modifier.size(20.dp))
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = t.uz, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                    Text(text = t.uz, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
                                     Text(text = t.ru, fontSize = 11.sp, color = TextSecondary)
                                 }
                                 IconButton(onClick = { viewModel.deleteHealthTip(t.id) }) {
@@ -1360,13 +1695,32 @@ fun LogsAuditTab(
     var logsSubTab by remember { mutableStateOf(0) }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TabRow(
-            selectedTabIndex = logsSubTab,
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = PrimaryGreen
-        ) {
-            Tab(selected = logsSubTab == 0, onClick = { logsSubTab = 0 }, text = { Text("Admin Jurnali (${adminLogs.size})", fontSize = 11.sp) })
-            Tab(selected = logsSubTab == 1, onClick = { logsSubTab = 1 }, text = { Text("Xatolar (${errorLogs.size})", fontSize = 11.sp) })
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            Column {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    AdminTabPill(
+                        title = "Admin Jurnali (${adminLogs.size})",
+                        icon = Icons.Default.History,
+                        selected = logsSubTab == 0,
+                        accent = AdminSlate,
+                        onClick = { logsSubTab = 0 }
+                    )
+                    AdminTabPill(
+                        title = "Xatolar (${errorLogs.size})",
+                        icon = Icons.Default.Warning,
+                        selected = logsSubTab == 1,
+                        accent = ErrorRed,
+                        onClick = { logsSubTab = 1 }
+                    )
+                }
+                Divider(color = MedicalBorder.copy(alpha = 0.5f))
+            }
         }
 
         when (logsSubTab) {
@@ -1379,29 +1733,49 @@ fun LogsAuditTab(
                 ) {
                     if (adminLogs.isEmpty()) {
                         item {
-                            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                                Text("Jurnal yozuvlari mavjud emas.", color = TextSecondary)
-                            }
+                            AdminEmptyState(
+                                icon = Icons.Default.History,
+                                text = "Jurnal yozuvlari mavjud emas.",
+                                accent = AdminSlate
+                            )
                         }
                     } else {
                         items(adminLogs) { log ->
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .shadow(
+                                        elevation = 3.dp,
+                                        shape = RoundedCornerShape(16.dp),
+                                        ambientColor = AdminSlate.copy(alpha = 0.06f),
+                                        spotColor = AdminSlate.copy(alpha = 0.06f)
+                                    ),
+                                shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                 border = BorderStroke(1.dp, MedicalBorder)
                             ) {
-                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(AdminSlate.copy(alpha = 0.12f), CircleShape),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Text(text = log.action, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = PrimaryGreen)
-                                        Text(text = sdf.format(Date(log.timestamp)), fontSize = 10.sp, color = TextSecondary)
+                                        Icon(Icons.Default.History, contentDescription = null, tint = AdminSlate, modifier = Modifier.size(18.dp))
                                     }
-                                    Text(text = "Kimga: ${log.targetUser} • Admin: ${log.adminEmail}", fontSize = 11.sp, color = TextSecondary)
-                                    Text(text = log.details, fontSize = 12.sp, color = TextPrimary)
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text(text = log.action, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = PrimaryGreen)
+                                            Text(text = sdf.format(Date(log.timestamp)), fontSize = 10.sp, color = TextSecondary)
+                                        }
+                                        Text(text = "Kimga: ${log.targetUser} • Admin: ${log.adminEmail}", fontSize = 11.sp, color = TextSecondary)
+                                        Text(text = log.details, fontSize = 12.sp, color = TextPrimary)
+                                    }
                                 }
                             }
                         }
@@ -1417,38 +1791,66 @@ fun LogsAuditTab(
                 ) {
                     if (errorLogs.isEmpty()) {
                         item {
-                            Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                                Text("Xatolar aniqlanmagan. Tizim barqaror!", color = SuccessGreen)
-                            }
+                            AdminEmptyState(
+                                icon = Icons.Default.CheckCircle,
+                                text = "Xatolar aniqlanmagan. Tizim barqaror!",
+                                accent = SuccessGreen
+                            )
                         }
                     } else {
                         items(errorLogs) { err ->
                             Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .shadow(
+                                        elevation = 3.dp,
+                                        shape = RoundedCornerShape(16.dp),
+                                        ambientColor = ErrorRed.copy(alpha = 0.06f),
+                                        spotColor = ErrorRed.copy(alpha = 0.06f)
+                                    ),
+                                shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
                                 border = BorderStroke(1.dp, if (err.isResolved) SuccessGreen.copy(alpha = 0.3f) else ErrorRed.copy(alpha = 0.4f))
                             ) {
-                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
+                                Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(
+                                                (if (err.isResolved) SuccessGreen else ErrorRed).copy(alpha = 0.12f),
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Text(text = "Ekran: ${err.screen}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = ErrorRed)
-                                        Text(text = sdf.format(Date(err.timestamp)), fontSize = 10.sp, color = TextSecondary)
+                                        Icon(
+                                            imageVector = if (err.isResolved) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = if (err.isResolved) SuccessGreen else ErrorRed,
+                                            modifier = Modifier.size(18.dp)
+                                        )
                                     }
-                                    Text(text = err.errorMessage, fontSize = 12.sp, color = TextPrimary)
-                                    Text(text = "Qurilma: ${err.deviceInfo} • Versiya: ${err.appVersion}", fontSize = 10.sp, color = TextSecondary)
-
-                                    if (!err.isResolved) {
-                                        Button(
-                                            onClick = { viewModel.resolveErrorLog(err.id) },
-                                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.align(Alignment.End)
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("Hal qilindi", fontSize = 11.sp)
+                                            Text(text = "Ekran: ${err.screen}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = ErrorRed)
+                                            Text(text = sdf.format(Date(err.timestamp)), fontSize = 10.sp, color = TextSecondary)
+                                        }
+                                        Text(text = err.errorMessage, fontSize = 12.sp, color = TextPrimary)
+                                        Text(text = "Qurilma: ${err.deviceInfo} • Versiya: ${err.appVersion}", fontSize = 10.sp, color = TextSecondary)
+
+                                        if (!err.isResolved) {
+                                            Button(
+                                                onClick = { viewModel.resolveErrorLog(err.id) },
+                                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                                                shape = RoundedCornerShape(10.dp),
+                                                modifier = Modifier.align(Alignment.End)
+                                            ) {
+                                                Text("Hal qilindi", fontSize = 11.sp)
+                                            }
                                         }
                                     }
                                 }

@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -31,6 +32,10 @@ import com.example.data.ReminderLocal
 import com.example.i18n.Translations
 import com.example.ui.theme.*
 import kotlinx.coroutines.launch
+
+// Distinct accent used for the Statistika tab (indigo), sitting alongside the app's
+// existing PrimaryGreen / AccentCyan / WarningOrange tokens without adding a new theme token.
+private val TabStatsAccent = Color(0xFF6366F1)
 
 /**
  * MedAI Yordamchi — All-in-One Smart Medical Assistant
@@ -55,6 +60,8 @@ fun MedAIYordamchiScreen(
         "Statistika" to Icons.Default.BarChart,
         "Reminder" to Icons.Default.Alarm
     )
+    // Distinct brand-consistent accent per tab (PrimaryGreen stays the anchor for the core feature)
+    val tabAccentColors = listOf(PrimaryGreen, AccentCyan, TabStatsAccent, WarningOrange)
 
     Scaffold(
         topBar = {
@@ -120,24 +127,29 @@ fun MedAIYordamchiScreen(
                         }
                     }
 
-                    // Top Tab Navigation Bar
+                    // Top Tab Navigation Bar — polished segmented pill switcher, each tab
+                    // carrying its own accent color (matching MedicalBottomNavigation's
+                    // selected/unselected pattern).
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
-                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                            .background(MedicalBackground, RoundedCornerShape(18.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         tabs.forEachIndexed { index, (title, icon) ->
                             val isSelected = selectedTab == index
+                            val accent = tabAccentColors[index]
                             Surface(
                                 onClick = { selectedTab = index },
                                 shape = RoundedCornerShape(20.dp),
-                                color = if (isSelected) PrimaryGreen else MaterialTheme.colorScheme.surfaceVariant,
-                                shadowElevation = if (isSelected) 3.dp else 0.dp
+                                color = if (isSelected) accent else Color.Transparent,
+                                shadowElevation = if (isSelected) 3.dp else 0.dp,
+                                border = if (isSelected) null else BorderStroke(1.dp, MedicalBorder)
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
@@ -151,13 +163,13 @@ fun MedAIYordamchiScreen(
                                         text = title,
                                         fontSize = 13.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) Color.White else TextPrimary
+                                        color = if (isSelected) Color.White else TextSecondary
                                     )
                                 }
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                 }
             }
         }
@@ -202,7 +214,8 @@ fun DoriAniqlashTab(viewModel: AppViewModel) {
                     .fillMaxWidth()
                     .shadow(4.dp, RoundedCornerShape(20.dp)),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MedicalBorder)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -380,7 +393,8 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                     .fillMaxWidth()
                     .shadow(4.dp, RoundedCornerShape(20.dp)),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MedicalBorder)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -390,13 +404,13 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
-                                .background(DarkGreen.copy(alpha = 0.12f), CircleShape),
+                                .background(AccentCyan.copy(alpha = 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.HealthAndSafety,
                                 contentDescription = null,
-                                tint = DarkGreen,
+                                tint = AccentCyan,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -462,7 +476,7 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
                     ) {
                         if (isLoadingQuestions) {
                             CircularProgressIndicator(
@@ -491,7 +505,8 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                         .fillMaxWidth()
                         .shadow(4.dp, RoundedCornerShape(20.dp)),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MedicalBorder)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Row(
@@ -508,14 +523,14 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
 
                             // Title / Medical Name badge
                             Surface(
-                                color = PrimaryGreen.copy(alpha = 0.12f),
+                                color = AccentCyan.copy(alpha = 0.12f),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
                                     text = if (qData.medicalName.isNotBlank()) "${qData.title} • ${qData.medicalName}" else qData.title,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = PrimaryGreen,
+                                    color = AccentCyan,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
@@ -523,32 +538,61 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
 
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        qData.questions.forEachIndexed { index, question ->
-                            Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                                Text(
-                                    text = "${index + 1}. $question",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = TextPrimary
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                OutlinedTextField(
-                                    value = userAnswers.getOrElse(index) { "" },
-                                    onValueChange = { newVal ->
-                                        val mutableList = userAnswers.toMutableList()
-                                        if (index < mutableList.size) {
-                                            mutableList[index] = newVal
-                                        } else {
-                                            while (mutableList.size < index) mutableList.add("")
-                                            mutableList.add(newVal)
+                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                            qData.questions.forEachIndexed { index, question ->
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = MedicalBackground,
+                                    border = BorderStroke(1.dp, MedicalBorder)
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Row(verticalAlignment = Alignment.Top) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(20.dp)
+                                                    .background(AccentCyan.copy(alpha = 0.15f), CircleShape),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "${index + 1}",
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = AccentCyan
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(
+                                                text = question,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = TextPrimary,
+                                                modifier = Modifier.weight(1f)
+                                            )
                                         }
-                                        userAnswers = mutableList
-                                    },
-                                    placeholder = { Text("Javob yozing...", fontSize = 13.sp) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = RoundedCornerShape(10.dp),
-                                    singleLine = true
-                                )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        OutlinedTextField(
+                                            value = userAnswers.getOrElse(index) { "" },
+                                            onValueChange = { newVal ->
+                                                val mutableList = userAnswers.toMutableList()
+                                                if (index < mutableList.size) {
+                                                    mutableList[index] = newVal
+                                                } else {
+                                                    while (mutableList.size < index) mutableList.add("")
+                                                    mutableList.add(newVal)
+                                                }
+                                                userAnswers = mutableList
+                                            },
+                                            placeholder = { Text("Javob yozing...", fontSize = 13.sp) },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(10.dp),
+                                            singleLine = true,
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                                                focusedContainerColor = MaterialTheme.colorScheme.surface
+                                            )
+                                        )
+                                    }
+                                }
                             }
                         }
 
@@ -567,7 +611,7 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                                 .fillMaxWidth()
                                 .height(50.dp),
                             shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                            colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
                         ) {
                             if (isAnalyzingAnswers) {
                                 CircularProgressIndicator(
@@ -632,7 +676,8 @@ fun StatistikaTab(viewModel: AppViewModel) {
                     .fillMaxWidth()
                     .shadow(4.dp, RoundedCornerShape(20.dp)),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MedicalBorder)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -642,13 +687,13 @@ fun StatistikaTab(viewModel: AppViewModel) {
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
-                                .background(PrimaryGreen.copy(alpha = 0.12f), CircleShape),
+                                .background(TabStatsAccent.copy(alpha = 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.BarChart,
                                 contentDescription = null,
-                                tint = PrimaryGreen,
+                                tint = TabStatsAccent,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -675,21 +720,30 @@ fun StatistikaTab(viewModel: AppViewModel) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .background(WarningOrange.copy(alpha = 0.1f), RoundedCornerShape(10.dp))
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                            .background(WarningOrange.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+                            .border(1.dp, WarningOrange.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = null,
-                            tint = WarningOrange,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(22.dp)
+                                .background(WarningOrange.copy(alpha = 0.18f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = WarningOrange,
+                                modifier = Modifier.size(13.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
                         Text(
                             text = "Bu taxminiy ko'rsatkich: har bir dori qabulini alohida qayd etish hali mavjud emas",
                             fontSize = 11.sp,
-                            color = TextSecondary
+                            color = TextSecondary,
+                            modifier = Modifier.weight(1f)
                         )
                     }
 
@@ -710,7 +764,7 @@ fun StatistikaTab(viewModel: AppViewModel) {
                         StatBox(
                             value = "$lateTookCount",
                             label = "Kechikib qabul",
-                            color = Color(0xFFF59E0B),
+                            color = WarningOrange,
                             icon = Icons.Default.Schedule,
                             modifier = Modifier.weight(1f)
                         )
@@ -725,14 +779,14 @@ fun StatistikaTab(viewModel: AppViewModel) {
                         StatBox(
                             value = "$missedCount",
                             label = "O'tkazib yuborildi",
-                            color = Color(0xFFEF4444),
+                            color = ErrorRed,
                             icon = Icons.Default.Cancel,
                             modifier = Modifier.weight(1f)
                         )
                         StatBox(
                             value = String.format(java.util.Locale.US, "%.1f%%", adherencePercent),
                             label = "Muntazamlik",
-                            color = Color(0xFF3B82F6),
+                            color = TabStatsAccent,
                             icon = Icons.Default.TrendingUp,
                             modifier = Modifier.weight(1f)
                         )
@@ -748,14 +802,16 @@ fun StatistikaTab(viewModel: AppViewModel) {
                     .fillMaxWidth()
                     .shadow(2.dp, RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MedicalBorder)
             ) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Umumiy ko'rsatkichlar",
-                        fontSize = 15.sp,
+                        text = "Umumiy ko'rsatkichlar".uppercase(),
+                        fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        color = TabStatsAccent,
+                        letterSpacing = 1.sp
                     )
 
                     Row(
@@ -863,7 +919,8 @@ fun ReminderTab(viewModel: AppViewModel) {
                     .fillMaxWidth()
                     .shadow(4.dp, RoundedCornerShape(20.dp)),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MedicalBorder)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -873,13 +930,13 @@ fun ReminderTab(viewModel: AppViewModel) {
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
-                                .background(PrimaryGreen.copy(alpha = 0.12f), CircleShape),
+                                .background(WarningOrange.copy(alpha = 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Alarm,
                                 contentDescription = null,
-                                tint = PrimaryGreen,
+                                tint = WarningOrange,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -923,7 +980,7 @@ fun ReminderTab(viewModel: AppViewModel) {
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
                         leadingIcon = {
-                            Icon(imageVector = Icons.Default.AccessTime, contentDescription = null, tint = PrimaryGreen)
+                            Icon(imageVector = Icons.Default.AccessTime, contentDescription = null, tint = WarningOrange)
                         }
                     )
 
@@ -938,7 +995,11 @@ fun ReminderTab(viewModel: AppViewModel) {
                             FilterChip(
                                 selected = timeInput == t,
                                 onClick = { timeInput = t },
-                                label = { Text(t, fontSize = 12.sp) }
+                                label = { Text(t, fontSize = 12.sp) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = WarningOrange,
+                                    selectedLabelColor = Color.White
+                                )
                             )
                         }
                     }
@@ -969,7 +1030,7 @@ fun ReminderTab(viewModel: AppViewModel) {
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                        colors = ButtonDefaults.buttonColors(containerColor = WarningOrange)
                     ) {
                         if (isSaving) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(22.dp))
@@ -989,18 +1050,28 @@ fun ReminderTab(viewModel: AppViewModel) {
         if (savedSuccessMsg.isNotEmpty()) {
             item {
                 Surface(
-                    color = PrimaryGreen.copy(alpha = 0.12f),
+                    color = SuccessGreen.copy(alpha = 0.12f),
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.4f)),
+                    border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier.padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(modifier = Modifier.size(10.dp).background(PrimaryGreen, CircleShape))
+                        Box(
+                            modifier = Modifier.size(22.dp).background(SuccessGreen, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text(text = savedSuccessMsg, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                        Text(text = savedSuccessMsg, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = SuccessGreen)
                     }
                 }
             }
@@ -1008,32 +1079,68 @@ fun ReminderTab(viewModel: AppViewModel) {
 
         // Reminders List Header
         item {
-            Text(
-                text = "Rejalashtirilgan eslatmalar (${reminders.size})",
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Bold,
-                color = TextPrimary,
-                modifier = Modifier.padding(horizontal = 4.dp)
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Rejalashtirilgan eslatmalar",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary
+                )
+                Surface(
+                    color = WarningOrange.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text(
+                        text = "${reminders.size} ta",
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = WarningOrange,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
         }
 
         if (reminders.isEmpty()) {
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(32.dp),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = BorderStroke(1.dp, MedicalBorder)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.NotificationsNone,
-                            contentDescription = null,
-                            tint = TextSecondary.copy(alpha = 0.5f),
-                            modifier = Modifier.size(48.dp)
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .background(WarningOrange.copy(alpha = 0.1f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsNone,
+                                contentDescription = null,
+                                tint = WarningOrange.copy(alpha = 0.7f),
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "Hali eslatmalar yo'q",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextPrimary
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(text = "Hali eslatmalar yo'q", fontSize = 14.sp, color = TextSecondary)
                     }
                 }
             }
@@ -1055,12 +1162,15 @@ fun ReminderItemCard(
     onToggle: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val contentAlpha = if (reminder.isActive) 1f else 0.5f
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(2.dp, RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MedicalBorder)
     ) {
         Row(
             modifier = Modifier
@@ -1072,20 +1182,29 @@ fun ReminderItemCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f).alpha(contentAlpha)
             ) {
-                // Time badge
-                Surface(
-                    color = PrimaryGreen.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(10.dp)
+                // Time badge with alarm icon
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .background(WarningOrange.copy(alpha = 0.12f), CircleShape),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = reminder.time,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = PrimaryGreen,
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.Alarm,
+                            contentDescription = null,
+                            tint = WarningOrange,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = reminder.time,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = WarningOrange
+                        )
+                    }
                 }
 
                 Column {
@@ -1116,7 +1235,7 @@ fun ReminderItemCard(
                     Icon(
                         imageVector = Icons.Default.DeleteOutline,
                         contentDescription = "O'chirish",
-                        tint = Color(0xFFEF4444)
+                        tint = ErrorRed
                     )
                 }
             }

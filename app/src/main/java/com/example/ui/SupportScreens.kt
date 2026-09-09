@@ -21,11 +21,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -79,12 +82,12 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
+                .background(MedicalBackground)
         ) {
             // Tab Header
             TabRow(
                 selectedTabIndex = selectedTab,
-                containerColor = MaterialTheme.colorScheme.surface,
+                containerColor = Color.White,
                 contentColor = PrimaryGreen
             ) {
                 tabTitles.forEachIndexed { index, title ->
@@ -246,7 +249,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                         Icon(
                                                             imageVector = if (notificationsEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
                                                             contentDescription = null,
-                                                            tint = if (notificationsEnabled) PrimaryGreen else Color.Gray,
+                                                            tint = if (notificationsEnabled) PrimaryGreen else TextSecondary,
                                                             modifier = Modifier.size(20.dp)
                                                         )
                                                         Text("Bildirishnomalar (Notifications)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
@@ -388,17 +391,23 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        Text("💊", fontSize = 48.sp)
+                                        Box(
+                                            modifier = Modifier.size(64.dp).background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text("💊", fontSize = 28.sp)
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
                                         Text(
                                             text = "Hozircha hech qanday dori eslatmasi yo'q.",
                                             fontWeight = FontWeight.Bold,
-                                            color = TextSecondary,
+                                            color = TextPrimary,
                                             textAlign = TextAlign.Center
                                         )
                                         Text(
                                             text = "Dori ichish jadvallarini Firestore-da saqlash va nazorat qilish uchun yuqoridagi tugmani bosing.",
                                             fontSize = 12.sp,
-                                            color = Color.Gray,
+                                            color = TextSecondary,
                                             textAlign = TextAlign.Center,
                                             modifier = Modifier.padding(horizontal = 24.dp)
                                         )
@@ -469,7 +478,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                                                         modifier = Modifier.padding(top = 2.dp)
                                                     ) {
-                                                        Icon(imageVector = Icons.Default.Schedule, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(12.dp))
+                                                        Icon(imageVector = Icons.Default.Schedule, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(12.dp))
                                                         Text(
                                                             text = "${item.time} - ${item.frequency}",
                                                             fontSize = 12.sp,
@@ -502,14 +511,14 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                     Icon(
                                                         imageVector = if (item.notificationsEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
                                                         contentDescription = null,
-                                                        tint = if (item.notificationsEnabled) Color(0xFFFF9800) else Color.Gray,
+                                                        tint = if (item.notificationsEnabled) WarningOrange else TextSecondary,
                                                         modifier = Modifier.size(12.dp)
                                                     )
                                                     Text(
                                                         text = if (item.notificationsEnabled) "Eslatma: ${item.notificationFrequency}" else "Eslatma yo'q",
                                                         fontSize = 11.sp,
                                                         fontWeight = FontWeight.SemiBold,
-                                                        color = if (item.notificationsEnabled) Color(0xFFE65100) else Color.Gray
+                                                        color = if (item.notificationsEnabled) WarningOrange else TextSecondary
                                                     )
                                                 }
                                             }
@@ -536,7 +545,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                     .padding(8.dp)
                                             ) {
                                                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                    Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(14.dp))
+                                                    Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(14.dp))
                                                     Text(text = item.notes, fontSize = 11.sp, color = TextSecondary, lineHeight = 14.sp)
                                                 }
                                             }
@@ -573,7 +582,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                     }
                                                 }
                                             } else {
-                                                Text(text = "Eslatma faol emas", fontSize = 11.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
+                                                Text(text = "Eslatma faol emas", fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
                                             }
 
                                             IconButton(
@@ -606,9 +615,13 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
                         // Hero Water Card
                         Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .shadow(6.dp, RoundedCornerShape(20.dp), ambientColor = AccentCyan.copy(alpha = 0.15f), spotColor = AccentCyan.copy(alpha = 0.15f)),
+                            shape = RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                            border = BorderStroke(1.dp, MedicalBorder)
                         ) {
                             Column(
                                 modifier = Modifier.padding(24.dp),
@@ -619,13 +632,13 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     CircularProgressIndicator(
                                         progress = progressFraction,
                                         modifier = Modifier.fillMaxSize(),
-                                        color = Color(0x2196F3),
+                                        color = AccentCyan,
                                         strokeWidth = 8.dp,
-                                        trackColor = Color.LightGray.copy(alpha = 0.2f)
+                                        trackColor = MedicalBorder
                                     )
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(text = "💧", fontSize = 32.sp)
-                                        Text(text = "$currentGlasses / $waterGoal", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
+                                        Text(text = "$currentGlasses / $waterGoal", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = TextPrimary)
                                     }
                                 }
 
@@ -633,7 +646,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     text = if (currentGlasses >= waterGoal) "Ajoyib! Bugungi suv ichish normasi bajarildi! 🏆" else "Suv ichish salomatlik uchun juda muhim!",
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 14.sp,
-                                    color = Color.LightGray,
+                                    color = TextSecondary,
                                     textAlign = TextAlign.Center
                                 )
 
@@ -644,16 +657,16 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     IconButton(
                                         onClick = { viewModel.updateWaterProgress(-1) },
                                         modifier = Modifier
-                                            .background(Color.Gray.copy(alpha = 0.1f), CircleShape)
+                                            .background(AccentCyan.copy(alpha = 0.1f), CircleShape)
                                             .size(48.dp)
                                     ) {
-                                        Text("-", fontSize = 24.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                        Text("-", fontSize = 24.sp, color = AccentCyan, fontWeight = FontWeight.Bold)
                                     }
 
                                     Button(
                                         onClick = { viewModel.updateWaterProgress(1) },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
-                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = Color.White),
+                                        shape = RoundedCornerShape(14.dp),
                                         modifier = Modifier.height(48.dp)
                                     ) {
                                         Text("Stakan suv ichish 💧", fontWeight = FontWeight.Bold)
@@ -662,10 +675,10 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     IconButton(
                                         onClick = { viewModel.updateWaterProgress(1) },
                                         modifier = Modifier
-                                            .background(Color.Gray.copy(alpha = 0.1f), CircleShape)
+                                            .background(AccentCyan.copy(alpha = 0.1f), CircleShape)
                                             .size(48.dp)
                                     ) {
-                                        Text("+", fontSize = 20.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                                        Text("+", fontSize = 20.sp, color = AccentCyan, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -674,11 +687,12 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         // Target Goal Setup Card
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, MedicalBorder)
                         ) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(text = "Suv ichish maqsadini sozlash", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text(text = "Suv ichish maqsadini sozlash", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     modifier = Modifier.fillMaxWidth()
@@ -687,7 +701,11 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                         FilterChip(
                                             selected = waterGoal == goal,
                                             onClick = { viewModel.updateWaterGoal(goal) },
-                                            label = { Text("$goal stakan") }
+                                            label = { Text("$goal stakan") },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = AccentCyan,
+                                                selectedLabelColor = Color.White
+                                            )
                                         )
                                     }
                                 }
@@ -698,11 +716,12 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         var selectedFreq by remember { mutableStateOf(1) }
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, MedicalBorder)
                         ) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(text = "Eslatma chastotasi (Suv)", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text(text = "Eslatma chastotasi (Suv)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     modifier = Modifier.fillMaxWidth()
@@ -711,7 +730,11 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                         FilterChip(
                                             selected = selectedFreq == hours,
                                             onClick = { selectedFreq = hours },
-                                            label = { Text(label) }
+                                            label = { Text(label) },
+                                            colors = FilterChipDefaults.filterChipColors(
+                                                selectedContainerColor = AccentCyan,
+                                                selectedLabelColor = Color.White
+                                            )
                                         )
                                     }
                                 }
@@ -753,8 +776,9 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         // Calendar Grid Card
                         Card(
                             modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, MedicalBorder)
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 // Weekdays Header
@@ -765,7 +789,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             modifier = Modifier.weight(1f),
                                             textAlign = TextAlign.Center,
                                             fontWeight = FontWeight.Bold,
-                                            color = Color.Gray,
+                                            color = TextSecondary,
                                             fontSize = 12.sp
                                         )
                                     }
@@ -794,9 +818,9 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                     else -> {
                                                         val completedCount = try { org.json.JSONArray(dayMetrics.completedRemindersJson).length() } catch(e: Exception) { 0 }
                                                         when {
-                                                            activeCount == 0 -> Color.Gray
+                                                            activeCount == 0 -> TextSecondary
                                                             completedCount >= activeCount -> PrimaryGreen
-                                                            completedCount > 0 -> Color(0xFFFF9800)
+                                                            completedCount > 0 -> WarningOrange
                                                             else -> ErrorRed
                                                         }
                                                     }
@@ -810,7 +834,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                         .aspectRatio(1f)
                                                         .padding(2.dp)
                                                         .clip(RoundedCornerShape(8.dp))
-                                                        .background(if (isInspected) PrimaryGreen.copy(alpha = 0.2f) else Color.Transparent)
+                                                        .background(if (isInspected) PrimaryGreen.copy(alpha = 0.15f) else Color.Transparent)
                                                         .border(
                                                             width = if (isInspected) 1.dp else 0.dp,
                                                             color = if (isInspected) PrimaryGreen else Color.Transparent,
@@ -820,7 +844,12 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                                        Text(text = dayNum.toString(), fontSize = 12.sp, color = Color.White)
+                                                        Text(
+                                                            text = dayNum.toString(),
+                                                            fontSize = 12.sp,
+                                                            fontWeight = if (isInspected) FontWeight.Bold else FontWeight.Normal,
+                                                            color = if (isInspected) PrimaryGreen else TextPrimary
+                                                        )
                                                         if (dotColor != Color.Transparent) {
                                                             Box(
                                                                 modifier = Modifier
@@ -845,8 +874,9 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                border = BorderStroke(1.dp, MedicalBorder)
                             ) {
                                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(
@@ -857,19 +887,19 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     )
 
                                     if (dayMetrics == null) {
-                                        Text(text = "Ushbu kunda hech qanday ma'lumot kiritilmagan.", fontSize = 12.sp, color = Color.Gray)
+                                        Text(text = "Ushbu kunda hech qanday ma'lumot kiritilmagan.", fontSize = 12.sp, color = TextSecondary)
                                     } else {
                                         val completedCount = try { org.json.JSONArray(dayMetrics.completedRemindersJson).length() } catch(e: Exception) { 0 }
-                                        Text(text = "🥤 Suv ichilgan: ${dayMetrics.waterGlasses} stakan (Maqsad: ${dayMetrics.waterGoal})", fontSize = 12.sp, color = Color.LightGray)
-                                        Text(text = "💊 Qabul qilingan dorilar: $completedCount", fontSize = 12.sp, color = Color.LightGray)
+                                        Text(text = "🥤 Suv ichilgan: ${dayMetrics.waterGlasses} stakan (Maqsad: ${dayMetrics.waterGoal})", fontSize = 12.sp, color = TextPrimary)
+                                        Text(text = "💊 Qabul qilingan dorilar: $completedCount", fontSize = 12.sp, color = TextPrimary)
                                         if (dayMetrics.weight > 0) {
-                                            Text(text = "⚖️ Vazn: ${dayMetrics.weight} kg", fontSize = 12.sp, color = Color.LightGray)
+                                            Text(text = "⚖️ Vazn: ${dayMetrics.weight} kg", fontSize = 12.sp, color = TextPrimary)
                                         }
                                         if (dayMetrics.bpSystolic > 0) {
-                                            Text(text = "🩸 Qon bosimi: ${dayMetrics.bpSystolic}/${dayMetrics.bpDiastolic} mmHg", fontSize = 12.sp, color = Color.LightGray)
+                                            Text(text = "🩸 Qon bosimi: ${dayMetrics.bpSystolic}/${dayMetrics.bpDiastolic} mmHg", fontSize = 12.sp, color = TextPrimary)
                                         }
                                         if (dayMetrics.heartRate > 0) {
-                                            Text(text = "❤️ Puls: ${dayMetrics.heartRate} BPM", fontSize = 12.sp, color = Color.LightGray)
+                                            Text(text = "❤️ Puls: ${dayMetrics.heartRate} BPM", fontSize = 12.sp, color = TextPrimary)
                                         }
                                     }
                                 }
@@ -898,13 +928,26 @@ fun HistoryScreen(viewModel: AppViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.background),
+                    .background(MedicalBackground),
                 contentAlignment = Alignment.Center
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(imageVector = Icons.Default.HourglassEmpty, contentDescription = null, modifier = Modifier.size(48.dp), tint = Color.LightGray)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Tarix bo'sh. Qidiruv natijalari bu yerda saqlanadi.", color = Color.Gray)
+                    Box(
+                        modifier = Modifier.size(72.dp).background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.HourglassEmpty, contentDescription = null, modifier = Modifier.size(32.dp), tint = PrimaryGreen)
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text("Tarix bo'sh", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextPrimary)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        "Qidiruv natijalari bu yerda saqlanadi.",
+                        fontSize = 12.sp,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp)
+                    )
                 }
             }
         } else {
@@ -912,7 +955,7 @@ fun HistoryScreen(viewModel: AppViewModel) {
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.background)
+                    .background(MedicalBackground)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
@@ -920,29 +963,47 @@ fun HistoryScreen(viewModel: AppViewModel) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, MedicalBorder)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.Event, contentDescription = null, tint = PrimaryGreen)
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(text = "Simptom tekshiruvi: ${check.bodyPart}", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Box(
+                                        modifier = Modifier.size(40.dp).background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Event, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Column {
+                                        Text(text = "Simptom tekshiruvi: ${check.bodyPart}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                                        Text(
+                                            text = "Kiritilgan simptomlar: ${check.symptomsInput}",
+                                            fontSize = 12.sp,
+                                            color = TextSecondary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
                                 }
-                                IconButton(onClick = {
-                                    scope.launch { viewModel.dao.deleteSymptomCheck(check.id) }
-                                }) {
-                                    Icon(imageVector = Icons.Default.Delete, contentDescription = null, tint = Color.LightGray)
+                                IconButton(
+                                    onClick = {
+                                        scope.launch { viewModel.dao.deleteSymptomCheck(check.id) }
+                                    },
+                                    modifier = Modifier
+                                        .background(ErrorRed.copy(alpha = 0.08f), CircleShape)
+                                        .size(36.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Delete, contentDescription = "O'chirish", tint = ErrorRed, modifier = Modifier.size(16.dp))
                                 }
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = "Kiritilgan simptomlar: ${check.symptomsInput}", fontSize = 12.sp, color = Color.Gray)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = check.resultJson, fontSize = 12.sp, color = Color.DarkGray, maxLines = 4)
+                            Divider(color = MedicalBorder)
+                            Text(text = check.resultJson, fontSize = 12.sp, color = TextSecondary, lineHeight = 16.sp, maxLines = 4)
                         }
                     }
                 }
@@ -962,65 +1023,125 @@ fun GeneralChatScreen(viewModel: AppViewModel) {
     Scaffold(
         topBar = { AppHeader(title = Translations.getString("tab_chat", lang)) },
         bottomBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(12.dp)
-                    .navigationBarsPadding(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedTextField(
-                    value = messageText,
-                    onValueChange = { messageText = it },
-                    placeholder = { Text("AI Sog'liq maslahatchisidan so'rang...") },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(24.dp)
-                )
-
-                IconButton(
-                    onClick = {
-                        if (messageText.isNotEmpty()) {
-                            viewModel.sendChatMessage(messageText, "general")
-                            messageText = ""
-                        }
-                    },
+            Surface(color = Color.White, shadowElevation = 8.dp) {
+                Row(
                     modifier = Modifier
-                        .background(PrimaryGreen, CircleShape)
-                        .size(48.dp)
+                        .fillMaxWidth()
+                        .padding(12.dp)
+                        .navigationBarsPadding(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White)
+                    OutlinedTextField(
+                        value = messageText,
+                        onValueChange = { messageText = it },
+                        placeholder = { Text("AI Sog'liq maslahatchisidan so'rang...", color = TextSecondary.copy(alpha = 0.6f)) },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(24.dp),
+                        textStyle = androidx.compose.ui.text.TextStyle(color = TextPrimary, fontSize = 14.sp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFF8FFFE),
+                            unfocusedContainerColor = Color(0xFFF8FFFE),
+                            focusedBorderColor = PrimaryGreen,
+                            unfocusedBorderColor = MedicalBorder
+                        )
+                    )
+
+                    IconButton(
+                        onClick = {
+                            if (messageText.isNotEmpty()) {
+                                viewModel.sendChatMessage(messageText, "general")
+                                messageText = ""
+                            }
+                        },
+                        modifier = Modifier
+                            .background(Brush.horizontalGradient(listOf(PrimaryGreen, DarkGreen)), CircleShape)
+                            .size(48.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White)
+                    }
                 }
             }
         }
     ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(chatMessages) { msg ->
-                val isUser = msg.role == "user"
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
-                ) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = if (isUser) PrimaryGreen else MaterialTheme.colorScheme.surface
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.widthIn(max = 280.dp)
+        if (chatMessages.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .background(MedicalBackground),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        modifier = Modifier.size(72.dp).background(LightGreen, CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = msg.content,
-                            color = if (isUser) Color.White else Color.LightGray,
-                            modifier = Modifier.padding(12.dp),
-                            fontSize = 14.sp
-                        )
+                        Icon(imageVector = Icons.Default.Chat, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(34.dp))
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = when (lang) {
+                            "uz" -> "AI Sog'liq maslahatchisi"
+                            "ru" -> "AI консультант по здоровью"
+                            else -> "AI Health Advisor"
+                        },
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp,
+                        color = TextPrimary
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = when (lang) {
+                            "uz" -> "Sog'liq bilan bog'liq savolingizni yozing"
+                            "ru" -> "Напишите свой вопрос о здоровье"
+                            else -> "Ask any health-related question"
+                        },
+                        fontSize = 12.sp,
+                        color = TextSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp)
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .background(MedicalBackground)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                contentPadding = PaddingValues(vertical = 12.dp)
+            ) {
+                items(chatMessages) { msg ->
+                    val isUser = msg.role == "user"
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
+                    ) {
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isUser) PrimaryGreen else Color.White
+                            ),
+                            shape = RoundedCornerShape(
+                                topStart = 16.dp,
+                                topEnd = 16.dp,
+                                bottomStart = if (isUser) 16.dp else 4.dp,
+                                bottomEnd = if (isUser) 4.dp else 16.dp
+                            ),
+                            border = if (isUser) null else BorderStroke(1.dp, MedicalBorder),
+                            elevation = CardDefaults.cardElevation(defaultElevation = if (isUser) 0.dp else 1.dp),
+                            modifier = Modifier.widthIn(max = 280.dp)
+                        ) {
+                            Text(
+                                text = msg.content,
+                                color = if (isUser) Color.White else TextPrimary,
+                                modifier = Modifier.padding(12.dp),
+                                fontSize = 14.sp,
+                                lineHeight = 19.sp
+                            )
+                        }
                     }
                 }
             }
