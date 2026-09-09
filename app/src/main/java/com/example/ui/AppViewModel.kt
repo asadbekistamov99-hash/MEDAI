@@ -558,8 +558,31 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 height = 175.0,
                 weight = 68.0
             )
+            if (email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true)) {
+                ensureAdminClaimIfEligible()
+            }
             onSuccess()
         }
+    }
+
+    // Requests the server-side admin custom claim (see functions/index.js) for the
+    // currently signed-in Firebase Auth user, when it's the configured admin account. This is
+    // what actually makes firestore.rules' isAdmin() check pass — the local isSuperAdmin
+    // property alone only controls what the UI shows, it has no server-side effect. Safe to
+    // call defensively (e.g. every admin-panel open): it no-ops once the claim is already set,
+    // and fails silently (logged only) if Cloud Functions aren't deployed yet.
+    fun ensureAdminClaimIfEligible() {
+        val fbUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
+        if (!(fbUser.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true)) return
+        com.google.firebase.functions.FirebaseFunctions.getInstance()
+            .getHttpsCallable("claimAdminIfEligible")
+            .call()
+            .addOnSuccessListener {
+                Log.d("AdminClaim", "Server-side admin claim confirmed for ${fbUser.email}")
+            }
+            .addOnFailureListener { e ->
+                Log.w("AdminClaim", "Could not confirm server-side admin claim (functions not deployed yet?): ${e.message}")
+            }
     }
 
     fun logout() {

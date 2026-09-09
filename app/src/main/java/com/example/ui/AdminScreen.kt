@@ -42,6 +42,14 @@ fun AdminScreen(
     val currentUser by viewModel.currentUser.collectAsState()
     val isSuperAdmin = viewModel.isSuperAdmin
 
+    // Self-heals the server-side custom claim for accounts that signed in before the
+    // Cloud Function existed, or after functions are (re)deployed — see functions/index.js.
+    LaunchedEffect(isSuperAdmin) {
+        if (isSuperAdmin) {
+            viewModel.ensureAdminClaimIfEligible()
+        }
+    }
+
     if (!isSuperAdmin) {
         // Access Denied Screen
         Scaffold(

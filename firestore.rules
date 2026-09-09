@@ -45,5 +45,37 @@ service cloud.firestore {
       allow read: if isAdmin();
       allow update, delete: if false;
     }
+
+    // 5. AdminLogs Collection (audit trail of admin actions, written by logAdminAction())
+    // Only administrators may read or write — this is the admin's own action history.
+    match /adminLogs/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+    // 6. PaymentRequests Collection (premium payment proof uploads + admin review)
+    // Create: A user may submit a request only under their own userId.
+    // Read: The submitter may read their own requests; admins may read all (to review them).
+    // Update: Only admins (approve/reject). Delete: nobody, for audit integrity.
+    match /paymentRequests/{requestId} {
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // 7. MedicationReminders Collection (cross-device reminder sync)
+    // A user may only create/read/update/delete their own reminders; admins may read all.
+    match /medicationReminders/{reminderId} {
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow update, delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    // 8. Vitals Collection (daily heart rate / blood pressure / weight logs, cross-device sync)
+    match /vitals/{vitalId} {
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow read, update: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow delete: if false;
+    }
   }
 }
