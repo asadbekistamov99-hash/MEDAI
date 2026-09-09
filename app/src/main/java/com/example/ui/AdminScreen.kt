@@ -603,6 +603,32 @@ fun PaymentsManagementTab(viewModel: AppViewModel, payments: List<PaymentRequest
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
+            // There is no real multi-device backend yet: "approve" only grants premium on
+            // THIS device if its locally signed-in user happens to be the requester. Say so,
+            // rather than letting the admin believe every approval reaches the real user.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(WarningOrange.copy(alpha = 0.1f), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = WarningOrange,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Hozircha real backend yo'q: tasdiqlash faqat shu qurilmadagi joriy foydalanuvchi so'rov egasi bo'lsa premium beradi.",
+                    fontSize = 11.sp,
+                    color = TextSecondary
+                )
+            }
+        }
+
+        item {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
