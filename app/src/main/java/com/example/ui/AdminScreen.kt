@@ -1,7 +1,6 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.example.ui
 
-import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -16,7 +15,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -34,12 +32,8 @@ fun AdminScreen(
     viewModel: AppViewModel,
     onBack: () -> Unit
 ) {
-    val context = LocalContext.current
     val currentUser by viewModel.currentUser.collectAsState()
-    val isSuperAdmin = remember(currentUser) {
-        val email = currentUser?.email?.trim()
-        email.equals("asadbekistamov99@gmail.com", ignoreCase = true)
-    }
+    val isSuperAdmin = viewModel.isSuperAdmin
 
     if (!isSuperAdmin) {
         // Access Denied Screen
@@ -88,7 +82,7 @@ fun AdminScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Admin panel faqat asadbekistamov99@gmail.com hisobi orqali kirgan foydalanuvchi uchun ochiq. Joriy hisobingiz: ${currentUser?.email ?: "Noma'lum"}",
+                            text = "Admin panel faqat $SUPER_ADMIN_EMAIL hisobi orqali kirgan foydalanuvchi uchun ochiq. Joriy hisobingiz: ${currentUser?.email ?: "Noma'lum"}",
                             fontSize = 13.sp,
                             color = TextSecondary,
                             textAlign = TextAlign.Center,
@@ -176,7 +170,7 @@ fun AdminScreen(
                                 }
                             }
                             Text(
-                                text = "asadbekistamov99@gmail.com • Online",
+                                text = "${currentUser?.email ?: SUPER_ADMIN_EMAIL} • Online",
                                 fontSize = 11.sp,
                                 color = PrimaryGreen,
                                 fontWeight = FontWeight.Medium

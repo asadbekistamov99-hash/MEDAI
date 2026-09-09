@@ -1289,7 +1289,7 @@ fun GoogleAccountsSelectorDialog(
                     Spacer(modifier = Modifier.height(16.dp))
                     
                     val accounts = listOf(
-                        Pair("Asadbek Istamov", "asadbekistamov99@gmail.com"),
+                        Pair("Asadbek Istamov", SUPER_ADMIN_EMAIL),
                         Pair("Asadbek Health", "asadbek.health@gmail.com"),
                         Pair("Istamov Personal", "istamov.personal@gmail.com")
                     )

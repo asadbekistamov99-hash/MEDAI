@@ -21,6 +21,11 @@ data class SymptomQuestionsResult(
     val questions: List<String> = emptyList()
 )
 
+// Single source of truth for the super-admin account. This is a client-side-only check
+// (no server-side verification / Firebase custom claim yet) so it is not a real security
+// boundary, but keeping it in one place avoids the email string drifting across files.
+const val SUPER_ADMIN_EMAIL = "asadbekistamov99@gmail.com"
+
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
     val dao = database.appDao()
@@ -31,6 +36,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = null
     )
+
+    // Re-derives from the live signed-in email on every read rather than trusting a stored
+    // isAdmin flag, so it stays correct even if a Room row was edited/seeded incorrectly.
+    val isSuperAdmin: Boolean
+        get() = currentUser.value?.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true
 
     val appConfig = dao.getAppConfigFlow().stateIn(
         scope = viewModelScope,
@@ -316,7 +326,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             // Activate Premium VIP membership for current user and ensure admin authorization
             val existingUser = dao.getCurrentUser()
             if (existingUser != null) {
-                val shouldBeAdmin = existingUser.email.trim().equals("asadbekistamov99@gmail.com", ignoreCase = true)
+                val shouldBeAdmin = existingUser.email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
                 var updatedUser = existingUser
                 if (!existingUser.isPremium) {
                     val oneYearExpiry = System.currentTimeMillis() + 365L * 24 * 3600 * 1000L
@@ -334,7 +344,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 val defaultUser = UserLocal(
                     uid = defaultUid,
                     name = "Asadbek Istamov",
-                    email = "asadbekistamov99@gmail.com",
+                    email = SUPER_ADMIN_EMAIL,
                     phone = "+998 90 123 45 67",
                     dateOfBirth = "1999-05-15",
                     gender = "male",
@@ -478,7 +488,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             createdAt = System.currentTimeMillis(),
             lastActive = System.currentTimeMillis(),
             healthScore = 75,
-            isAdmin = email.equals("asadbekistamov99@gmail.com", ignoreCase = true),
+            isAdmin = email.equals(SUPER_ADMIN_EMAIL, ignoreCase = true),
             isBanned = false,
             avatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80"
         )
@@ -511,7 +521,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun loginUser(email: String, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             val trimmedEmail = email.trim()
-            val shouldBeAdmin = trimmedEmail.equals("asadbekistamov99@gmail.com", ignoreCase = true)
+            val shouldBeAdmin = trimmedEmail.equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
             // Attempt to login. If exists, we can use it. Otherwise, create a default user profile.
             val current = dao.getCurrentUser()
             if (current != null && current.email.equals(trimmedEmail, ignoreCase = true)) {
@@ -1265,24 +1275,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    // --- Emergency SOS System ---
-    fun triggerSOS() {
-        viewModelScope.launch {
-            val user = currentUser.value ?: return@launch
-            val loc = gpsLocation.value
-
-            // Simulated SOS event logging
-            Toast.makeText(getApplication(), "SOS signali faollashtirildi! Favqulodda yordam jo'natilmoqda.", Toast.LENGTH_LONG).show()
-
-            // Auto alert other family members as per specifications
-            sendSimulatedPush(
-                "🆘 ${user.name} SOS signal yubordi!",
-                "Unga yordam kerak! Joylashuv: https://maps.google.com/?q=$loc",
-                "sos"
-            )
-        }
-    }
-
     // --- In-App & Simulated Push Notification System ---
     fun sendSimulatedPush(title: String, message: String, type: String) {
         viewModelScope.launch {
@@ -1355,9 +1347,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val updated = request.copy(
                 status = "approved",
                 reviewedAt = System.currentTimeMillis(),
-                reviewedBy = "asadbekistamov99@gmail.com"
+                reviewedBy = currentAdminEmail()
             )
             dao.insertPaymentRequest(updated)
+            logAdminAction("Approve Payment", request.userId, "To'lov so'rovi tasdiqlandi: ${request.id}")
 
             try {
                 val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
@@ -1394,9 +1387,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 status = "rejected",
                 rejectionReason = reason,
                 reviewedAt = System.currentTimeMillis(),
-                reviewedBy = "asadbekistamov99@gmail.com"
+                reviewedBy = currentAdminEmail()
             )
             dao.insertPaymentRequest(updated)
+            logAdminAction("Reject Payment", request.userId, "To'lov so'rovi rad etildi: ${request.id}. Sabab: $reason")
 
             try {
                 val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
@@ -2006,14 +2000,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         return tips[dayOfYear % tips.size]
     }
 
+    // Resolves the acting admin's email dynamically (Firebase Auth first, then the local
+    // profile) instead of hardcoding it, so audit trails reflect who actually did the action.
+    private fun currentAdminEmail(): String {
+        return try {
+            val fbAuth = com.google.firebase.auth.FirebaseAuth.getInstance()
+            fbAuth.currentUser?.email ?: currentUser.value?.email ?: SUPER_ADMIN_EMAIL
+        } catch (e: Exception) {
+            currentUser.value?.email ?: SUPER_ADMIN_EMAIL
+        }
+    }
+
     fun logAdminAction(action: String, targetUser: String, details: String) {
         viewModelScope.launch {
-            val adminEmail = try {
-                val fbAuth = com.google.firebase.auth.FirebaseAuth.getInstance()
-                fbAuth.currentUser?.email ?: currentUser.value?.email ?: "asadbekistamov99@gmail.com"
-            } catch (e: Exception) {
-                currentUser.value?.email ?: "asadbekistamov99@gmail.com"
-            }
+            val adminEmail = currentAdminEmail()
 
             val newLog = AdminLog(
                 adminEmail = adminEmail,
@@ -2232,12 +2232,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     ))
                 }
             }
-            dao.insertAdminLog(AdminLog(
-                adminEmail = "asadbekistamov99@gmail.com",
-                action = "Broadcast to Cold Users",
-                targetUser = "All Cold Users",
-                details = "$count ta sovuq foydalanuvchiga eslatma xabari yuborildi."
-            ))
+            logAdminAction("Broadcast to Cold Users", "All Cold Users", "$count ta sovuq foydalanuvchiga eslatma xabari yuborildi.")
             Toast.makeText(getApplication(), "$count ta foydalanuvchiga xabar yuborildi!", Toast.LENGTH_SHORT).show()
         }
     }
@@ -2250,12 +2245,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 message = "⏰ Premiumingiz $daysLeft kunda tugaydi! Yangilang: 30,000 so'm",
                 type = "premium"
             ))
-            dao.insertAdminLog(AdminLog(
-                adminEmail = "asadbekistamov99@gmail.com",
-                action = "Send Premium Expiry Reminder",
-                targetUser = name,
-                details = "Foydalanuvchiga $daysLeft kunlik premium eslatmasi yuborildi."
-            ))
+            logAdminAction("Send Premium Expiry Reminder", name, "Foydalanuvchiga $daysLeft kunlik premium eslatmasi yuborildi.")
             Toast.makeText(getApplication(), "Eslatma yuborildi!", Toast.LENGTH_SHORT).show()
         }
     }
@@ -2283,12 +2273,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     type = "premium"
                 ))
                 
-                dao.insertAdminLog(AdminLog(
-                    adminEmail = "asadbekistamov99@gmail.com",
-                    action = "Extend Premium",
-                    targetUser = name,
-                    details = "Premium obunasi $days kunga uzaytirildi."
-                ))
+                logAdminAction("Extend Premium", name, "Premium obunasi $days kunga uzaytirildi.")
                 Toast.makeText(getApplication(), "Premium $days kunga uzaytirildi!", Toast.LENGTH_SHORT).show()
             }
         }
@@ -2308,12 +2293,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 dao.insertUser(curr.copy(isBanned = true))
             }
             
-            dao.insertAdminLog(AdminLog(
-                adminEmail = "asadbekistamov99@gmail.com",
-                action = "Block User",
-                targetUser = name,
-                details = "Bloklash sababi: $reason"
-            ))
+            logAdminAction("Block User", name, "Bloklash sababi: $reason")
             Toast.makeText(getApplication(), "$name bloklandi", Toast.LENGTH_SHORT).show()
         }
     }
@@ -2332,12 +2312,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 dao.insertUser(curr.copy(isBanned = false))
             }
             
-            dao.insertAdminLog(AdminLog(
-                adminEmail = "asadbekistamov99@gmail.com",
-                action = "Unblock User",
-                targetUser = name,
-                details = "Foydalanuvchi blokdan chiqarildi"
-            ))
+            logAdminAction("Unblock User", name, "Foydalanuvchi blokdan chiqarildi")
             Toast.makeText(getApplication(), "$name blokdan chiqarildi", Toast.LENGTH_SHORT).show()
         }
     }
@@ -2689,36 +2664,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             mockApiLogs.forEach { dao.insertApiUsageLog(it) }
 
             val mockAdminLogs = listOf(
-                AdminLog(adminEmail = "asadbekistamov99@gmail.com", action = "System Setup", targetUser = "All", details = "Tizim ma'lumotlari muvaffaqiyatli o'rnatildi.", timestamp = System.currentTimeMillis() - (24 * 3600 * 1000L))
+                AdminLog(adminEmail = SUPER_ADMIN_EMAIL, action = "System Setup", targetUser = "All", details = "Tizim ma'lumotlari muvaffaqiyatli o'rnatildi.", timestamp = System.currentTimeMillis() - (24 * 3600 * 1000L))
             )
             mockAdminLogs.forEach { dao.insertAdminLog(it) }
-        }
-    }
-
-    // --- Firebase Auth & Firestore Admin Integration ---
-    val ADMIN_WHITELIST = listOf(
-        "asadbekistamov99@gmail.com"
-    )
-
-    fun isUserFirebaseAdmin(): Boolean {
-        return try {
-            val fbAuth = com.google.firebase.auth.FirebaseAuth.getInstance()
-            val fbUser = fbAuth.currentUser
-            val localUser = currentUser.value
-            val email = fbUser?.email ?: localUser?.email
-            if (email != null) {
-                email.trim().equals("asadbekistamov99@gmail.com", ignoreCase = true)
-            } else {
-                false
-            }
-        } catch (e: Exception) {
-            val localUser = currentUser.value
-            val email = localUser?.email
-            if (email != null) {
-                email.trim().equals("asadbekistamov99@gmail.com", ignoreCase = true)
-            } else {
-                false
-            }
         }
     }
 

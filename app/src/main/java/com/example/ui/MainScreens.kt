@@ -599,7 +599,6 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                                     subtitle = item.subtitle,
                                     icon = item.icon,
                                     brush = item.brush,
-                                    isEmergency = item.id == "sos",
                                     modifier = Modifier
                                         .weight(1f)
                                         .clickable { onNavigate(item.id) }
@@ -610,7 +609,6 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                                     subtitle = item.subtitle,
                                     icon = item.icon,
                                     brush = item.brush,
-                                    isEmergency = item.id == "sos",
                                     modifier = Modifier
                                         .weight(1f)
                                         .clickable { onNavigate(item.id) }
