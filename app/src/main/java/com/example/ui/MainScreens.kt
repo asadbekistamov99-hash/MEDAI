@@ -419,22 +419,18 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                         .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = PrimaryGreen.copy(alpha = 0.2f), spotColor = PrimaryGreen.copy(alpha = 0.2f))
                         .clip(RoundedCornerShape(24.dp))
                 ) {
-                    // Soft nature background photo
+                    // Soft nature background photo — kept bright and visible, like the reference design
                     androidx.compose.foundation.Image(
                         painter = painterResource(id = R.drawable.img_nature_bg),
                         contentDescription = null,
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.matchParentSize()
                     )
-                    // Darkening scrim so white text stays readable over the photo
+                    // Faint white wash only, so dark text stays legible without hiding the photo
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(DarkGreen.copy(alpha = 0.55f), PrimaryGreen.copy(alpha = 0.35f))
-                                )
-                            )
+                            .background(Color.White.copy(alpha = 0.12f))
                     )
 
                     Row(
@@ -449,14 +445,14 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                                 text = String.format(Translations.getString("home_greeting", lang), user?.name ?: ""),
                                 fontSize = 22.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = Color.White,
+                                color = TextPrimary,
                                 letterSpacing = -0.5.sp
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Bugun o'zingizni qanday his qilyapsiz?",
                                 fontSize = 13.sp,
-                                color = Color.White.copy(alpha = 0.9f)
+                                color = TextPrimary.copy(alpha = 0.75f)
                             )
                         }
 
@@ -464,13 +460,13 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
-                                .background(Color.White.copy(alpha = 0.2f), CircleShape),
+                                .background(Color.White.copy(alpha = 0.75f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = if (isPremium) Icons.Default.MilitaryTech else Icons.Default.LocalHospital,
                                 contentDescription = null,
-                                tint = Color.White,
+                                tint = if (isPremium) PremiumPurple else PrimaryGreen,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
