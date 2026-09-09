@@ -1424,7 +1424,9 @@ fun FamilyQrDialog(
                             Box(
                                 modifier = Modifier
                                     .size(200.dp)
-                                    .border(2.dp, Color.LightGray, RoundedCornerShape(16.dp))
+                                    .shadow(6.dp, RoundedCornerShape(20.dp))
+                                    .clip(RoundedCornerShape(20.dp))
+                                    .background(Brush.linearGradient(listOf(Color(0xFF0F2620), Color(0xFF163832))))
                                     .padding(4.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -1441,27 +1443,27 @@ fun FamilyQrDialog(
                                 Box(
                                     modifier = Modifier
                                         .fillMaxSize()
-                                        .background(Color.Black.copy(alpha = 0.05f))
+                                        .clip(RoundedCornerShape(16.dp))
                                 ) {
                                     Canvas(modifier = Modifier.fillMaxSize()) {
                                         val bracketLength = 24.dp.toPx()
                                         val strokeWidth = 3.dp.toPx()
                                         val w = size.width
                                         val h = size.height
-                                        
-                                        drawLine(PrimaryGreen, Offset(0f, 0f), Offset(bracketLength, 0f), strokeWidth)
-                                        drawLine(PrimaryGreen, Offset(0f, 0f), Offset(0f, bracketLength), strokeWidth)
-                                        
-                                        drawLine(PrimaryGreen, Offset(w, 0f), Offset(w - bracketLength, 0f), strokeWidth)
-                                        drawLine(PrimaryGreen, Offset(w, 0f), Offset(w, bracketLength), strokeWidth)
-                                        
-                                        drawLine(PrimaryGreen, Offset(0f, h), Offset(bracketLength, h), strokeWidth)
-                                        drawLine(PrimaryGreen, Offset(0f, h), Offset(0f, h - bracketLength), strokeWidth)
-                                        
-                                        drawLine(PrimaryGreen, Offset(w, h), Offset(w - bracketLength, h), strokeWidth)
-                                        drawLine(PrimaryGreen, Offset(w, h), Offset(w, h - bracketLength), strokeWidth)
+
+                                        drawLine(SuccessGreen, Offset(0f, 0f), Offset(bracketLength, 0f), strokeWidth)
+                                        drawLine(SuccessGreen, Offset(0f, 0f), Offset(0f, bracketLength), strokeWidth)
+
+                                        drawLine(SuccessGreen, Offset(w, 0f), Offset(w - bracketLength, 0f), strokeWidth)
+                                        drawLine(SuccessGreen, Offset(w, 0f), Offset(w, bracketLength), strokeWidth)
+
+                                        drawLine(SuccessGreen, Offset(0f, h), Offset(bracketLength, h), strokeWidth)
+                                        drawLine(SuccessGreen, Offset(0f, h), Offset(0f, h - bracketLength), strokeWidth)
+
+                                        drawLine(SuccessGreen, Offset(w, h), Offset(w - bracketLength, h), strokeWidth)
+                                        drawLine(SuccessGreen, Offset(w, h), Offset(w, h - bracketLength), strokeWidth)
                                     }
-                                    
+
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -1469,19 +1471,19 @@ fun FamilyQrDialog(
                                             .offset(y = (laserOffset * 190).dp)
                                             .background(
                                                 Brush.horizontalGradient(
-                                                    colors = listOf(Color.Transparent, Color.Green, Color.Transparent)
+                                                    colors = listOf(Color.Transparent, SuccessGreen, Color.Transparent)
                                                 )
                                             )
                                     )
                                 }
-                                
+
                                 if (isScanning) {
-                                    CircularProgressIndicator(color = PrimaryGreen)
+                                    CircularProgressIndicator(color = SuccessGreen)
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.QrCodeScanner,
                                         contentDescription = null,
-                                        tint = Color.Gray.copy(alpha = 0.3f),
+                                        tint = Color.White.copy(alpha = 0.25f),
                                         modifier = Modifier.size(64.dp)
                                     )
                                 }
