@@ -1275,6 +1275,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // --- Emergency SOS System ---
+    fun triggerSOS() {
+        viewModelScope.launch {
+            val user = currentUser.value ?: return@launch
+            val loc = gpsLocation.value
+
+            dao.insertNotification(NotificationLocal(
+                userId = user.uid,
+                title = "🆘 SOS signali yuborildi",
+                message = "Joylashuvingiz: $loc. Oila a'zolaringizga xabar yuborildi.",
+                type = "sos"
+            ))
+            Toast.makeText(getApplication(), "SOS signali faollashtirildi! Favqulodda yordam jo'natilmoqda.", Toast.LENGTH_LONG).show()
+
+            // Alert accepted family members as per specifications
+            sendSimulatedPush(
+                "🆘 ${user.name} SOS signal yubordi!",
+                "Unga yordam kerak! Joylashuv: https://maps.google.com/?q=$loc",
+                "sos"
+            )
+        }
+    }
+
     // --- In-App & Simulated Push Notification System ---
     fun sendSimulatedPush(title: String, message: String, type: String) {
         viewModelScope.launch {

@@ -32,6 +32,7 @@ import com.example.ui.FamilyScreen
 import com.example.ui.PremiumUpgradeScreen
 import com.example.ui.HelpCenterScreen
 import com.example.ui.AdminScreen
+import com.example.ui.SOSScreen
 import com.example.ui.theme.MedicalBackground
 import com.example.ui.theme.MyApplicationTheme
 
@@ -217,6 +218,13 @@ fun MedAIAppNavigation(viewModel: AppViewModel) {
 
         composable("admin") {
             AdminScreen(
+                viewModel = viewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable("sos") {
+            SOSScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() }
             )
