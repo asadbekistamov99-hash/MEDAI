@@ -18,7 +18,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -668,7 +667,33 @@ fun StatistikaTab(viewModel: AppViewModel) {
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // This screen doesn't log individual dose confirmations yet, so the
+                    // numbers below are an estimate derived from active reminders, not a
+                    // real dose-by-dose history. Say so plainly instead of implying otherwise.
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(WarningOrange.copy(alpha = 0.1f), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Info,
+                            contentDescription = null,
+                            tint = WarningOrange,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Bu taxminiy ko'rsatkich: har bir dori qabulini alohida qayd etish hali mavjud emas",
+                            fontSize = 11.sp,
+                            color = TextSecondary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
 
                     // 4-Box Stats Grid
                     Row(

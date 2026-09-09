@@ -206,9 +206,8 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                 )
             }
 
-            // Super Admin Special Badge and Access Card (strictly and exclusively for asadbekistamov99@gmail.com)
-            val isSuperAdminAccount = user?.email?.trim().equals("asadbekistamov99@gmail.com", ignoreCase = true)
-            if (isSuperAdminAccount) {
+            // Super Admin Special Badge and Access Card (strictly and exclusively for SUPER_ADMIN_EMAIL)
+            if (viewModel.isSuperAdmin) {
                 Spacer(modifier = Modifier.height(10.dp))
                 Card(
                     modifier = Modifier
@@ -262,7 +261,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                                 }
                             }
                             Text(
-                                text = "Faqat asadbekistamov99@gmail.com uchun ruxsat berilgan",
+                                text = "Faqat $SUPER_ADMIN_EMAIL uchun ruxsat berilgan",
                                 color = Color.White.copy(alpha = 0.7f),
                                 fontSize = 11.sp
                             )
@@ -730,8 +729,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                 border = BorderStroke(1.dp, MedicalBorder.copy(alpha = 0.4f))
             ) {
                 Column {
-                    val isSuperAdminAccount = user?.email?.trim().equals("asadbekistamov99@gmail.com", ignoreCase = true)
-                    if (isSuperAdminAccount) {
+                    if (viewModel.isSuperAdmin) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
