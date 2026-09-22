@@ -561,18 +561,18 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
             // Features configuration
             val freeFeatures = listOf(
                 FeatureItem("yordamchi", "MedAI Yordamchi", "Tezkor 4-in-1 yordam", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(PrimaryGreen, DarkGreen))),
-                FeatureItem("sos", "Tez yordam SOS", "Favqulodda yordam", Icons.Default.Emergency, Brush.horizontalGradient(colors = listOf(Color(0xFFB71C1C), Color(0xFFE53935)))),
+                FeatureItem("family", Translations.getString("feat_family", lang), "Oila a'zolari", Icons.Default.Group, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFFF6D00)))),
                 FeatureItem("symptoms", Translations.getString("feat_symptoms", lang), "Tahlil qilish", Icons.Default.Favorite, Brush.horizontalGradient(colors = listOf(Color(0xFF00897B), Color(0xFF00ACC1)))),
                 FeatureItem("drugs", Translations.getString("feat_med_info", lang), "Tarkibi va foydasi", Icons.Default.LocalPharmacy, Brush.horizontalGradient(colors = listOf(Color(0xFF1565C0), Color(0xFF1976D2)))),
                 FeatureItem("reminder", Translations.getString("feat_reminder", lang), "O'z vaqtida ichish", Icons.Default.Alarm, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFF57C00)))),
                 FeatureItem("notifications", Translations.getString("feat_notifications", lang), "Ogohlantirishlar", Icons.Default.NotificationsActive, Brush.horizontalGradient(colors = listOf(Color(0xFF6A1B9A), Color(0xFF8E24AA)))),
                 FeatureItem("analytics", Translations.getString("feat_analytics", lang), "Sog'liq ko'rsatkichlari", Icons.Default.BarChart, Brush.horizontalGradient(colors = listOf(Color(0xFF00838F), Color(0xFF00ACC1)))),
-                FeatureItem("services", Translations.getString("feat_services", lang), "Kasalxonalar va yordam", Icons.Default.LocalHospital, Brush.horizontalGradient(colors = listOf(Color(0xFFC62828), Color(0xFFE53935))))
+                FeatureItem("sos", "Tez yordam SOS", "Favqulodda yordam", Icons.Default.Emergency, Brush.horizontalGradient(colors = listOf(Color(0xFFB71C1C), Color(0xFFE53935))))
             )
 
             val premiumFeatures = listOf(
                 FeatureItem("yordamchi", "MedAI Yordamchi", "Smart 4-in-1 yordam", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(PrimaryGreen, DarkGreen))),
-                FeatureItem("sos", "Favqulodda vaziyat", "SOS tezkor yordam", Icons.Default.Emergency, Brush.horizontalGradient(colors = listOf(Color(0xFFC62828), Color(0xFFD32F2F))))
+                FeatureItem("family", Translations.getString("feat_family", lang), "Oila a'zolari", Icons.Default.Group, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFFF6D00))))
             ) + freeFeatures.drop(2).take(1) + listOf(
                 FeatureItem("ai_doctor", Translations.getString("feat_ai_doctor", lang), "AI Robot-Shifokor", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(Color(0xFF4527A0), Color(0xFF5E35B1)))),
                 FeatureItem("ai_tips", Translations.getString("feat_ai_tips", lang), "Aqlli maslahatlar", Icons.Default.TipsAndUpdates, Brush.horizontalGradient(colors = listOf(Color(0xFF0277BD), Color(0xFF0288D1)))),
@@ -583,41 +583,27 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                 FeatureItem("analytics", Translations.getString("feat_analytics", lang), "Grafik ko'rsatkichlar", Icons.Default.BarChart, Brush.horizontalGradient(colors = listOf(Color(0xFF283593), Color(0xFF3949AB)))),
                 FeatureItem("notifications", Translations.getString("feat_notifications", lang), "Ogohlantirishlar", Icons.Default.NotificationsActive, Brush.horizontalGradient(colors = listOf(Color(0xFF6A1B9A), Color(0xFF8E24AA))))
             ) + listOf(
-                FeatureItem("family", Translations.getString("feat_family", lang), "Oila a'zolari", Icons.Default.Group, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFFF6D00)))),
-                FeatureItem("services", Translations.getString("feat_services", lang), "Klinika xizmatlari", Icons.Default.LocalHospital, Brush.horizontalGradient(colors = listOf(Color(0xFF006064), Color(0xFF00838F)))),
-                FeatureItem("help", Translations.getString("feat_help", lang), "Savol va javoblar", Icons.Default.HelpCenter, Brush.horizontalGradient(colors = listOf(Color(0xFF37474F), Color(0xFF546E7A))))
+                FeatureItem("sos", "Favqulodda vaziyat", "SOS tezkor yordam", Icons.Default.Emergency, Brush.horizontalGradient(colors = listOf(Color(0xFFC62828), Color(0xFFD32F2F)))),
+                FeatureItem("services", Translations.getString("feat_services", lang), "Klinika xizmatlari", Icons.Default.LocalHospital, Brush.horizontalGradient(colors = listOf(Color(0xFF006064), Color(0xFF00838F))))
             )
 
             val activeFeatures = if (isPremium) premiumFeatures else freeFeatures
-            val columns = if (isPremium) 4 else 3
+            val columns = 2
 
-            Column(modifier = Modifier.padding(horizontal = 12.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 14.dp)) {
                 activeFeatures.chunked(columns).forEach { rowItems ->
                     Row(modifier = Modifier.fillMaxWidth()) {
                         rowItems.forEach { item ->
-                            if (isPremium) {
-                                HomeFeatureGridCardColored(
-                                    title = item.title,
-                                    subtitle = item.subtitle,
-                                    icon = item.icon,
-                                    brush = item.brush,
-                                    isEmergency = item.id == "sos",
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable { onNavigate(item.id) }
-                                )
-                            } else {
-                                HomeFeatureGridCard(
-                                    title = item.title,
-                                    subtitle = item.subtitle,
-                                    icon = item.icon,
-                                    brush = item.brush,
-                                    isEmergency = item.id == "sos",
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .clickable { onNavigate(item.id) }
-                                )
-                            }
+                            HomeFeatureGridCard(
+                                title = item.title,
+                                subtitle = item.subtitle,
+                                icon = item.icon,
+                                brush = item.brush,
+                                isEmergency = item.id == "sos",
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { onNavigate(item.id) }
+                            )
                         }
                         repeat(columns - rowItems.size) {
                             Spacer(modifier = Modifier.weight(1f))
@@ -746,7 +732,7 @@ data class FeatureItem(
 
 @Composable
 fun FreeHealthCard(user: UserLocal?, lang: String) {
-    val score = user?.healthScore ?: 70
+    val score = user?.healthScore ?: 0
 
     val animatedProgress by animateFloatAsState(
         targetValue = score / 100f,
@@ -835,6 +821,7 @@ fun FreeHealthCard(user: UserLocal?, lang: String) {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     val (statusText, statusColor) = when {
+                        score == 0 -> "Boshlang'ich (0 ball)" to TextSecondary
                         score <= 40 -> Translations.getString("status_poor", lang) to ErrorRed
                         score <= 70 -> Translations.getString("status_average", lang) to WarningOrange
                         else -> Translations.getString("status_good", lang) to SuccessGreen
@@ -879,108 +866,140 @@ fun FreeHealthCard(user: UserLocal?, lang: String) {
 
 @Composable
 fun PremiumHealthCard(steps: Int, user: UserLocal?, lang: String) {
-    val score = user?.healthScore ?: 85
+    val score = user?.healthScore ?: 0
 
-    // Sparkle animation coordinates
-    val sparklePositions = remember {
-        listOf(
-            0.1f to 0.2f,
-            0.85f to 0.15f,
-            0.9f to 0.75f,
-            0.15f to 0.8f
-        )
-    }
-
-    Box(
+    MedicalCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 20.dp, vertical = 8.dp)
-            .shadow(12.dp, RoundedCornerShape(24.dp), ambientColor = PremiumPurple.copy(alpha = 0.3f), spotColor = PremiumPurple.copy(alpha = 0.3f))
-            .clip(RoundedCornerShape(24.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(Color(0xFF6D28D9), Color(0xFF4F46E5))
-                )
-            )
     ) {
-        // Sparkling particles animation floating slowly
-        val infiniteTransition = rememberInfiniteTransition(label = "sparkle")
-        val sparkleAlpha by infiniteTransition.animateFloat(
-            initialValue = 0.2f,
-            targetValue = 0.9f,
-            animationSpec = infiniteRepeatable(
-                animation = tween(1200, easing = EaseInOutSine),
-                repeatMode = RepeatMode.Reverse
-            ),
-            label = "sparkleAlpha"
-        )
-
-        Canvas(modifier = Modifier.matchParentSize()) {
-            sparklePositions.forEach { (x, y) ->
-                drawCircle(
-                    color = Color.White.copy(alpha = sparkleAlpha * 0.4f),
-                    radius = 4.dp.toPx(),
-                    center = androidx.compose.ui.geometry.Offset(x * size.width, y * size.height)
-                )
-            }
-        }
-
         Column(modifier = Modifier.padding(20.dp)) {
+            // Header Row: VIP Pill and Status
             Row(
                 modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Left Panel: Health Score with Glow
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.Favorite, contentDescription = null, tint = Color(0xFF00E676), modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "HEALTH SCORE",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White.copy(alpha = 0.6f),
-                            letterSpacing = 1.2.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "$score / 100",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .background(PremiumPurple.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                        .border(1.dp, PremiumPurple.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.WorkspacePremium,
+                        contentDescription = null,
+                        tint = PremiumPurple,
+                        modifier = Modifier.size(15.dp)
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Sog'lig'ingiz juda yaxshi!",
+                        text = "PREMIUM VIP",
                         fontSize = 11.sp,
-                        color = Color(0xFF00E676),
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.LocalFireDepartment, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "KUNDALIK FAOLLIK",
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White.copy(alpha = 0.6f),
-                            letterSpacing = 1.2.sp
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "$steps qadam",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Black,
-                        color = Color.White
+                        fontWeight = FontWeight.ExtraBold,
+                        color = PremiumPurple,
+                        letterSpacing = 0.8.sp
                     )
                 }
 
-                // Right Panel: Running-figure progress ring
+                val (statusText, statusColor) = when {
+                    score == 0 -> "Boshlang'ich (0 ball)" to TextSecondary
+                    score <= 40 -> Translations.getString("status_poor", lang) to ErrorRed
+                    score <= 70 -> Translations.getString("status_average", lang) to WarningOrange
+                    else -> Translations.getString("status_good", lang) to SuccessGreen
+                }
+                Box(
+                    modifier = Modifier
+                        .background(statusColor.copy(alpha = 0.12f), RoundedCornerShape(50.dp))
+                        .padding(horizontal = 10.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = statusText,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = statusColor
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Metrics
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .background(PrimaryGreen.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Favorite,
+                                contentDescription = null,
+                                tint = PrimaryGreen,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "SOG'LIQ DARAJASI",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextSecondary,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "$score / 100",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextPrimary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(34.dp)
+                                .background(WarningOrange.copy(alpha = 0.12f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = WarningOrange,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = "KUNDALIK FAOLLIK",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = TextSecondary,
+                                letterSpacing = 1.sp
+                            )
+                            Text(
+                                text = "$steps qadam",
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = TextPrimary
+                            )
+                        }
+                    }
+                }
+
+                // Steps Progress ring
                 val stepsProgress = (steps / 10000f).coerceIn(0f, 1f)
                 val animatedStepsProgress by animateFloatAsState(
                     targetValue = stepsProgress,
@@ -994,16 +1013,24 @@ fun PremiumHealthCard(steps: Int, user: UserLocal?, lang: String) {
                     CircularProgressIndicator(
                         progress = { animatedStepsProgress },
                         modifier = Modifier.fillMaxSize(),
-                        color = Color(0xFFFFD700),
+                        color = PrimaryGreen,
                         strokeWidth = 7.dp,
-                        trackColor = Color.White.copy(alpha = 0.15f)
+                        trackColor = MedicalBorder.copy(alpha = 0.6f)
                     )
-                    Icon(
-                        imageVector = Icons.Default.DirectionsRun,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            imageVector = Icons.Default.DirectionsRun,
+                            contentDescription = null,
+                            tint = PrimaryGreen,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = "${(animatedStepsProgress * 100).toInt()}%",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
+                        )
+                    }
                 }
             }
         }
@@ -1089,18 +1116,20 @@ fun HomeFeatureGridCard(
                 Column {
                     Text(
                         text = title,
-                        fontSize = 13.sp,
+                        fontSize = 14.sp,
                         fontWeight = FontWeight.Bold,
                         color = TextPrimary,
-                        maxLines = 1,
+                        maxLines = 2,
+                        lineHeight = 18.sp,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(3.dp))
                     Text(
                         text = subtitle,
                         fontSize = 11.sp,
                         color = TextSecondary,
-                        maxLines = 1,
+                        maxLines = 2,
+                        lineHeight = 15.sp,
                         overflow = TextOverflow.Ellipsis
                     )
                 }
@@ -1109,7 +1138,7 @@ fun HomeFeatureGridCard(
     }
 }
 
-// Full-color gradient tile used for the Premium feature grid (4 columns)
+// Full-color gradient tile used for the Premium feature grid
 @Composable
 fun HomeFeatureGridCardColored(
     title: String,
@@ -1138,48 +1167,63 @@ fun HomeFeatureGridCardColored(
     Box(
         modifier = modifier
             .padding(6.dp)
-            .height(110.dp)
+            .height(118.dp)
             .scale(scale)
-            .shadow(4.dp, RoundedCornerShape(18.dp))
-            .clip(RoundedCornerShape(18.dp))
+            .shadow(4.dp, RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(20.dp))
             .background(brush)
-            .then(if (cardBorder != null) Modifier.border(cardBorder.width, cardBorder.brush, RoundedCornerShape(18.dp)) else Modifier)
+            .then(if (cardBorder != null) Modifier.border(cardBorder.width, cardBorder.brush, RoundedCornerShape(20.dp)) else Modifier)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
+                .padding(13.dp),
             verticalArrangement = Arrangement.SpaceBetween
         ) {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .background(Color.White.copy(alpha = 0.22f), CircleShape),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(Color.White.copy(alpha = 0.25f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+
                 Icon(
-                    imageVector = icon,
+                    imageVector = Icons.Default.ArrowOutward,
                     contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(18.dp)
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.size(16.dp)
                 )
             }
 
             Column {
                 Text(
                     text = title,
-                    fontSize = 12.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
-                    maxLines = 1,
+                    maxLines = 2,
+                    lineHeight = 18.sp,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = subtitle,
-                    fontSize = 10.sp,
-                    color = Color.White.copy(alpha = 0.85f),
-                    maxLines = 1,
+                    fontSize = 11.sp,
+                    color = Color.White.copy(alpha = 0.9f),
+                    maxLines = 2,
+                    lineHeight = 15.sp,
                     overflow = TextOverflow.Ellipsis
                 )
             }

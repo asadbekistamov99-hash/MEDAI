@@ -8,6 +8,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ai.GeminiClient
 import com.example.data.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -33,14 +35,29 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     // --- State Streams ---
     val currentUser = dao.getCurrentUserFlow().stateIn(
         scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
+        started = SharingStarted.Eagerly,
         initialValue = null
     )
 
     // Re-derives from the live signed-in email on every read rather than trusting a stored
     // isAdmin flag, so it stays correct even if a Room row was edited/seeded incorrectly.
     val isSuperAdmin: Boolean
-        get() = currentUser.value?.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true
+        get() {
+            val user = try {
+                kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+                    dao.getCurrentUser()
+                }
+            } catch (t: Throwable) {
+                currentUser.value
+            } ?: currentUser.value
+
+            return user?.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true
+        }
+
+
+    private var documentsJob: kotlinx.coroutines.Job? = null
+    private var scansJob: kotlinx.coroutines.Job? = null
+    private var lastInitializedUid: String? = null
 
     val appConfig = dao.getAppConfigFlow().stateIn(
         scope = viewModelScope,
@@ -233,7 +250,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val currentLanguage: StateFlow<String> = _currentLanguage.asStateFlow()
 
     // --- Onboarding Completion ---
-    private val _onboardingCompleted = MutableStateFlow(false)
+    private val _onboardingCompleted = MutableStateFlow(true)
     val onboardingCompleted: StateFlow<Boolean> = _onboardingCompleted.asStateFlow()
 
     // --- Simulated GPS Location ---
@@ -284,17 +301,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _isAnalyzingSymptomAnswers = MutableStateFlow(false)
     val isAnalyzingSymptomAnswers: StateFlow<Boolean> = _isAnalyzingSymptomAnswers.asStateFlow()
 
-    // --- UI Metrics Trackers (Analytics) ---
-    private val _dailySteps = MutableStateFlow(7240)
+    // --- UI Metrics Trackers (Analytics) - All start at 0 as requested ---
+    private val _dailySteps = MutableStateFlow(0)
     val dailySteps: StateFlow<Int> = _dailySteps.asStateFlow()
 
-    private val _loggedWeight = MutableStateFlow(72.0)
+    private val _loggedWeight = MutableStateFlow(0.0)
     val loggedWeight: StateFlow<Double> = _loggedWeight.asStateFlow()
 
-    private val _loggedSleep = MutableStateFlow(7.5)
+    private val _loggedSleep = MutableStateFlow(0.0)
     val loggedSleep: StateFlow<Double> = _loggedSleep.asStateFlow()
 
-    private val _loggedWater = MutableStateFlow(5) // glasses
+    private val _loggedWater = MutableStateFlow(0) // glasses
     val loggedWater: StateFlow<Int> = _loggedWater.asStateFlow()
 
     init {
@@ -332,11 +349,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 if (existingUser.isAdmin != shouldBeAdmin) {
                     updatedUser = updatedUser.copy(isAdmin = shouldBeAdmin)
                 }
-                if (updatedUser != existingUser) {
-                    dao.insertUser(updatedUser)
-                }
+                // When resetting statistics as requested, bring score to 0 baseline if no activities completed yet
+                dao.insertUser(updatedUser)
+                recalculateHealthScore()
             } else {
-                // If no user exists, create a default active Premium user profile for instant access
+                // If no user exists, create a default active Premium user profile for instant access with 0 baseline
                 val defaultUid = UUID.randomUUID().toString()
                 val defaultUser = UserLocal(
                     uid = defaultUid,
@@ -354,7 +371,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     fcmToken = "fcm_token_" + defaultUid.take(6),
                     createdAt = System.currentTimeMillis(),
                     lastActive = System.currentTimeMillis(),
-                    healthScore = 95,
+                    healthScore = 0, // Starts strictly at 0 for all new users
                     isAdmin = true,
                     isBanned = false,
                     avatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80"
@@ -396,49 +413,43 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     _currentLanguage.value = user.language
                     _onboardingCompleted.value = true
 
-                    startFirestoreRemindersListener(user.uid)
-                    startFirestoreVitalsListener(user.uid)
+                    if (user.uid != lastInitializedUid) {
+                        lastInitializedUid = user.uid
 
-                    val isAdminUser = user.email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
-                    if (isAdminUser) {
-                        // Only admins are allowed to read adminLogs (see firestore.rules); starting
-                        // this for every user would just fail with permission-denied for everyone else.
-                        startAdminLogsFirestoreListener()
-                    }
-                    startPaymentRequestsFirestoreListener(user.uid, isAdminUser)
+                        startFirestoreRemindersListener(user.uid)
+                        startFirestoreVitalsListener(user.uid)
 
-                    // Load user-specific documents and prescription scans
-                    launch {
-                        dao.getAllMedicalDocumentsFlow(user.uid).collect { docs ->
-                            _medicalDocuments.value = docs
+                        val isAdminUser = user.email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
+                        if (isAdminUser) {
+                            startAdminLogsFirestoreListener()
                         }
-                    }
-                    launch {
-                        dao.getAllPrescriptionScansFlow(user.uid).collect { scans ->
-                            _prescriptionScans.value = scans
+                        startPaymentRequestsFirestoreListener(user.uid, isAdminUser)
+
+                        // Load user-specific documents and prescription scans safely
+                        documentsJob?.cancel()
+                        documentsJob = launch(Dispatchers.IO) {
+                            dao.getAllMedicalDocumentsFlow(user.uid).collect { docs ->
+                                _medicalDocuments.value = docs
+                            }
+                        }
+                        scansJob?.cancel()
+                        scansJob = launch(Dispatchers.IO) {
+                            dao.getAllPrescriptionScansFlow(user.uid).collect { scans ->
+                                _prescriptionScans.value = scans
+                            }
                         }
                     }
                 }
             }
         }
 
-        // Simulating Real-time Step Counter and Family Health Score updates
+        // Periodic health state sync (no fake step increments, all stats real from 0 baseline)
         viewModelScope.launch {
             while (true) {
-                delay(12000) // update step count slightly every 12 seconds
+                delay(30000) // check every 30 seconds
                 val userObj = currentUser.value
                 if (userObj != null) {
-                    _dailySteps.value += (10..35).random()
-                    // Recalculate health score:
-                    // base 50 + completed reminders (+2 each), weight (+5), steps (+5), no SOS (+10), check (+3)
-                    val reminderPoints = (reminders.value.count { it.isActive } + firestoreReminders.value.count { it.isActive }) * 2
-                    val stepPoints = if (_dailySteps.value > 6000) 5 else 2
-                    val weightPoints = if (_loggedWeight.value > 0) 5 else 0
-                    val checkPoints = if (symptomChecks.value.isNotEmpty()) 3 else 0
-                    val score = (50 + reminderPoints + stepPoints + weightPoints + checkPoints + 10).coerceAtMost(100)
-                    if (score != userObj.healthScore) {
-                        dao.insertUser(userObj.copy(healthScore = score))
-                    }
+                    recalculateHealthScore()
                 }
 
                 // Simulate family members dynamic health updates to reflect REAL-TIME in UI
@@ -492,7 +503,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             fcmToken = "simulated_fcm_token_" + UUID.randomUUID().toString().take(6),
             createdAt = System.currentTimeMillis(),
             lastActive = System.currentTimeMillis(),
-            healthScore = 75,
+            healthScore = 0, // Starts at 0 for all new users; grows as rules & medical tasks are completed
             isAdmin = email.equals(SUPER_ADMIN_EMAIL, ignoreCase = true),
             isBanned = false,
             avatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80"
@@ -1491,10 +1502,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             phone = "+998 91 222 33 44",
             relation = "Turmush o'rtog'i",
             avatarUrl = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
-            healthScore = 88,
-            stepsToday = 6200,
+            healthScore = 0,
+            stepsToday = 0,
             lastActive = System.currentTimeMillis(),
-            activeRemindersCount = 2,
+            activeRemindersCount = 0,
             sosStatus = false,
             inviteStatus = "accepted",
             isInvitedByMe = true
@@ -1506,10 +1517,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             phone = "+998 90 777 88 99",
             relation = "O'g'li",
             avatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
-            healthScore = 94,
-            stepsToday = 9400,
+            healthScore = 0,
+            stepsToday = 0,
             lastActive = System.currentTimeMillis(),
-            activeRemindersCount = 1,
+            activeRemindersCount = 0,
             sosStatus = false,
             inviteStatus = "accepted",
             isInvitedByMe = true
@@ -1521,8 +1532,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             phone = "+998 93 456 12 34",
             relation = "Qizi",
             avatarUrl = "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80",
-            healthScore = 70,
-            stepsToday = 3000,
+            healthScore = 0,
+            stepsToday = 0,
             lastActive = System.currentTimeMillis(),
             activeRemindersCount = 0,
             sosStatus = false,
@@ -1763,58 +1774,117 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun recalculateHealthScore() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             val user = dao.getCurrentUser() ?: return@launch
             val today = getTodayDateString()
             val metrics = dao.getDailyMetrics(today)
             
-            var score = 50 // Base 50
+            // Starts strictly at 0 for all new and inactive users
+            var score = 0
             
             if (metrics != null) {
-                // Completed reminders today: +2 each (max +10)
+                // 1. Dori qabul qilish qoidalariga amal qilish (Medication adherence): max +25
                 val completedRemindersCount = try { org.json.JSONArray(metrics.completedRemindersJson).length() } catch(e: Exception) { 0 }
                 val completedFirestoreCount = firestoreReminders.value.count { it.completedDates.contains(today) }
-                score += ((completedRemindersCount + completedFirestoreCount) * 2).coerceAtMost(10)
+                val totalRemindersDone = completedRemindersCount + completedFirestoreCount
+                score += (totalRemindersDone * 10).coerceAtMost(25)
                 
-                // Logged weight today: +3
-                if (metrics.weight > 0.0) score += 3
+                // 2. Arterial qon bosimi nazorati (Blood Pressure): max +15
+                if (metrics.bpSystolic > 0 && metrics.bpDiastolic > 0) {
+                    score += 10
+                    // Kasallik qoidasiga amal qilib normada ushlash
+                    if (metrics.bpSystolic in 90..130 && metrics.bpDiastolic in 60..85) {
+                        score += 5
+                    }
+                }
                 
-                // Logged blood pressure today: +3
-                if (metrics.bpSystolic > 0 && metrics.bpDiastolic > 0) score += 3
+                // 3. Yurak urishi / Puls nazorati (Heart Rate): max +10
+                if (metrics.heartRate > 0) {
+                    score += 5
+                    if (metrics.heartRate in 55..100) {
+                        score += 5
+                    }
+                }
                 
-                // Logged heart rate today: +2
-                if (metrics.heartRate > 0) score += 2
+                // 4. Tana vazni / BMI nazorati (Weight): max +5
+                if (metrics.weight > 0.0) {
+                    score += 5
+                }
                 
-                // Logged sleep today: +4
-                if (metrics.sleepHours > 0.0) score += 4
+                // 5. Uyqu gigiyenasi va rejimi (Sleep): max +10
+                if (metrics.sleepHours > 0.0) {
+                    score += 5
+                    if (metrics.sleepHours in 7.0..9.0) {
+                        score += 5
+                    }
+                }
                 
-                // Logged meals today: +2
+                // 6. Suv balansi (Hydration): max +15
+                if (metrics.waterGlasses > 0) {
+                    score += metrics.waterGlasses.coerceAtMost(10)
+                    if (metrics.waterGlasses >= metrics.waterGoal) {
+                        score += 5
+                    }
+                }
+                
+                // 7. Jismoniy faollik (Steps): max +15
+                val stepsCount = if (metrics.steps > 0) metrics.steps else _dailySteps.value
+                when {
+                    stepsCount >= 8000 -> score += 15
+                    stepsCount >= 5000 -> score += 10
+                    stepsCount >= 1000 -> score += 5
+                }
+                
+                // 8. Sog'lom ovqatlanish rejimi (Meals): max +10
                 val mealsCount = try { org.json.JSONArray(metrics.mealsJson).length() } catch(e: Exception) { 0 }
-                if (mealsCount > 0) score += 2
+                score += (mealsCount * 5).coerceAtMost(10)
                 
-                // Logged steps today: +5
-                if (metrics.steps > 0) score += 5
-                
-                // Water goal met: +3
-                if (metrics.waterGlasses >= metrics.waterGoal) score += 3
-                
-                // Symptom check completed: +3
-                if (metrics.symptomCheckCompleted) score += 3
-            }
-            
-            // No SOS in 7 days: +8
-            val notificationsList = notifications.value
-            val recentSOS = notificationsList.any { 
-                it.type == "sos" && (System.currentTimeMillis() - it.timestamp) < 7 * 24 * 3600 * 1000L 
-            }
-            if (!recentSOS) {
-                score += 8
+                // 9. Kasallik simptomlarini tekshirish / Shifokor tahlili: +10
+                if (metrics.symptomCheckCompleted || symptomChecks.value.isNotEmpty()) {
+                    score += 10
+                }
             }
             
             val finalScore = score.coerceIn(0, 100)
             if (finalScore != user.healthScore) {
                 dao.insertUser(user.copy(healthScore = finalScore))
             }
+        }
+    }
+
+    /**
+     * Barcha statistikani va ballarni 0 ga tushirish (Reset all statistics to 0)
+     */
+    fun resetAllStatistics(onComplete: () -> Unit = {}) {
+        viewModelScope.launch {
+            _dailySteps.value = 0
+            _loggedWeight.value = 0.0
+            _loggedSleep.value = 0.0
+            _loggedWater.value = 0
+            val today = getTodayDateString()
+            val user = currentUser.value
+            if (user != null) {
+                dao.insertDailyMetrics(
+                    DailyHealthMetricsLocal(
+                        date = today,
+                        userId = user.uid,
+                        steps = 0,
+                        waterGlasses = 0,
+                        waterGoal = 8,
+                        weight = 0.0,
+                        bpSystolic = 0,
+                        bpDiastolic = 0,
+                        heartRate = 0,
+                        sleepHours = 0.0,
+                        mealsJson = "[]",
+                        completedRemindersJson = "[]",
+                        symptomCheckCompleted = false
+                    )
+                )
+                dao.insertUser(user.copy(healthScore = 0))
+            }
+            logAdminAction("RESET_STATISTICS", user?.email ?: "local", "Barcha statistika va ko'rsatkichlar 0 ga tushirildi")
+            onComplete()
         }
     }
 
@@ -2725,6 +2795,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun startAdminLogsFirestoreListener() {
         try {
+            if (com.google.firebase.FirebaseApp.getApps(getApplication<Application>()).isEmpty()) return
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
             adminLogsListenerRegistration?.remove()
             adminLogsListenerRegistration = db.collection("adminLogs")
@@ -2735,7 +2806,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     }
 
                     if (snapshots != null) {
-                        viewModelScope.launch {
+                        viewModelScope.launch(Dispatchers.IO) {
                             for (doc in snapshots.documentChanges) {
                                 if (doc.type == com.google.firebase.firestore.DocumentChange.Type.ADDED) {
                                     val data = doc.document.data
@@ -2761,7 +2832,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
                 }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e("FirestoreListener", "Failed to start adminLogs listener: ${e.message}")
         }
     }
@@ -2771,6 +2842,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startFirestoreRemindersListener(userId: String) {
         try {
+            if (com.google.firebase.FirebaseApp.getApps(getApplication<Application>()).isEmpty()) return
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
             remindersListenerRegistration?.remove()
             remindersListenerRegistration = db.collection("medicationReminders")
@@ -2811,7 +2883,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         _firestoreReminders.value = list
                     }
                 }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e("FirestoreReminders", "Failed to start listener: ${e.message}")
         }
     }
@@ -2821,6 +2893,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun startFirestoreVitalsListener(userId: String) {
         try {
+            if (com.google.firebase.FirebaseApp.getApps(getApplication<Application>()).isEmpty()) return
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
             vitalsListenerRegistration?.remove()
             vitalsListenerRegistration = db.collection("vitals")
@@ -2832,7 +2905,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     }
                     if (snapshot != null) {
                         if (snapshot.isEmpty) {
-                            seedMockVitalsInFirestore(userId)
+                            _firestoreVitals.value = emptyList()
                             return@addSnapshotListener
                         }
                         val list = mutableListOf<com.example.data.FirestoreVitalReading>()
@@ -2858,7 +2931,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         _firestoreVitals.value = list
                     }
                 }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e("FirestoreVitals", "Failed to start listener: ${e.message}")
         }
     }
@@ -3068,6 +3141,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     // only ever happened on whichever device the admin used to call approvePayment().
     private fun startPaymentRequestsFirestoreListener(userId: String, isAdmin: Boolean) {
         try {
+            if (com.google.firebase.FirebaseApp.getApps(getApplication<Application>()).isEmpty()) return
             val db = com.google.firebase.firestore.FirebaseFirestore.getInstance()
             paymentRequestsListenerRegistration?.remove()
             var query: com.google.firebase.firestore.Query = db.collection("paymentRequests")
@@ -3082,7 +3156,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     }
 
                     if (snapshots != null) {
-                        viewModelScope.launch {
+                        viewModelScope.launch(Dispatchers.IO) {
                             for (doc in snapshots.documentChanges) {
                                 val data = doc.document.data
                                 val id = doc.document.id
@@ -3144,13 +3218,15 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         }
                     }
                 }
-        } catch (e: Exception) {
+        } catch (e: Throwable) {
             Log.e("FirestorePaymentListener", "Failed to start listener: ${e.message}")
         }
     }
 
     override fun onCleared() {
         super.onCleared()
+        documentsJob?.cancel()
+        scansJob?.cancel()
         remindersListenerRegistration?.remove()
         vitalsListenerRegistration?.remove()
         adminLogsListenerRegistration?.remove()

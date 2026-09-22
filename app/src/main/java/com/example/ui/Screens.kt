@@ -294,35 +294,57 @@ fun AppHeader(
     onBack: (() -> Unit)? = null,
     actions: @Composable (RowScope.() -> Unit)? = null
 ) {
-    CenterAlignedTopAppBar(
-        title = {
-            Text(
-                text = title,
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = TextPrimary
-            )
-        },
-        navigationIcon = {
-            if (onBack != null) {
-                IconButton(onClick = onBack) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = PrimaryGreen
-                    )
+    Surface(
+        color = Color.White,
+        shadowElevation = 3.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(1.dp, MedicalBorder, RoundedCornerShape(bottomStart = 18.dp, bottomEnd = 18.dp))
+    ) {
+        CenterAlignedTopAppBar(
+            title = {
+                Text(
+                    text = title,
+                    fontWeight = FontWeight.ExtraBold,
+                    fontSize = 19.sp,
+                    color = TextPrimary,
+                    letterSpacing = (-0.3).sp
+                )
+            },
+            navigationIcon = {
+                if (onBack != null) {
+                    Box(
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .size(38.dp)
+                            .background(PrimaryGreen.copy(alpha = 0.1f), CircleShape)
+                            .clickable { onBack() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                            tint = PrimaryGreen,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
-            }
-        },
-        actions = {
-            if (actions != null) {
-                actions()
-            }
-        },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-            containerColor = MaterialTheme.colorScheme.background
+            },
+            actions = {
+                if (actions != null) {
+                    Row(
+                        modifier = Modifier.padding(end = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        actions()
+                    }
+                }
+            },
+            colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                containerColor = Color.White
+            )
         )
-    )
+    }
 }
 
 @Composable

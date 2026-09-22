@@ -54,6 +54,7 @@ import java.text.SimpleDateFormat
 fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
     val lang by viewModel.currentLanguage.collectAsState()
     val user by viewModel.currentUser.collectAsState()
+    val isSuperAdmin = user?.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true
     val medicalDocs by viewModel.medicalDocuments.collectAsState()
     val context = LocalContext.current
 
@@ -258,7 +259,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
             // Super Admin Special Badge and Access Card (strictly and exclusively for SUPER_ADMIN_EMAIL)
             // Uses a deep-teal brand gradient with a gold accent instead of pure black/orange,
             // so it reads as "elevated" rather than clashing with the rest of the palette.
-            if (viewModel.isSuperAdmin) {
+            if (isSuperAdmin) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Box(
                     modifier = Modifier
@@ -785,7 +786,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                 border = BorderStroke(1.dp, MedicalBorder.copy(alpha = 0.4f))
             ) {
                 Column {
-                    if (viewModel.isSuperAdmin) {
+                    if (isSuperAdmin) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

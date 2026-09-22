@@ -13,11 +13,13 @@ val PremiumLight = Color(0xFFF5F3FF) // Soft Lavender surface
 val ErrorRed = Color(0xFFEF4444) // Bright clean error red
 val WarningOrange = Color(0xFFF59E0B) // Warm amber warning
 val SuccessGreen = Color(0xFF10B981) // Crisp emerald success
-val MedicalBackground = Color(0xFFF8FAFC) // Crisp, bright, light canvas (Off-white / Slate 50)
+val MedicalBackground = Color(0xFFBCE3CE) // Richer, more prominent medical green canvas
 val MedicalCard = Color(0xFFFFFFFF) // Pure crisp white card surface
 val TextPrimary = Color(0xFF0F172A) // Slate 900 for sharp, high-contrast readable text
-val TextSecondary = Color(0xFF64748B) // Slate 500 for secondary descriptions
-val MedicalBorder = Color(0xFFE2E8F0) // Subtle Slate 200 border
+val TextSecondary = Color(0xFF475569) // Slate 600 for clear, legible secondary descriptions
+val MedicalBorder = Color(0xFFCBD5E1) // Crisp Slate 300 border for visible separation
+val MedicalCardBorder = Color(0xFFD8E2EC) // Subtle card border
+val CardShadowColor = Color(0x180F172A) // Premium soft shadow
 
 // Material 3 Fallbacks
 val Purple80 = Color(0xFF00A884)

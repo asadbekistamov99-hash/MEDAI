@@ -1067,7 +1067,7 @@ fun HistoryScreen(viewModel: AppViewModel) {
 @Composable
 fun GeneralChatScreen(viewModel: AppViewModel) {
     val lang by viewModel.currentLanguage.collectAsState()
-    val chatMessages by viewModel.dao.getChatMessagesFlow("general").collectAsState(initial = emptyList())
+    val chatMessages by remember { viewModel.dao.getChatMessagesFlow("general") }.collectAsState(initial = emptyList())
     var messageText by remember { mutableStateOf("") }
 
     Scaffold(

@@ -652,17 +652,20 @@ fun StatistikaTab(viewModel: AppViewModel) {
     val reminders by viewModel.reminders.collectAsState()
     val dailyMetrics by viewModel.allDailyMetrics.collectAsState()
     val symptomChecks by viewModel.symptomChecks.collectAsState()
+    val context = LocalContext.current
+    var showResetSuccess by remember { mutableStateOf(false) }
 
-    // Calculated adherence metrics based on active records
+    // Calculated adherence metrics based on real records (starts strictly at 0)
     val totalRemindersCount = reminders.size
-    val activeCount = reminders.count { it.isActive }
-    val tookCount = (activeCount * 8 + 14).coerceAtLeast(18)
-    val lateTookCount = (tookCount / 7).coerceAtLeast(2)
-    val missedCount = (tookCount / 12).coerceAtLeast(1)
-    val totalScheduled = tookCount + lateTookCount + missedCount
+    val tookCount = dailyMetrics.sumOf { m ->
+        try { org.json.JSONArray(m.completedRemindersJson).length() } catch(e: Exception) { 0 }
+    }
+    val lateTookCount = 0
+    val missedCount = if (totalRemindersCount > tookCount) totalRemindersCount - tookCount else 0
+    val totalScheduled = tookCount + missedCount
     val adherencePercent = if (totalScheduled > 0) {
-        ((tookCount + lateTookCount * 0.5) / totalScheduled * 100.0)
-    } else 95.0
+        ((tookCount.toDouble() / totalScheduled) * 100.0).coerceIn(0.0, 100.0)
+    } else 0.0
 
     LazyColumn(
         modifier = Modifier
@@ -697,59 +700,24 @@ fun StatistikaTab(viewModel: AppViewModel) {
                                 modifier = Modifier.size(24.dp)
                             )
                         }
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Dori qabul qilish statistikasi",
+                                text = "Dori va salomatlik statistikasi",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = TextPrimary
                             )
                             Text(
-                                text = "Salomatlik va dori muntazamligi ko'rsatkichlari",
+                                text = "Foydalanish va intizomga qarab oshib boruvchi statistika",
                                 fontSize = 12.sp,
                                 color = TextSecondary
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // This screen doesn't log individual dose confirmations yet, so the
-                    // numbers below are an estimate derived from active reminders, not a
-                    // real dose-by-dose history. Say so plainly instead of implying otherwise.
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(WarningOrange.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                            .border(1.dp, WarningOrange.copy(alpha = 0.3f), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 12.dp, vertical = 10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(22.dp)
-                                .background(WarningOrange.copy(alpha = 0.18f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Info,
-                                contentDescription = null,
-                                tint = WarningOrange,
-                                modifier = Modifier.size(13.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = "Bu taxminiy ko'rsatkich: har bir dori qabulini alohida qayd etish hali mavjud emas",
-                            fontSize = 11.sp,
-                            color = TextSecondary,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // 4-Box Stats Grid
+                    // 4-Box Stats Grid (Starts at 0, grows with adherence)
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -790,6 +758,49 @@ fun StatistikaTab(viewModel: AppViewModel) {
                             icon = Icons.Default.TrendingUp,
                             modifier = Modifier.weight(1f)
                         )
+                    }
+                }
+            }
+        }
+
+        // Action card: Reset Statistics button requested by user
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .shadow(2.dp, RoundedCornerShape(16.dp)),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MedicalBorder)
+            ) {
+                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Statistikani boshqarish",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary
+                    )
+                    Text(
+                        text = "Agar barcha hisoblagichlarni 0 ga tushirmoqchi bo'lsangiz, quyidagi tugmani bosing.",
+                        fontSize = 12.sp,
+                        color = TextSecondary
+                    )
+
+                    OutlinedButton(
+                        onClick = {
+                            viewModel.resetAllStatistics {
+                                showResetSuccess = true
+                                Toast.makeText(context, "Hamma statistika 0 ga tushirildi ✅", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, ErrorRed),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ErrorRed)
+                    ) {
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "Hamma statistikani 0 ga tushirish", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                     }
                 }
             }
@@ -836,10 +847,14 @@ fun StatistikaTab(viewModel: AppViewModel) {
                     ) {
                         Text(text = "Davolanish intizomi bahosi:", fontSize = 13.sp, color = TextSecondary)
                         Text(
-                            text = if (adherencePercent > 90) "A'lo darajada (95%+)" else "Yaxshi",
+                            text = when {
+                                adherencePercent >= 80.0 -> "A'lo darajada"
+                                adherencePercent > 0.0 -> "Yaxshi"
+                                else -> "Boshlang'ich (0%)"
+                            },
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryGreen
+                            color = if (adherencePercent > 0) PrimaryGreen else TextSecondary
                         )
                     }
                 }
@@ -898,6 +913,15 @@ fun StatBox(
 @Composable
 fun ReminderTab(viewModel: AppViewModel) {
     val reminders by viewModel.reminders.collectAsState()
+    val todayMetrics by viewModel.todayMetrics.collectAsState(initial = null)
+    val completedReminderIds = remember(todayMetrics) {
+        try {
+            val arr = org.json.JSONArray(todayMetrics?.completedRemindersJson ?: "[]")
+            (0 until arr.length()).map { arr.getInt(it) }.toSet()
+        } catch (e: Exception) {
+            emptySet<Int>()
+        }
+    }
     var medNameInput by remember { mutableStateOf("") }
     var timeInput by remember { mutableStateOf("08:00") }
     var isSaving by remember { mutableStateOf(false) }
@@ -1148,6 +1172,8 @@ fun ReminderTab(viewModel: AppViewModel) {
             items(reminders, key = { it.id }) { reminder ->
                 ReminderItemCard(
                     reminder = reminder,
+                    isCompleted = completedReminderIds.contains(reminder.id),
+                    onComplete = { viewModel.completeReminder(reminder.id) },
                     onToggle = { viewModel.toggleReminderActive(reminder) },
                     onDelete = { viewModel.deleteReminder(reminder.id) }
                 )
@@ -1159,6 +1185,8 @@ fun ReminderTab(viewModel: AppViewModel) {
 @Composable
 fun ReminderItemCard(
     reminder: ReminderLocal,
+    isCompleted: Boolean,
+    onComplete: () -> Unit,
     onToggle: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -1170,73 +1198,128 @@ fun ReminderItemCard(
             .shadow(2.dp, RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, MedicalBorder)
+        border = BorderStroke(1.dp, if (isCompleted) PrimaryGreen.copy(alpha = 0.5f) else MedicalBorder)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
-                modifier = Modifier.weight(1f).alpha(contentAlpha)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Time badge with alarm icon
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(WarningOrange.copy(alpha = 0.12f), CircleShape),
-                    contentAlignment = Alignment.Center
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.weight(1f).alpha(contentAlpha)
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.Alarm,
-                            contentDescription = null,
-                            tint = WarningOrange,
-                            modifier = Modifier.size(14.dp)
+                    // Time badge with alarm icon
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .background(WarningOrange.copy(alpha = 0.12f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.Alarm,
+                                contentDescription = null,
+                                tint = WarningOrange,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Text(
+                                text = reminder.time,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = WarningOrange
+                            )
+                        }
+                    }
+
+                    Column {
+                        Text(
+                            text = reminder.medicineName,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = TextPrimary
                         )
                         Text(
-                            text = reminder.time,
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            color = WarningOrange
+                            text = reminder.frequency,
+                            fontSize = 12.sp,
+                            color = TextSecondary
                         )
                     }
                 }
 
-                Column {
-                    Text(
-                        text = reminder.medicineName,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(
+                        checked = reminder.isActive,
+                        onCheckedChange = { onToggle() },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = PrimaryGreen
+                        )
                     )
-                    Text(
-                        text = reminder.frequency,
-                        fontSize = 12.sp,
-                        color = TextSecondary
-                    )
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteOutline,
+                            contentDescription = "O'chirish",
+                            tint = ErrorRed
+                        )
+                    }
                 }
             }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(
-                    checked = reminder.isActive,
-                    onCheckedChange = { onToggle() },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = PrimaryGreen
-                    )
-                )
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteOutline,
-                        contentDescription = "O'chirish",
-                        tint = ErrorRed
-                    )
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Action row: Mark as taken or taken badge
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isCompleted) {
+                    Surface(
+                        color = PrimaryGreen.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = PrimaryGreen,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Bugun qabul qilindi (+10 ball)",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = PrimaryGreen
+                            )
+                        }
+                    }
+                } else {
+                    Button(
+                        onClick = onComplete,
+                        modifier = Modifier.height(36.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Qabul qildim",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
+                    }
                 }
             }
         }

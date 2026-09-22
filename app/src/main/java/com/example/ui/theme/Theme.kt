@@ -17,10 +17,10 @@ private val LightColorScheme =
     onTertiary = Color.White,
     onBackground = TextPrimary,
     onSurface = TextPrimary,
-    surfaceVariant = Color(0xFFF1F5F9), // Slate 100
+    surfaceVariant = Color(0xFFA6D7BC), // Richer mint green accent surface
     onSurfaceVariant = TextSecondary,
     outline = MedicalBorder,
-    outlineVariant = Color(0xFFF1F5F9)
+    outlineVariant = Color(0xFFA6D7BC)
   )
 
 @Composable

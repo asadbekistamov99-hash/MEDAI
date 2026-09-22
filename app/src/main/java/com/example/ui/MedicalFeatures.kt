@@ -526,7 +526,7 @@ fun RichMarkdownText(text: String, modifier: Modifier = Modifier) {
 @Composable
 fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
     val lang by viewModel.currentLanguage.collectAsState()
-    val chatMessages by viewModel.dao.getChatMessagesFlow("doctor").collectAsState(initial = emptyList())
+    val chatMessages by remember { viewModel.dao.getChatMessagesFlow("doctor") }.collectAsState(initial = emptyList())
 
     var messageText by remember { mutableStateOf("") }
     val scope = rememberCoroutineScope()
