@@ -9,4 +9,10 @@
       crashing.
     -->
     <string name="google_web_client_id" translatable="false">REPLACE_WITH_YOUR_FIREBASE_WEB_CLIENT_ID</string>
+
+    <!-- Notification channel for medication reminders (see MedAINotificationScheduler). -->
+    <string name="notif_channel_reminders">Dori eslatmalari</string>
+    <string name="notif_channel_reminders_desc">Dori va tibbiy eslatmalarni vaqtida ogohlantirish</string>
+    <string name="notif_reminder_title">Dori vaqti ⏰</string>
+    <string name="notif_reminder_body">%1$s dori vaqti keldi. Iltimos, qabul qiling.</string>
 </resources>

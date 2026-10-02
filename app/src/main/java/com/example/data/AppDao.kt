@@ -18,48 +18,62 @@ interface AppDao {
     @Query("DELETE FROM current_user")
     suspend fun clearCurrentUser()
 
+    // --- Accounts (credentials, outlive the session) ---
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAccount(account: AccountLocal)
+
+    @Query("SELECT * FROM accounts WHERE email = :email COLLATE NOCASE LIMIT 1")
+    suspend fun getAccountByEmail(email: String): AccountLocal?
+
+    @Query("SELECT * FROM accounts WHERE uid = :uid LIMIT 1")
+    suspend fun getAccountProfile(uid: String): AccountLocal?
+
     // --- Symptom Checks ---
-    @Query("SELECT * FROM symptom_checks ORDER BY timestamp DESC")
-    fun getAllSymptomChecksFlow(): Flow<List<SymptomCheck>>
+    @Query("SELECT * FROM symptom_checks WHERE userId = :userId ORDER BY timestamp DESC")
+    fun getSymptomChecksFlow(userId: String): Flow<List<SymptomCheck>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertSymptomCheck(check: SymptomCheck)
 
-    @Query("DELETE FROM symptom_checks WHERE id = :id")
-    suspend fun deleteSymptomCheck(id: Int)
+    @Query("DELETE FROM symptom_checks WHERE id = :id AND userId = :userId")
+    suspend fun deleteSymptomCheck(id: Int, userId: String)
 
     // --- Chat Messages ---
-    @Query("SELECT * FROM chat_messages WHERE chatType = :chatType ORDER BY timestamp ASC")
-    fun getChatMessagesFlow(chatType: String): Flow<List<ChatMessageLocal>>
+    @Query("SELECT * FROM chat_messages WHERE userId = :userId AND chatType = :chatType ORDER BY timestamp ASC")
+    fun getChatMessagesFlow(userId: String, chatType: String): Flow<List<ChatMessageLocal>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertChatMessage(message: ChatMessageLocal)
 
-    @Query("DELETE FROM chat_messages WHERE chatType = :chatType")
-    suspend fun clearChatHistory(chatType: String)
+    @Query("DELETE FROM chat_messages WHERE userId = :userId AND chatType = :chatType")
+    suspend fun clearChatHistory(userId: String, chatType: String)
 
-    @Query("SELECT COUNT(*) FROM chat_messages WHERE chatType = 'general' AND role = 'user' AND timestamp >= :todayStart")
-    suspend fun getTodayGeneralChatCount(todayStart: Long): Int
+    // Counts only THIS user's messages. Without the userId filter a second person on the device
+    // inherits the first person's spent quota and gets locked out of the free tier.
+    @Query("SELECT COUNT(*) FROM chat_messages WHERE userId = :userId AND chatType = 'general' AND role = 'user' AND timestamp >= :todayStart")
+    suspend fun getTodayGeneralChatCount(userId: String, todayStart: Long): Int
 
     // --- Reminders ---
-    @Query("SELECT * FROM reminders ORDER BY timestamp DESC")
-    fun getAllRemindersFlow(): Flow<List<ReminderLocal>>
+    @Query("SELECT * FROM reminders WHERE userId = :userId ORDER BY timestamp DESC")
+    fun getRemindersFlow(userId: String): Flow<List<ReminderLocal>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertReminder(reminder: ReminderLocal)
 
-    @Query("DELETE FROM reminders WHERE id = :id")
-    suspend fun deleteReminder(id: Int)
+    @Query("DELETE FROM reminders WHERE id = :id AND userId = :userId")
+    suspend fun deleteReminder(id: Int, userId: String)
 
     // --- Lab Results ---
-    @Query("SELECT * FROM lab_results ORDER BY timestamp DESC")
-    fun getAllLabResultsFlow(): Flow<List<LabResultLocal>>
+    // Lab reports are the most sensitive data in the app (scanned blood tests, images), so
+    // these must never be visible to another account on the same device.
+    @Query("SELECT * FROM lab_results WHERE userId = :userId ORDER BY timestamp DESC")
+    fun getLabResultsFlow(userId: String): Flow<List<LabResultLocal>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertLabResult(result: LabResultLocal)
 
-    @Query("DELETE FROM lab_results WHERE id = :id")
-    suspend fun deleteLabResult(id: Int)
+    @Query("DELETE FROM lab_results WHERE id = :id AND userId = :userId")
+    suspend fun deleteLabResult(id: Int, userId: String)
 
     // --- Payment Requests ---
     @Query("SELECT * FROM payment_requests ORDER BY submittedAt DESC")
@@ -71,12 +85,12 @@ interface AppDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertPaymentRequest(request: PaymentRequestLocal)
 
-    @Query("DELETE FROM payment_requests WHERE id = :id")
-    suspend fun deletePaymentRequest(id: String)
+    @Query("DELETE FROM payment_requests WHERE id = :id AND userId = :userId")
+    suspend fun deletePaymentRequest(id: String, userId: String)
 
     // --- Family Members ---
-    @Query("SELECT * FROM family_members")
-    fun getAllFamilyMembersFlow(): Flow<List<FamilyMemberLocal>>
+    @Query("SELECT * FROM family_members WHERE ownerUserId = :userId")
+    fun getFamilyMembersFlow(userId: String): Flow<List<FamilyMemberLocal>>
 
     @Query("SELECT * FROM family_members WHERE uid = :uid LIMIT 1")
     suspend fun getFamilyMember(uid: String): FamilyMemberLocal?
@@ -84,31 +98,33 @@ interface AppDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFamilyMember(member: FamilyMemberLocal)
 
-    @Query("DELETE FROM family_members WHERE uid = :uid")
-    suspend fun deleteFamilyMember(uid: String)
+    @Query("DELETE FROM family_members WHERE uid = :uid AND ownerUserId = :userId")
+    suspend fun deleteFamilyMember(uid: String, userId: String)
 
     // --- Immunization Records ---
-    @Query("SELECT * FROM immunization_records ORDER BY timestamp DESC")
-    fun getAllImmunizationRecordsFlow(): Flow<List<ImmunizationRecordLocal>>
+    // Keyed by the family member's uid, so scoping by the signed-in owner keeps one account from
+    // reading another account's children's vaccination history.
+    @Query("SELECT * FROM immunization_records WHERE ownerUserId = :userId ORDER BY timestamp DESC")
+    fun getImmunizationRecordsFlow(userId: String): Flow<List<ImmunizationRecordLocal>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertImmunizationRecord(record: ImmunizationRecordLocal)
 
-    @Query("DELETE FROM immunization_records WHERE id = :id")
-    suspend fun deleteImmunizationRecord(id: Int)
+    @Query("DELETE FROM immunization_records WHERE id = :id AND ownerUserId = :userId")
+    suspend fun deleteImmunizationRecord(id: Int, userId: String)
 
     // --- Notifications ---
-    @Query("SELECT * FROM notifications ORDER BY timestamp DESC")
-    fun getAllNotificationsFlow(): Flow<List<NotificationLocal>>
+    @Query("SELECT * FROM notifications WHERE userId = :userId ORDER BY timestamp DESC")
+    fun getNotificationsFlow(userId: String): Flow<List<NotificationLocal>>
 
-    @Query("SELECT COUNT(*) FROM notifications WHERE isRead = 0")
-    fun getUnreadNotificationsCountFlow(): Flow<Int>
+    @Query("SELECT COUNT(*) FROM notifications WHERE userId = :userId AND isRead = 0")
+    fun getUnreadNotificationsCountFlow(userId: String): Flow<Int>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertNotification(notification: NotificationLocal)
 
-    @Query("UPDATE notifications SET isRead = 1")
-    suspend fun markAllNotificationsAsRead()
+    @Query("UPDATE notifications SET isRead = 1 WHERE userId = :userId")
+    suspend fun markAllNotificationsAsRead(userId: String)
 
     // --- App Config ---
     @Query("SELECT * FROM app_config WHERE id = 'global' LIMIT 1")
@@ -121,14 +137,14 @@ interface AppDao {
     suspend fun insertAppConfig(config: AppConfigLocal)
 
     // --- Daily Health Metrics ---
-    @Query("SELECT * FROM daily_health_metrics WHERE date = :date LIMIT 1")
-    fun getDailyMetricsFlow(date: String): Flow<DailyHealthMetricsLocal?>
+    @Query("SELECT * FROM daily_health_metrics WHERE userId = :userId AND date = :date LIMIT 1")
+    fun getDailyMetricsFlow(userId: String, date: String): Flow<DailyHealthMetricsLocal?>
 
-    @Query("SELECT * FROM daily_health_metrics ORDER BY date DESC")
-    fun getAllDailyMetricsFlow(): Flow<List<DailyHealthMetricsLocal>>
+    @Query("SELECT * FROM daily_health_metrics WHERE userId = :userId ORDER BY date DESC")
+    fun getDailyMetricsFlow(userId: String): Flow<List<DailyHealthMetricsLocal>>
 
-    @Query("SELECT * FROM daily_health_metrics WHERE date = :date LIMIT 1")
-    suspend fun getDailyMetrics(date: String): DailyHealthMetricsLocal?
+    @Query("SELECT * FROM daily_health_metrics WHERE userId = :userId AND date = :date LIMIT 1")
+    suspend fun getDailyMetrics(userId: String, date: String): DailyHealthMetricsLocal?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertDailyMetrics(metrics: DailyHealthMetricsLocal)
@@ -140,8 +156,8 @@ interface AppDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMedicalDocument(doc: MedicalDocumentLocal)
 
-    @Query("DELETE FROM medical_documents WHERE id = :id")
-    suspend fun deleteMedicalDocument(id: Int)
+    @Query("DELETE FROM medical_documents WHERE id = :id AND userId = :userId")
+    suspend fun deleteMedicalDocument(id: Int, userId: String)
 
     // --- Prescription Scans ---
     @Query("SELECT * FROM prescription_scans WHERE userId = :userId ORDER BY timestamp DESC")
@@ -151,14 +167,16 @@ interface AppDao {
     suspend fun insertPrescriptionScan(scan: PrescriptionScanLocal)
 
     // --- Appointment Requests ---
-    @Query("SELECT * FROM appointment_requests ORDER BY timestamp DESC")
-    fun getAllAppointmentRequestsFlow(): Flow<List<AppointmentRequestLocal>>
+    // AppointmentRequestLocal has no userId column of its own, so ownership is derived from the
+    // patient phone the request was submitted with.
+    @Query("SELECT * FROM appointment_requests WHERE patientPhone = :patientPhone ORDER BY timestamp DESC")
+    fun getAppointmentRequestsFlow(patientPhone: String): Flow<List<AppointmentRequestLocal>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAppointmentRequest(req: AppointmentRequestLocal)
 
-    @Query("DELETE FROM appointment_requests WHERE id = :id")
-    suspend fun deleteAppointmentRequest(id: Int)
+    @Query("DELETE FROM appointment_requests WHERE id = :id AND patientPhone = :patientPhone")
+    suspend fun deleteAppointmentRequest(id: Int, patientPhone: String)
 
     // --- Health Tips ---
     @Query("SELECT * FROM health_tips ORDER BY orderIndex ASC, timestamp DESC")

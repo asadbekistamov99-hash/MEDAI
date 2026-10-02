@@ -3,6 +3,28 @@ package com.example.data
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
+/**
+ * Credentials, kept in their own table so that signing out of the UI (which clears
+ * `current_user`) does not throw the account away along with the session.
+ *
+ * Before this existed, the "login" was `WHERE email = ?` against a single-row table, so
+ * logging out deleted the only copy of the profile and logging back in silently created a
+ * brand-new account — losing the user's history and handing out a fresh trial.
+ *
+ * [passwordHash] is a PBKDF2 hash from com.example.auth.PasswordHasher, never a plaintext
+ * password. It is empty for accounts created through Google Sign-In, which have no local
+ * password to check.
+ */
+@Entity(tableName = "accounts")
+data class AccountLocal(
+    @PrimaryKey val uid: String,
+    // Normalised to lowercase on write so lookups are case-insensitive like real auth providers.
+    val email: String,
+    val passwordHash: String = "",
+    val fcmToken: String = "",
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 @Entity(tableName = "current_user")
 data class UserLocal(
     @PrimaryKey val uid: String,
@@ -14,8 +36,19 @@ data class UserLocal(
     val bloodType: String,
     val height: Double,
     val weight: Double,
+    // Paid subscription only. New accounts start with a free trial (see trialStartedAt) and are
+    // never marked premium until an admin approves their payment request.
     val isPremium: Boolean,
     val premiumExpiry: Long?,
+    // Free-trial bookkeeping. trialStartedAt is stamped once, on first launch after registration,
+    // and never reset — otherwise clearing app data / reinstalling would hand out a fresh trial.
+    // trialEndsAt is a fixed timestamp (start + TRIAL_DURATION_MS), so a user cannot extend their
+    // own trial by changing the device clock forward and back.
+    val trialStartedAt: Long = 0L,
+    val trialEndsAt: Long = 0L,
+    // Set once when the "trial ending soon" / "trial ended" notice is written, so the user is
+    // told exactly once instead of on every cold start. 0 = not yet notified.
+    val trialExpiryNotifiedAt: Long = 0L,
     val language: String, // "uz" | "ru" | "en"
     val fcmToken: String,
     val createdAt: Long,
@@ -26,7 +59,41 @@ data class UserLocal(
     val avatarUrl: String,
     val allergiesJson: String = "[]", // [{name, type, addedAt}]
     val unlockedAchievementsJson: String = "[]" // ["beginner", "week", "month", "water", "regular"]
-)
+) {
+    companion object {
+        /** Length of the free trial handed to every newly registered account. */
+        const val TRIAL_DURATION_MS = 7L * 24L * 60L * 60L * 1000L
+    }
+
+    /** True while the one-time free trial is still running. */
+    val isTrialActive: Boolean
+        get() = trialStartedAt > 0L && trialEndsAt > System.currentTimeMillis()
+
+    /** Whole days of trial left, rounded up so "23h left" reads as 1 day, never 0 mid-day. */
+    val trialDaysRemaining: Int
+        get() {
+            if (!isTrialActive) return 0
+            val ms = trialEndsAt - System.currentTimeMillis()
+            return ((ms + (24L * 60L * 60L * 1000L) - 1) / (24L * 60L * 60L * 1000L)).toInt()
+        }
+
+    /**
+     * The single source of truth for "does this account get paid features right now".
+     *
+     * Everything that gates a premium feature must read this instead of the raw `isPremium`
+     * column, so a user whose paid subscription lapsed still keeps whatever trial they have
+     * left, and an expired trial immediately drops them to the free tier.
+     *
+     * Note this deliberately does NOT read a wall-clock time from the network. An offline device
+     * keeps the access it already had; entitlements are re-checked by checkPremiumExpiries()
+     * on the next successful sync rather than silently changing under the user's finger.
+     */
+    val hasPremiumAccess: Boolean
+        get() {
+            if (isPremium && (premiumExpiry == null || premiumExpiry > System.currentTimeMillis())) return true
+            return isTrialActive
+        }
+}
 
 @Entity(tableName = "symptom_checks")
 data class SymptomCheck(
@@ -90,6 +157,9 @@ data class PaymentRequestLocal(
 @Entity(tableName = "family_members")
 data class FamilyMemberLocal(
     @PrimaryKey val uid: String,
+    // Which account added this relative. The family member's own uid is shared across devices,
+    // so without this column two accounts linking the same person would overwrite each other.
+    val ownerUserId: String = "",
     val name: String,
     val email: String,
     val phone: String,
@@ -128,10 +198,17 @@ data class AppConfigLocal(
     val bpc1Flag: Boolean = true
 )
 
-@Entity(tableName = "daily_health_metrics")
+@Entity(
+    tableName = "daily_health_metrics",
+    // The old primary key was `date` alone, so a device shared by two family members kept a
+    // single row per day: whoever logged water last overwrote the other person's water, weight
+    // and blood pressure. The key must be (userId, date) for a family-tracking app to be
+    // correct at all.
+    primaryKeys = ["userId", "date"]
+)
 data class DailyHealthMetricsLocal(
-    @PrimaryKey val date: String, // "YYYY-MM-DD"
     val userId: String,
+    val date: String, // "YYYY-MM-DD"
     val waterGlasses: Int = 0,
     val waterGoal: Int = 8,
     val weight: Double = 0.0,
@@ -203,6 +280,10 @@ data class UserSystem(
     val weight: Double,
     var isPremium: Boolean,
     var premiumExpiry: Long?,
+    // Mirrors UserLocal's trial fields so the admin panel can show "trial: 3 days left"
+    // without reading the signed-in user's private row.
+    var trialStartedAt: Long = 0L,
+    var trialEndsAt: Long = 0L,
     val language: String,
     val fcmToken: String,
     val createdAt: Long,
@@ -214,7 +295,19 @@ data class UserSystem(
     var currentScreen: String = "Home",
     val city: String = "Toshkent",
     var lastScreenBeforeUpgrade: String = ""
-)
+) {
+    val hasPremiumAccess: Boolean
+        get() = (isPremium && (premiumExpiry == null || premiumExpiry > System.currentTimeMillis())) ||
+            (trialStartedAt > 0L && trialEndsAt > System.currentTimeMillis())
+
+    val trialDaysRemaining: Int
+        get() {
+            val ends = trialEndsAt
+            if (trialStartedAt <= 0L || ends <= System.currentTimeMillis()) return 0
+            val ms = ends - System.currentTimeMillis()
+            return ((ms + (24L * 60L * 60L * 1000L) - 1) / (24L * 60L * 60L * 1000L)).toInt()
+        }
+}
 
 @Entity(tableName = "user_activities")
 data class UserActivityLog(
@@ -378,6 +471,9 @@ data class FirestoreVitalReading(
 @Entity(tableName = "immunization_records")
 data class ImmunizationRecordLocal(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    // The signed-in account that owns this record. Without it, a record is keyed only by which
+    // family member it points at, and two accounts on one device share a vaccination history.
+    val ownerUserId: String = "",
     val familyMemberUid: String,
     val vaccineName: String,
     val targetDisease: String,

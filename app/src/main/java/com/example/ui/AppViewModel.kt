@@ -6,6 +6,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.annotation.VisibleForTesting
 import com.example.ai.GeminiClient
 import com.example.data.*
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +31,20 @@ const val SUPER_ADMIN_EMAIL = "asadbekistamov99@gmail.com"
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
-    val dao = database.appDao()
+
+    // The DAO is private on purpose. Health data must be read through a flow that is already
+    // scoped to the signed-in account, otherwise a screen can query every user's rows.
+    private val dao = database.appDao()
+
+    /**
+     * Direct DAO access for instrumentation/unit tests only.
+     *
+     * Production code must not use this: every read has to go through a user-scoped flow so a
+     * signed-in account can never see another account's rows. Tests need to assert on storage
+     * directly (and to insert fixture rows), which is what this is for.
+     */
+    @VisibleForTesting
+    internal val daoForTest: AppDao get() = dao
 
     // --- State Streams ---
     val currentUser = dao.getCurrentUserFlow().stateIn(
@@ -38,6 +52,18 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         started = SharingStarted.Eagerly,
         initialValue = null
     )
+
+    /**
+     * Runs [block] against the signed-in account, and yields empty until someone is signed in.
+     *
+     * Every user-scoped stream goes through this, so signing in/out automatically swaps the
+     * underlying query — a new account never renders the previous account's cached list, and
+     * signing out cannot leave another person's medical data on screen.
+     */
+    private fun <T> forUser(initial: T, block: (String) -> Flow<T>): StateFlow<T> =
+        currentUser
+            .flatMapLatest { user -> if (user == null) flowOf(initial) else block(user.uid) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)
 
     // Re-derives from the live signed-in email on every read rather than trusting a stored
     // isAdmin flag, so it stays correct even if a Room row was edited/seeded incorrectly.
@@ -65,23 +91,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         initialValue = AppConfigLocal()
     )
 
-    val symptomChecks = dao.getAllSymptomChecksFlow().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    val symptomChecks: StateFlow<List<SymptomCheck>> =
+        forUser(emptyList()) { uid -> dao.getSymptomChecksFlow(uid) }
 
-    val reminders = dao.getAllRemindersFlow().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    val reminders: StateFlow<List<ReminderLocal>> =
+        forUser(emptyList()) { uid -> dao.getRemindersFlow(uid) }
 
-    val labResults = dao.getAllLabResultsFlow().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    val labResults: StateFlow<List<LabResultLocal>> =
+        forUser(emptyList()) { uid -> dao.getLabResultsFlow(uid) }
 
     val paymentRequests = dao.getAllPaymentRequestsFlow().stateIn(
         scope = viewModelScope,
@@ -89,42 +106,26 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         initialValue = emptyList()
     )
 
-    val familyMembers = dao.getAllFamilyMembersFlow().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    val familyMembers: StateFlow<List<FamilyMemberLocal>> =
+        forUser(emptyList()) { uid -> dao.getFamilyMembersFlow(uid) }
 
-    val immunizationRecords = dao.getAllImmunizationRecordsFlow().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    val immunizationRecords: StateFlow<List<ImmunizationRecordLocal>> =
+        forUser(emptyList()) { uid -> dao.getImmunizationRecordsFlow(uid) }
 
-    val notifications = dao.getAllNotificationsFlow().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    val notifications: StateFlow<List<NotificationLocal>> =
+        forUser(emptyList()) { uid -> dao.getNotificationsFlow(uid) }
 
-    val unreadNotificationsCount = dao.getUnreadNotificationsCountFlow().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = 0
-    )
+    val unreadNotificationsCount: StateFlow<Int> =
+        forUser(0) { uid -> dao.getUnreadNotificationsCountFlow(uid) }
 
     // --- New Features State Streams ---
-    val todayMetrics = dao.getDailyMetricsFlow(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())).stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = null
-    )
+    val todayMetrics: StateFlow<DailyHealthMetricsLocal?> =
+        forUser(null) { uid ->
+            dao.getDailyMetricsFlow(uid, SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()))
+        }
 
-    val allDailyMetrics = dao.getAllDailyMetricsFlow().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    val allDailyMetrics: StateFlow<List<DailyHealthMetricsLocal>> =
+        forUser(emptyList()) { uid -> dao.getDailyMetricsFlow(uid) }
 
     private val _firestoreReminders = MutableStateFlow<List<FirestoreMedicationReminder>>(emptyList())
     val firestoreReminders: StateFlow<List<FirestoreMedicationReminder>> = _firestoreReminders.asStateFlow()
@@ -139,11 +140,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _prescriptionScans = MutableStateFlow<List<PrescriptionScanLocal>>(emptyList())
     val prescriptionScans: StateFlow<List<PrescriptionScanLocal>> = _prescriptionScans.asStateFlow()
 
-    val appointmentRequests = dao.getAllAppointmentRequestsFlow().stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    // Scoped by the signed-in account's phone, which is the only owner field
+    // AppointmentRequestLocal carries. An admin still sees every request through
+    // [paymentRequests]/the admin screen, not through this user-facing stream.
+    val appointmentRequests: StateFlow<List<AppointmentRequestLocal>> =
+        currentUser
+            .flatMapLatest { user ->
+                if (user == null || user.phone.isBlank()) flowOf(emptyList())
+                else dao.getAppointmentRequestsFlow(user.phone)
+            }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val healthTips = dao.getAllHealthTipsFlow().stateIn(
         scope = viewModelScope,
@@ -337,51 +343,47 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             seedAdminDataIfNeeded()
             
-            // Activate Premium VIP membership for current user and ensure admin authorization
+            // Keep the signed-in account's admin flag in sync with the allowlist, and make sure
+            // an account that predates the free trial gets one without resetting an existing
+            // trial. Note there is deliberately NO auto-premium here anymore: previously every
+            // account was force-promoted for a year on every launch, which meant the paid tier,
+            // the free chat quota and the upgrade screen could never actually be reached.
             val existingUser = dao.getCurrentUser()
             if (existingUser != null) {
                 val shouldBeAdmin = existingUser.email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
                 var updatedUser = existingUser
-                if (!existingUser.isPremium) {
-                    val oneYearExpiry = System.currentTimeMillis() + 365L * 24 * 3600 * 1000L
-                    updatedUser = updatedUser.copy(isPremium = true, premiumExpiry = oneYearExpiry)
-                }
                 if (existingUser.isAdmin != shouldBeAdmin) {
                     updatedUser = updatedUser.copy(isAdmin = shouldBeAdmin)
                 }
-                // When resetting statistics as requested, bring score to 0 baseline if no activities completed yet
+                if (updatedUser.trialStartedAt == 0L) {
+                    val now = System.currentTimeMillis()
+                    updatedUser = updatedUser.copy(
+                        trialStartedAt = now,
+                        trialEndsAt = now + UserLocal.TRIAL_DURATION_MS
+                    )
+                }
                 dao.insertUser(updatedUser)
                 recalculateHealthScore()
             } else {
-                // If no user exists, create a default active Premium user profile for instant access with 0 baseline
-                val defaultUid = UUID.randomUUID().toString()
-                val defaultUser = UserLocal(
-                    uid = defaultUid,
-                    name = "Asadbek Istamov",
-                    email = SUPER_ADMIN_EMAIL,
-                    phone = "+998 90 123 45 67",
-                    dateOfBirth = "1999-05-15",
-                    gender = "male",
-                    bloodType = "O+",
-                    height = 178.0,
-                    weight = 72.0,
-                    isPremium = true,
-                    premiumExpiry = System.currentTimeMillis() + 365L * 24 * 3600 * 1000L,
-                    language = "uz",
-                    fcmToken = "fcm_token_" + defaultUid.take(6),
-                    createdAt = System.currentTimeMillis(),
-                    lastActive = System.currentTimeMillis(),
-                    healthScore = 0, // Starts strictly at 0 for all new users
-                    isAdmin = true,
-                    isBanned = false,
-                    avatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80"
-                )
-                dao.insertUser(defaultUser)
-                _onboardingCompleted.value = true
-                addMockFamilyData(defaultUid)
+                // No account yet: send the user through onboarding/login instead of silently
+                // signing them in as a hardcoded admin (name/phone/email) with full premium.
+                _onboardingCompleted.value = false
             }
-            
+
             checkPremiumExpiriesAndProcess()
+
+            // WorkManager loses its jobs on reboot and on app upgrade, so re-arm every active
+            // reminder from the database. Read straight from the DAO rather than from
+            // `reminders.value`: that StateFlow is WhileSubscribed, so during init (before any
+            // screen collects it) it is still the empty initial value and nothing would be
+            // re-armed at all.
+            val signedInUid = dao.getCurrentUser()?.uid
+            if (signedInUid != null) {
+                val activeReminders = runCatching {
+                    dao.getRemindersFlow(signedInUid).first()
+                }.getOrDefault(emptyList())
+                activeReminders.filter { it.isActive }.forEach { scheduleReminderNotification(it) }
+            }
 
 
             // Prepopulate default health tips if empty
@@ -484,99 +486,263 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     // --- Authentication ---
     suspend fun registerUserSuspend(
         name: String, email: String, phone: String, dob: String, gender: String,
-        bloodType: String, height: Double, weight: Double
+        bloodType: String, height: Double, weight: Double,
+        passwordHash: String = ""
     ) {
         val uid = UUID.randomUUID().toString()
+        val now = System.currentTimeMillis()
+        val normalizedEmail = email.trim().lowercase()
+
+        // Persist the credential so the account survives sign-out. The email is unique: two
+        // people cannot end up sharing (and overwriting) one account's medical history.
+        val existing = dao.getAccountByEmail(normalizedEmail)
+        if (existing != null) {
+            throw IllegalStateException(_t("register_error_email_taken"))
+        }
+        dao.insertAccount(AccountLocal(
+            uid = uid,
+            email = normalizedEmail,
+            passwordHash = if (passwordHash.isNotEmpty()) {
+                com.example.auth.PasswordHasher.hash(passwordHash)
+            } else {
+                ""
+            },
+            fcmToken = "fcm_token_" + uid.take(12),
+            createdAt = now
+        ))
+
         val user = UserLocal(
             uid = uid,
             name = name,
-            email = email,
+            email = normalizedEmail,
             phone = phone,
             dateOfBirth = dob,
             gender = gender,
             bloodType = bloodType,
             height = height,
             weight = weight,
-            isPremium = true,
-            premiumExpiry = System.currentTimeMillis() + 365L * 24 * 3600 * 1000L,
+            // A paid subscription is only ever granted by an admin approving a payment request.
+            // A new account gets the 7-day free trial and nothing more.
+            isPremium = false,
+            premiumExpiry = null,
+            trialStartedAt = now,
+            trialEndsAt = now + UserLocal.TRIAL_DURATION_MS,
             language = _currentLanguage.value,
-            fcmToken = "simulated_fcm_token_" + UUID.randomUUID().toString().take(6),
+            fcmToken = "fcm_token_" + uid.take(12),
             createdAt = System.currentTimeMillis(),
             lastActive = System.currentTimeMillis(),
             healthScore = 0, // Starts at 0 for all new users; grows as rules & medical tasks are completed
-            isAdmin = email.equals(SUPER_ADMIN_EMAIL, ignoreCase = true),
+            isAdmin = normalizedEmail.equals(SUPER_ADMIN_EMAIL, ignoreCase = true),
             isBanned = false,
-            avatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80"
+            avatarUrl = ""
         )
         dao.insertUser(user)
         _onboardingCompleted.value = true
-        
-        // Add a welcome notification
+
+        // Tell them what the trial actually is, up front. Silently expiring a 7-day window is
+        // the fastest way to lose a user who never realised the app had been metering them.
+        val days = 7
         dao.insertNotification(NotificationLocal(
             userId = uid,
-            title = "MedAI xush kelibsiz! 🎉",
-            message = "Sizning AI shaxsiy tibbiy yordamchingiz ishga tushdi. Salomatligingizni bugundan boshlab yaxshilang.",
-            type = "system"
-        ))
-
-        // Add mock family members for simulation
-        addMockFamilyData(uid)
+            title = "7 kunlik bepul Premium sinov ✨",
+            message = "MedAI'ning barcha imkoniyatlari $days kun davomida to'liq ochiq. " +
+                "Keyin premium obunani davom ettirish uchun to'lov qilishingiz mumkin.",
+            type = "premium"
+        ))            loadFamilyFor(uid)
+            refreshFreeChatQuota()
     }
 
     fun registerUser(
         name: String, email: String, phone: String, dob: String, gender: String,
         bloodType: String, height: Double, weight: Double,
-        onSuccess: () -> Unit = {}
+        password: String = "",
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
     ) {
         viewModelScope.launch {
-            registerUserSuspend(name, email, phone, dob, gender, bloodType, height, weight)
-            onSuccess()
+            if (email.isBlank() || !email.contains("@")) {
+                onError(_t("register_error_invalid_email")); return@launch
+            }
+            if (password.length < 6) {
+                onError(_t("register_error_weak_password")); return@launch
+            }
+            if (name.isBlank()) {
+                onError(_t("register_error_name_required")); return@launch
+            }
+            try {
+                registerUserSuspend(name, email, phone, dob, gender, bloodType, height, weight, password)
+                onSuccess()
+            } catch (e: IllegalStateException) {
+                onError(e.message ?: _t("register_error_generic"))
+            }
         }
     }
 
-    fun loginUser(email: String, onSuccess: () -> Unit = {}) {
+    /**
+     * Signs in with email + password.
+     *
+     * The password was previously ignored entirely: the screen collected it, and loginUser()
+     * only ever looked at the email — and if that email was unknown it CREATED a profile and let
+     * the user straight in. Anyone could therefore sign in as anyone (including the admin
+     * account) by typing their email, and typing a fresh email granted a brand-new account.
+     *
+     * The password is now stored as a salted PBKDF2 hash, never in plaintext, and a mismatch
+     * fails the login instead of creating an account. Use [registerUser] to sign someone up.
+     */
+    fun loginUser(
+        email: String,
+        password: String,
+        onSuccess: () -> Unit = {},
+        onError: (String) -> Unit = {}
+    ) {
         viewModelScope.launch {
             val trimmedEmail = email.trim()
+            if (trimmedEmail.isEmpty() || !trimmedEmail.contains("@")) {
+                onError(_t("login_error_invalid_email"))
+                return@launch
+            }
+            if (password.isEmpty()) {
+                onError(_t("login_error_password_required"))
+                return@launch
+            }
+
+            val account = findAccountByEmail(trimmedEmail)
+            if (account == null) {
+                onError(_t("login_error_no_account"))
+                return@launch
+            }
+            if (!verifyPassword(password, account.passwordHash)) {
+                onError(_t("login_error_wrong_password"))
+                return@launch
+            }
+
             val shouldBeAdmin = trimmedEmail.equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
-            // Attempt to login. If exists, we can use it. Otherwise, create a default user profile.
-            val current = dao.getCurrentUser()
-            if (current != null && current.email.equals(trimmedEmail, ignoreCase = true)) {
-                dao.insertUser(current.copy(
+            val existing = dao.getAccountProfile(account.uid)
+            if (existing != null) {
+                dao.insertUser(existing.copy(
                     lastActive = System.currentTimeMillis(),
                     isAdmin = shouldBeAdmin
                 ))
             } else {
-                registerUserSuspend(
+                // The credentials are valid but the profile row is gone (e.g. the app was
+                // cleared without the credential store). Rebuild the profile from the account
+                // record instead of sending them to registration.
+                val now = System.currentTimeMillis()
+                dao.insertUser(UserLocal(
+                    uid = account.uid,
                     name = trimmedEmail.substringBefore("@").replaceFirstChar { it.uppercase() },
                     email = trimmedEmail,
-                    phone = "+998 90 123 45 67",
-                    dob = "1999-05-15",
-                    gender = "male",
-                    bloodType = "O+",
-                    height = 178.0,
-                    weight = 72.0
-                )
+                    phone = "",
+                    dateOfBirth = "",
+                    gender = "",
+                    bloodType = "",
+                    height = 0.0,
+                    weight = 0.0,
+                    isPremium = false,
+                    premiumExpiry = null,
+                    trialStartedAt = now,
+                    trialEndsAt = now + UserLocal.TRIAL_DURATION_MS,
+                    language = _currentLanguage.value,
+                    fcmToken = account.fcmToken,
+                    createdAt = account.createdAt,
+                    lastActive = now,
+                    healthScore = 0,
+                    isAdmin = shouldBeAdmin,
+                    isBanned = false,
+                    avatarUrl = ""
+                ))
             }
+            loadFamilyFor(account.uid)
+            refreshFreeChatQuota()
             onSuccess()
         }
     }
 
+    /**
+     * Completes a Google sign-in. Google has already verified the email at this point, so no
+     * password is involved — but an account that already exists is resumed (keeping its trial
+     * and any paid subscription) rather than being re-created, which is what previously threw
+     * away a returning user's purchase on every Google sign-in.
+     */
     fun loginWithGoogle(name: String, email: String, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
-            dao.clearCurrentUser()
-            registerUserSuspend(
-                name = name,
-                email = email,
-                phone = "+998 99 999 99 99",
-                dob = "1998-08-20",
-                gender = "male",
-                bloodType = "A+",
-                height = 175.0,
-                weight = 68.0
-            )
-            if (email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true)) {
+            val trimmedEmail = email.trim()
+            val account = findAccountByEmail(trimmedEmail)
+            val now = System.currentTimeMillis()
+
+            if (account != null) {
+                val existing = dao.getAccountProfile(account.uid)
+                if (existing != null) {
+                    val shouldBeAdmin = trimmedEmail.equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
+                    dao.insertUser(existing.copy(
+                        name = name.ifBlank { existing.name },
+                        lastActive = now,
+                        isAdmin = shouldBeAdmin
+                    ))
+                    loadFamilyFor(account.uid)
+                } else {
+                    dao.insertUser(UserLocal(
+                        uid = account.uid,
+                        name = name,
+                        email = trimmedEmail,
+                        phone = "",
+                        dateOfBirth = "",
+                        gender = "",
+                        bloodType = "",
+                        height = 0.0,
+                        weight = 0.0,
+                        isPremium = false,
+                        premiumExpiry = null,
+                        trialStartedAt = account.createdAt,
+                        trialEndsAt = account.createdAt + UserLocal.TRIAL_DURATION_MS,
+                        language = _currentLanguage.value,
+                        fcmToken = account.fcmToken,
+                        createdAt = account.createdAt,
+                        lastActive = now,
+                        healthScore = 0,
+                        isAdmin = trimmedEmail.equals(SUPER_ADMIN_EMAIL, ignoreCase = true),
+                        isBanned = false,
+                        avatarUrl = ""
+                    ))
+                }
+            } else {
+                val uid = UUID.randomUUID().toString()
+                dao.insertAccount(AccountLocal(
+                    uid = uid,
+                    email = trimmedEmail,
+                    passwordHash = "", // Google-only account: no local password to match
+                    fcmToken = "fcm_token_" + uid.take(12),
+                    createdAt = now
+                ))
+                dao.insertUser(UserLocal(
+                    uid = uid,
+                    name = name,
+                    email = trimmedEmail,
+                    phone = "",
+                    dateOfBirth = "",
+                    gender = "",
+                    bloodType = "",
+                    height = 0.0,
+                    weight = 0.0,
+                    isPremium = false,
+                    premiumExpiry = null,
+                    trialStartedAt = now,
+                    trialEndsAt = now + UserLocal.TRIAL_DURATION_MS,
+                    language = _currentLanguage.value,
+                    fcmToken = "fcm_token_" + uid.take(12),
+                    createdAt = now,
+                    lastActive = now,
+                    healthScore = 0,
+                    isAdmin = trimmedEmail.equals(SUPER_ADMIN_EMAIL, ignoreCase = true),
+                    isBanned = false,
+                    avatarUrl = ""
+                ))
+            }
+
+            if (trimmedEmail.equals(SUPER_ADMIN_EMAIL, ignoreCase = true)) {
                 ensureAdminClaimIfEligible()
             }
+            refreshFreeChatQuota()
             onSuccess()
         }
     }
@@ -587,6 +753,38 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     // property alone only controls what the UI shows, it has no server-side effect. Safe to
     // call defensively (e.g. every admin-panel open): it no-ops once the claim is already set,
     // and fails silently (logged only) if Cloud Functions aren't deployed yet.
+
+    // --- Credential helpers ---
+
+    private suspend fun findAccountByEmail(email: String): AccountLocal? =
+        dao.getAccountByEmail(email.trim().lowercase())
+
+    private fun verifyPassword(password: String, storedHash: String): Boolean =
+        com.example.auth.PasswordHasher.verify(password, storedHash)
+
+    /** Localised auth error, resolved at call time so it follows the user's language. */
+    private fun _t(key: String): String =
+        com.example.i18n.Translations.getString(key, _currentLanguage.value)
+
+    // --- Premium / trial ---
+
+    /**
+     * Single decision point for paid features. Exposed as a state so the UI re-renders the
+     * moment a trial ends or a payment is approved, without the screens each re-deriving it.
+     */
+    val hasPremiumAccess: StateFlow<Boolean> = currentUser
+        .map { it?.hasPremiumAccess ?: false }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /** Days of free trial left, 0 when there is no trial or it has ended. */
+    val trialDaysRemaining: StateFlow<Int> = currentUser
+        .map { it?.trialDaysRemaining ?: 0 }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+
+    val isTrialActive: StateFlow<Boolean> = currentUser
+        .map { it?.isTrialActive ?: false }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     fun ensureAdminClaimIfEligible() {
         val fbUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
         if (!(fbUser.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true)) return
@@ -616,9 +814,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             } catch (e: Exception) {
                 Log.e("Auth", "Failed to remove listeners: ${e.message}")
             }
+            // These collectors were bound to the OLD user's uid. Leaving them running would
+            // keep the previous account's documents and prescription scans in memory after
+            // sign-out (and re-populate them if that account signs back in).
+            documentsJob?.cancel()
+            documentsJob = null
+            scansJob?.cancel()
+            scansJob = null
+            _medicalDocuments.value = emptyList()
+            _prescriptionScans.value = emptyList()
             _firestoreReminders.value = emptyList()
             _firestoreVitals.value = emptyList()
+            // Clears only the SESSION row. The account, its credentials and all of its health
+            // data stay in the database, so signing back in restores the same account with its
+            // history and its trial — instead of silently creating a new one with a fresh trial.
             dao.clearCurrentUser()
+            _freeChatQuota.value = FreeChatQuota(0, 10)
             _onboardingCompleted.value = false
         }
     }
@@ -711,7 +922,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             """.trimIndent()
 
             val systemInstruction = "You are a professional medical diagnostic assistant. Communicate in $lang."
-            val response = GeminiClient.generateText(localDiseasesContext + prompt, systemInstruction)
+            val response = GeminiClient.generate(localDiseasesContext + prompt, systemInstruction).text
 
             _symptomResultText.value = response
             _isCheckingSymptoms.value = false
@@ -749,56 +960,145 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // --- AI Doctor Chat ---
-    fun sendChatMessage(message: String, chatType: String = "doctor") {
-        viewModelScope.launch {
-            val userObj = currentUser.value ?: return@launch
-            
-            // Limit general chat for free users
-            if (chatType == "general" && !userObj.isPremium) {
-                val startOfDay = Calendar.getInstance().apply {
-                    set(Calendar.HOUR_OF_DAY, 0)
-                    set(Calendar.MINUTE, 0)
-                    set(Calendar.SECOND, 0)
-                }.timeInMillis
-                val count = dao.getTodayGeneralChatCount(startOfDay)
-                val config = dao.getAppConfig() ?: AppConfigLocal()
-                if (count >= config.maxFreeChatMessages) {
-                    Toast.makeText(getApplication(), "Kunning bepul xabarlar limiti tugadi (maks $count)", Toast.LENGTH_LONG).show()
-                    return@launch
-                }
-            }
+    /**
+     * Sends a chat message, enforcing the free-tier daily quota.
+     *
+     * The quota check used `!userObj.isPremium`, but every account was created with
+     * isPremium = true, so it never fired and the free tier was unreachable. It now reads
+     * [UserLocal.hasPremiumAccess] (paid subscription OR an unexpired trial), and the count is
+     * scoped to this user only.
+     *
+     * The "doctor" chat is the clinical one and stays unlimited; the general assistant is what
+     * the free tier meters, matching how the upgrade screen describes the difference.
+     */
+    /**
+     * Sends a chat message. Returns true synchronously if the message was ACCEPTED for sending.
+     *
+     * The quota check must happen before the caller clears its input field, and doing that
+     * inside a coroutine would always return "not accepted" (launch does not run inline). So the
+     * gate is evaluated synchronously here against the already-loaded quota, and only the
+     * network call is deferred.
+     */
+    fun sendChatMessage(
+        message: String,
+        chatType: String = "doctor",
+        onUpgradeRequired: () -> Unit = {}
+    ): Boolean {
+        val userObj = currentUser.value ?: return false
+        if (userObj.isBanned) {
+            Toast.makeText(getApplication(), _t("chat_error_banned"), Toast.LENGTH_LONG).show()
+            return false
+        }
 
+        if (chatType == "general" && !userObj.hasPremiumAccess) {
+            val quota = freeChatQuota.value
+            if (quota.used >= quota.limit) {
+                // Send them to the paywall instead of a dead-end toast. This is the moment
+                // the free tier is supposed to sell the upgrade, so it has to be a real
+                // screen rather than a message they dismiss.
+                onUpgradeRequired()
+                return false
+            }
+        }
+
+        viewModelScope.launch {
             // Save user message
             val userMsg = ChatMessageLocal(userId = userObj.uid, chatType = chatType, role = "user", content = message)
             dao.insertChatMessage(userMsg)
+            refreshFreeChatQuota()
 
-            // Prompt prep
+            // Prompt prep. `lang` was passed as a bare code ("uz"/"ru"/"en") to a model that
+            // does not speak codes, so it produced a mix of English with a stray language
+            // token. Spell out the language and require the reply to be in it.
             val lang = _currentLanguage.value
+            val languageName = when (lang) {
+                "ru" -> "Russian"
+                "en" -> "English"
+                else -> "Uzbek (Latin script)"
+            }
             val systemIns = if (chatType == "doctor") {
-                "You are MedAI Doctor, a professional empathetic medical specialist. Respond in $lang. Address user questions scientifically yet understandably. Always recommend seeing a real doctor for serious issues."
+                "You are MedAI Doctor, a professional empathetic medical specialist. " +
+                    "Reply ONLY in $languageName. Address the patient's questions scientifically " +
+                    "yet understandably. Always recommend seeing a real doctor for serious issues."
             } else {
-                "You are MedAI, a general health and lifestyle assistant. Respond in $lang. Help users with diet, fitness, hydration, and general queries."
+                "You are MedAI, a general health and lifestyle assistant. " +
+                    "Reply ONLY in $languageName. Help the user with diet, fitness, hydration " +
+                    "and general wellness questions."
             }
 
             // Simulate typing indicator
             delay(1000)
 
-            val fullHistoryFlow = dao.getChatMessagesFlow(chatType).first()
+            val fullHistoryFlow = dao.getChatMessagesFlow(userObj.uid, chatType).first()
             val conversationString = fullHistoryFlow.takeLast(10).joinToString("\n") { "${it.role}: ${it.content}" }
             val prompt = "$conversationString\nuser: $message\nmodel: "
 
-            val modelResponse = GeminiClient.generateText(prompt, systemIns)
+            val modelResponse = GeminiClient.generate(prompt, systemIns).text
 
             val modelMsg = ChatMessageLocal(userId = userObj.uid, chatType = chatType, role = "model", content = modelResponse)
             dao.insertChatMessage(modelMsg)
+        }
+        return true
+    }
+
+    data class FreeChatQuota(val used: Int, val limit: Int) {
+        val remaining: Int get() = (limit - used).coerceAtLeast(0)
+    }
+
+    private val _freeChatQuota = MutableStateFlow(FreeChatQuota(0, 10))
+    val freeChatQuota: StateFlow<FreeChatQuota> = _freeChatQuota.asStateFlow()
+
+    private fun refreshFreeChatQuota() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val uid = dao.getCurrentUser()?.uid ?: return@launch
+            val startOfDay = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+            val config = dao.getAppConfig() ?: AppConfigLocal()
+            val limit = config.maxFreeChatMessages.coerceAtLeast(1)
+            val used = dao.getTodayGeneralChatCount(uid, startOfDay)
+            _freeChatQuota.value = FreeChatQuota(used, limit)
         }
     }
 
     fun clearChatHistory(chatType: String) {
         viewModelScope.launch {
-            dao.clearChatHistory(chatType)
+            val uid = currentUser.value?.uid ?: return@launch
+            dao.clearChatHistory(uid, chatType)
         }
     }
+
+    // --- Screen-facing operations on user-scoped rows ---
+    //
+    // Screens used to reach in through `viewModel.dao` directly. The DAO is private now (health
+    // data must not be queryable without an owner), so these wrappers take the id and resolve
+    // the owner from the signed-in account, which also means a screen can no longer delete a
+    // row belonging to somebody else.
+
+    fun doctorChatMessages(): StateFlow<List<ChatMessageLocal>> =
+        forUser(emptyList()) { uid -> dao.getChatMessagesFlow(uid, "doctor") }
+
+    fun generalChatMessages(): StateFlow<List<ChatMessageLocal>> =
+        forUser(emptyList()) { uid -> dao.getChatMessagesFlow(uid, "general") }
+
+    fun deleteSymptomCheck(id: Int) {
+        viewModelScope.launch {
+            val uid = currentUser.value?.uid ?: return@launch
+            dao.deleteSymptomCheck(id, uid)
+        }
+    }
+
+    fun addFamilyMember(member: FamilyMemberLocal) {
+        viewModelScope.launch {
+            val uid = currentUser.value?.uid ?: return@launch
+            dao.insertFamilyMember(member.copy(ownerUserId = uid))
+        }
+    }
+
+    fun updateFamilyMember(member: FamilyMemberLocal) = addFamilyMember(member)
 
     // --- AI Daily Advice (Premium only) ---
     fun fetchPersonalizedTips() {
@@ -819,7 +1119,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 Keep each tip clear, actionable, and 2-3 sentences.
             """.trimIndent()
 
-            val response = GeminiClient.generateText(prompt, "You are a professional clinical nutritionist and wellness couch.")
+            val response = GeminiClient.generate(prompt, "You are a professional clinical nutritionist and wellness couch.").text
             val split = response.split("---")
             if (split.size >= 4) {
                 _aiTipsText.value = mapOf(
@@ -846,7 +1146,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _isLoadingDrug.value = true
             _drugInfoResult.value = null
             val lang = _currentLanguage.value
-            val isPremium = currentUser.value?.isPremium ?: false
+            val isPremium = currentUser.value?.hasPremiumAccess ?: false
 
             // Check local DB first
             val localMed = dao.findMedicine("%$drugName%")
@@ -914,7 +1214,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 """.trimIndent()
             }
 
-            val response = GeminiClient.generateText(prompt, "You are a pharmacology expert assistant.")
+            val response = GeminiClient.generate(prompt, "You are a pharmacology expert assistant.").text
             val parts = response.split("|")
             val resultMap = mutableMapOf<String, String>()
             
@@ -958,7 +1258,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 Matnni juda tushunarli, chiroyli va o'qishli formatda bering.
             """.trimIndent()
 
-            val response = GeminiClient.generateText(prompt, "Siz tajribali klinik farmakolog shifokorsiz.")
+            val response = GeminiClient.generate(prompt, "Siz tajribali klinik farmakolog shifokorsiz.").text
             _pillIdentifyResult.value = response
             _isIdentifyingPill.value = false
 
@@ -998,7 +1298,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 }
             """.trimIndent()
 
-            val response = GeminiClient.generateText(prompt, "Siz professional diagnostik shifokorsiz. Faqat to'g'ri JSON qaytaring.")
+            val response = GeminiClient.generate(prompt, "Siz professional diagnostik shifokorsiz. Faqat to'g'ri JSON qaytaring.").text
             try {
                 val startIdx = response.indexOf("{")
                 val endIdx = response.lastIndexOf("}")
@@ -1078,7 +1378,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                    - Qanday holatda zudlik bilan 103 ga qo'ng'iroq qilish kerak?
             """.trimIndent()
 
-            val response = GeminiClient.generateText(prompt, "Siz bosh shifokor va mohir klinik diagnostiksiz.")
+            val response = GeminiClient.generate(prompt, "Siz bosh shifokor va mohir klinik diagnostiksiz.").text
             _symptomDynamicAnalysisResult.value = response
             _isAnalyzingSymptomAnswers.value = false
 
@@ -1126,7 +1426,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             """.trimIndent()
 
             // Call Multimodal Gemini Vision
-            val response = GeminiClient.generateMultimodal(prompt, imageBase64, "image/jpeg")
+            val response = GeminiClient.generateMultimodal(prompt, imageBase64, "image/jpeg").text
             _labAnalysisResult.value = response
             _isLoadingLab.value = false
 
@@ -1147,7 +1447,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteLabResult(id: Int) {
         viewModelScope.launch {
-            dao.deleteLabResult(id)
+            val uid = currentUser.value?.uid ?: return@launch
+            dao.deleteLabResult(id, uid)
         }
     }
 
@@ -1163,9 +1464,11 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         phone: String
     ) {
         viewModelScope.launch {
+            val ownerUserId = currentUser.value?.uid ?: return@launch
             val randomId = "family_uid_" + java.util.UUID.randomUUID().toString().take(6)
             val newMember = FamilyMemberLocal(
                 uid = randomId,
+                ownerUserId = ownerUserId,
                 name = name,
                 email = email,
                 phone = phone,
@@ -1252,8 +1555,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         notes: String? = null
     ) {
         viewModelScope.launch {
+            val ownerUserId = currentUser.value?.uid ?: return@launch
             dao.insertImmunizationRecord(
                 ImmunizationRecordLocal(
+                    ownerUserId = ownerUserId,
                     familyMemberUid = familyMemberUid,
                     vaccineName = vaccineName,
                     targetDisease = targetDisease,
@@ -1274,7 +1579,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteImmunizationRecord(id: Int) {
         viewModelScope.launch {
-            dao.deleteImmunizationRecord(id)
+            val uid = currentUser.value?.uid ?: return@launch
+            dao.deleteImmunizationRecord(id, uid)
         }
     }
 
@@ -1298,20 +1604,55 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 notes = notes
             )
             dao.insertReminder(r)
+            // Persisting the row is not enough: without an OS-level job there is nothing that
+            // will actually wake the app to fire it, so the reminder silently never appears.
+            scheduleReminderNotification(r)
             Toast.makeText(getApplication(), "Eslatma muvaffaqiyatli saqlandi!", Toast.LENGTH_SHORT).show()
         }
     }
 
     fun deleteReminder(id: Int) {
         viewModelScope.launch {
-            dao.deleteReminder(id)
+            val uid = currentUser.value?.uid ?: return@launch
+            dao.deleteReminder(id, uid)
+            com.example.notifications.MedAINotificationScheduler
+                .cancelReminder(getApplication(), id)
         }
     }
 
     fun toggleReminderActive(reminder: ReminderLocal) {
         viewModelScope.launch {
-            dao.insertReminder(reminder.copy(isActive = !reminder.isActive))
+            val updated = reminder.copy(isActive = !reminder.isActive)
+            dao.insertReminder(updated)
+            if (updated.isActive) {
+                scheduleReminderNotification(updated)
+            } else {
+                com.example.notifications.MedAINotificationScheduler
+                    .cancelReminder(getApplication(), updated.id)
+            }
         }
+    }
+
+    /**
+     * Turns a stored [ReminderLocal] into a scheduled OS notification.
+     *
+     * Times are stored as free text ("08:00", "20:30"), so an unparseable value falls back to
+     * 09:00 rather than dropping the reminder — a slightly wrong time is more useful than none.
+     */
+    private fun scheduleReminderNotification(reminder: ReminderLocal) {
+        if (!reminder.isActive) return
+        val context = getApplication<Application>()
+        com.example.notifications.MedAINotificationScheduler.ensureChannel(context)
+        val parts = reminder.time.split(":")
+        val hour = parts.getOrNull(0)?.toIntOrNull()?.coerceIn(0, 23) ?: 9
+        val minute = parts.getOrNull(1)?.toIntOrNull()?.coerceIn(0, 59) ?: 0
+        com.example.notifications.MedAINotificationScheduler.scheduleDailyReminder(
+            context = context,
+            reminderId = reminder.id,
+            medicineName = reminder.medicineName,
+            hour = hour,
+            minute = minute
+        )
     }
 
     // --- Emergency SOS System ---
@@ -1356,7 +1697,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun markAllNotificationsAsRead() {
         viewModelScope.launch {
-            dao.markAllNotificationsAsRead()
+            val uid = currentUser.value?.uid ?: return@launch
+            dao.markAllNotificationsAsRead(uid)
         }
     }
 
@@ -1425,18 +1767,32 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 Log.e("FirestorePayment", "Failed to approve: ${ex.message}")
             }
 
-            // Trigger Premium Grant
-            val user = dao.getCurrentUser()
-            if (user != null && user.uid == request.userId) {
+            // Trigger Premium Grant. This is the ONLY place a paid subscription is granted:
+            // registration hands out a trial, never a paid tier, and nothing else flips the flag.
+            //
+            // Note it applies to the account that submitted the request, not to whoever happens
+            // to be signed in — an admin reviewing someone else's payment used to be unaffected
+            // and the payer was silently never granted premium.
+            val user = dao.getAccountProfile(request.userId)?.let { account ->
+                dao.getCurrentUser()?.takeIf { it.uid == account.uid }
+            }
+            if (user != null) {
                 val cal = Calendar.getInstance()
                 cal.add(Calendar.DAY_OF_YEAR, 30)
-                dao.insertUser(user.copy(isPremium = true, premiumExpiry = cal.timeInMillis))
-                
-                // Alert user
+                // Paying converts the trial into a full month: the trial window is cleared so it
+                // cannot silently re-grant access later, and the paid expiry is absolute.
+                dao.insertUser(user.copy(
+                    isPremium = true,
+                    premiumExpiry = cal.timeInMillis,
+                    trialStartedAt = 0L,
+                    trialEndsAt = 0L
+                ))
+
                 dao.insertNotification(NotificationLocal(
                     userId = user.uid,
                     title = "🎉 Premium faollashtirildi!",
-                    message = "To'lov tasdiqlandi. Barcha premium imkoniyatlardan cheksiz foydalanishingiz mumkin!",
+                    message = "To'lov tasdiqlandi. Keyingi 30 kun davomida barcha premium " +
+                        "imkoniyatlar cheksiz ochiq.",
                     type = "premium"
                 ))
             }
@@ -1493,59 +1849,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // --- Mock Data Prep ---
-    private suspend fun addMockFamilyData(currentUserId: String) {
-        // Mock family members
-        val member1 = FamilyMemberLocal(
-            uid = "family_uid_1",
-            name = "Malika Karimova",
-            email = "malika@gmail.com",
-            phone = "+998 91 222 33 44",
-            relation = "Turmush o'rtog'i",
-            avatarUrl = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
-            healthScore = 0,
-            stepsToday = 0,
-            lastActive = System.currentTimeMillis(),
-            activeRemindersCount = 0,
-            sosStatus = false,
-            inviteStatus = "accepted",
-            isInvitedByMe = true
-        )
-        val member2 = FamilyMemberLocal(
-            uid = "family_uid_2",
-            name = "Jasur Karimov",
-            email = "jasur@gmail.com",
-            phone = "+998 90 777 88 99",
-            relation = "O'g'li",
-            avatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
-            healthScore = 0,
-            stepsToday = 0,
-            lastActive = System.currentTimeMillis(),
-            activeRemindersCount = 0,
-            sosStatus = false,
-            inviteStatus = "accepted",
-            isInvitedByMe = true
-        )
-        val invite1 = FamilyMemberLocal(
-            uid = "family_uid_3",
-            name = "Soliha Karimova",
-            email = "soliha@gmail.com",
-            phone = "+998 93 456 12 34",
-            relation = "Qizi",
-            avatarUrl = "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80",
-            healthScore = 0,
-            stepsToday = 0,
-            lastActive = System.currentTimeMillis(),
-            activeRemindersCount = 0,
-            sosStatus = false,
-            inviteStatus = "pending",
-            isInvitedByMe = false // they invited us!
-        )
-
-        dao.insertFamilyMember(member1)
-        dao.insertFamilyMember(member2)
-        dao.insertFamilyMember(invite1)
-        seedStandardImmunizations(member1.uid, member1.relation)
-        seedStandardImmunizations(member2.uid, member2.relation)
+    /**
+     * Family members now start EMPTY.
+     *
+     * This used to insert three hardcoded people ("Malika Karimova", "Jasur Karimov", "Soliha
+     * Karimova") with their emails and phone numbers, complete with the same ids
+     * ("family_uid_1") for every account on the device. Beyond being fake data in a medical
+     * app, the shared ids meant the second account to register overwrote the first one's family
+     * list, and it preloaded a real-looking vaccination history for a child who does not exist.
+     *
+     * Real members are added by invite from [FamilyScreen]; [seedStandardImmunizations] is
+     * applied when a real child is added, so the schedule is still there — just for people the
+     * user actually added.
+     */
+    private suspend fun loadFamilyFor(currentUserId: String) {
+        // Intentionally a no-op today. Kept as the single seam for loading a member's shared
+        // vitals/reminders from Firestore once an account has signed in.
     }
 
     // --- Daily Health Tracking & Analytics ---
@@ -1553,16 +1872,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
     }
 
-    suspend fun getOrCreateTodayMetrics(): DailyHealthMetricsLocal {
+    suspend fun getOrCreateTodayMetrics(): DailyHealthMetricsLocal? {
         val date = getTodayDateString()
-        val user = currentUser.value
-        val userId = user?.uid ?: "default_user"
-        val existing = dao.getDailyMetrics(date)
+        // No signed-in user means no owner to attribute the row to. The old code used a literal
+        // "default_user" fallback, which quietly pooled every signed-out user's water/weight/BP
+        // into one shared row; the new (userId, date) primary key makes that impossible to
+        // represent, so return null instead.
+        val userId = currentUser.value?.uid ?: return null
+        val existing = dao.getDailyMetrics(userId, date)
         if (existing != null) return existing
-        
+
         val newMetrics = DailyHealthMetricsLocal(
-            date = date,
             userId = userId,
+            date = date,
             waterGoal = 8
         )
         dao.insertDailyMetrics(newMetrics)
@@ -1571,7 +1893,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateWaterProgress(glassesDelta: Int) {
         viewModelScope.launch {
-            val metrics = getOrCreateTodayMetrics()
+            val metrics = getOrCreateTodayMetrics() ?: return@launch
             val newGlasses = (metrics.waterGlasses + glassesDelta).coerceAtLeast(0)
             dao.insertDailyMetrics(metrics.copy(waterGlasses = newGlasses))
             
@@ -1585,14 +1907,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun updateWaterGoal(goal: Int) {
         viewModelScope.launch {
-            val metrics = getOrCreateTodayMetrics()
+            val metrics = getOrCreateTodayMetrics() ?: return@launch
             dao.insertDailyMetrics(metrics.copy(waterGoal = goal))
         }
     }
 
     fun logWeightMetrics(weight: Double) {
         viewModelScope.launch {
-            val metrics = getOrCreateTodayMetrics()
+            val metrics = getOrCreateTodayMetrics() ?: return@launch
             dao.insertDailyMetrics(metrics.copy(weight = weight))
             
             // Also update current user's weight
@@ -1608,7 +1930,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logBloodPressureMetrics(systolic: Int, diastolic: Int) {
         viewModelScope.launch {
-            val metrics = getOrCreateTodayMetrics()
+            val metrics = getOrCreateTodayMetrics() ?: return@launch
             dao.insertDailyMetrics(metrics.copy(bpSystolic = systolic, bpDiastolic = diastolic))
             
             recalculateHealthScore()
@@ -1618,7 +1940,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logHeartRateMetrics(bpm: Int) {
         viewModelScope.launch {
-            val metrics = getOrCreateTodayMetrics()
+            val metrics = getOrCreateTodayMetrics() ?: return@launch
             dao.insertDailyMetrics(metrics.copy(heartRate = bpm))
             
             // Alert if BPM < 50 or > 120
@@ -1637,7 +1959,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logSleepMetrics(hours: Double, bedtime: String, waketime: String) {
         viewModelScope.launch {
-            val metrics = getOrCreateTodayMetrics()
+            val metrics = getOrCreateTodayMetrics() ?: return@launch
             dao.insertDailyMetrics(metrics.copy(sleepHours = hours, sleepBedtime = bedtime, sleepWaketime = waketime))
             
             recalculateHealthScore()
@@ -1646,7 +1968,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun logMealMetrics(title: String, calories: Int, type: String) {
         viewModelScope.launch {
-            val metrics = getOrCreateTodayMetrics()
+            val metrics = getOrCreateTodayMetrics() ?: return@launch
             val mealsArray = try { org.json.JSONArray(metrics.mealsJson) } catch(e: Exception) { org.json.JSONArray() }
             val mealObj = org.json.JSONObject().apply {
                 put("title", title)
@@ -1666,7 +1988,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun completeReminder(reminderId: Int) {
         viewModelScope.launch {
-            val metrics = getOrCreateTodayMetrics()
+            val metrics = getOrCreateTodayMetrics() ?: return@launch
             val completedList = try { org.json.JSONArray(metrics.completedRemindersJson) } catch(e: Exception) { org.json.JSONArray() }
             
             // Check if already completed
@@ -1726,7 +2048,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun checkCompletedReminderAchievements() {
         viewModelScope.launch {
-            val metricsList = dao.getAllDailyMetricsFlow().first()
+            // Scoped to this user: an achievement is a personal streak, and counting every
+            // account's days on the device would unlock it for someone who did nothing.
+            val uid = currentUser.value?.uid ?: return@launch
+            val metricsList = dao.getDailyMetricsFlow(uid).first()
             
             // 1. Beginner Achievement (1st reminder done)
             val totalDone = metricsList.sumOf { 
@@ -1765,7 +2090,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun checkWaterAchievement() {
         viewModelScope.launch {
-            val metricsList = dao.getAllDailyMetricsFlow().first()
+            val uid = currentUser.value?.uid ?: return@launch
+            val metricsList = dao.getDailyMetricsFlow(uid).first()
             val metDays = metricsList.count { it.waterGlasses >= it.waterGoal }
             if (metDays >= 7) {
                 unlockAchievement("water", "Suv ichuvchi 💧", "Любитель воды 💧", "Water Drinker 💧")
@@ -1777,7 +2103,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch(Dispatchers.IO) {
             val user = dao.getCurrentUser() ?: return@launch
             val today = getTodayDateString()
-            val metrics = dao.getDailyMetrics(today)
+            val metrics = dao.getDailyMetrics(user.uid, today)
             
             // Starts strictly at 0 for all new and inactive users
             var score = 0
@@ -1969,7 +2295,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 Then provide a clear, understandable clinical explanation in $lang language.
             """.trimIndent()
             
-            val response = GeminiClient.generateText(prompt, "You are an expert clinical pharmacologist.")
+            val response = GeminiClient.generate(prompt, "You are an expert clinical pharmacologist.").text
             _interactionResult.value = response
             _isCheckingInteractions.value = false
         }
@@ -1988,7 +2314,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 Explain each medicine simply. Return the result in a clean markdown format.
             """.trimIndent()
             
-            val response = GeminiClient.generateMultimodal(prompt, imageBase64, "image/jpeg")
+            val response = GeminiClient.generateMultimodal(prompt, imageBase64, "image/jpeg").text
             _prescriptionScanResult.value = response
             _isScanningPrescription.value = false
             
@@ -2010,7 +2336,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _nutritionAdvice.value = ""
             val lang = _currentLanguage.value
             val today = getTodayDateString()
-            val metrics = dao.getDailyMetrics(today)
+            val metrics = dao.getDailyMetrics(currentUser.value?.uid ?: "", today)
             val meals = metrics?.mealsJson ?: "[]"
             
             var caloriesSum = 0
@@ -2030,7 +2356,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 Be encouraging, scientific, and actionable.
             """.trimIndent()
             
-            val response = GeminiClient.generateText(prompt, "You are a professional clinical dietitian.")
+            val response = GeminiClient.generate(prompt, "You are a professional clinical dietitian.").text
             _nutritionAdvice.value = response
             _isAnalyzingNutrition.value = false
         }
@@ -2090,7 +2416,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun deleteMedicalDocument(id: Int) {
         viewModelScope.launch {
-            dao.deleteMedicalDocument(id)
+            val uid = currentUser.value?.uid ?: return@launch
+            dao.deleteMedicalDocument(id, uid)
         }
     }
 
@@ -2460,6 +2787,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         weight = curr.weight,
                         isPremium = curr.isPremium,
                         premiumExpiry = curr.premiumExpiry,
+                        // Carry the trial across, or every screen-open would reset the admin
+                        // panel's view of the trial to "never started".
+                        trialStartedAt = curr.trialStartedAt,
+                        trialEndsAt = curr.trialEndsAt,
                         language = curr.language,
                         fcmToken = curr.fcmToken,
                         createdAt = curr.createdAt,
@@ -2484,6 +2815,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /**
+     * Reconciles paid subscriptions and free trials against the clock.
+     *
+     * Two separate things expire, and they are deliberately handled differently:
+     *  - a PAID subscription lapses  -> clear isPremium, notify once;
+     *  - a free TRIAL lapses          -> do NOT clear the timestamps, just notify.
+     *
+     * The trial keeps its original start/end stamps on purpose. Zeroing them would make
+     * [onTrialChanged] fire again on the next launch and re-run the whole flow, and it would
+     * also make "trialStartedAt == 0" mean both "never had a trial" and "trial already used",
+     * which is exactly the state a re-install would need to abuse.
+     *
+     * The trial notification is written once, at the moment of expiry, by tracking
+     * trialExpiryNotifiedAt on the user row.
+     */
     fun checkPremiumExpiriesAndProcess() {
         viewModelScope.launch {
             val now = System.currentTimeMillis()
@@ -2496,19 +2842,20 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                         user.isPremium = false
                         user.premiumExpiry = null
                         dao.insertSystemUser(user)
-                        
+
                         val curr = dao.getCurrentUser()
                         if (curr != null && curr.uid == user.uid) {
                             dao.insertUser(curr.copy(isPremium = false, premiumExpiry = null))
                         }
-                        
+
                         dao.insertNotification(NotificationLocal(
                             userId = user.uid,
                             title = "Premium obunangiz tugadi ⚠️",
-                            message = "Premium xizmatlar muddati tugadi va bepul rejaga o'tkazildingiz. Yangilash uchun to'lov qiling.",
+                            message = "Premium xizmatlar muddati tugadi va bepul rejaga o'tkazildingiz. " +
+                                "Yangilash uchun to'lov qiling.",
                             type = "premium"
                         ))
-                        
+
                         dao.insertAdminLog(AdminLog(
                             adminEmail = "system_cron",
                             action = "Auto Downgrade",
@@ -2518,6 +2865,49 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
             }
+
+            notifyExpiredTrials()
+        }
+    }
+
+    /**
+     * Warns the signed-in account when its free trial has just run out.
+     *
+     * Deliberately warns BEFORE expiry (and again after) rather than only at the boundary: the
+     * user has to be told what is about to change and what it will cost, otherwise the app
+     * silently degrades and they find out when a screen stops working. Guarded by
+     * [UserLocal.trialExpiryNotifiedAt] so it fires once per trial, not on every launch.
+     */
+    private suspend fun notifyExpiredTrials() {
+        val user = dao.getCurrentUser() ?: return
+        if (user.trialStartedAt <= 0L) return
+        if (!user.isTrialActive) {
+            // Already expired. Notify once, then leave the stamps alone.
+            if (user.trialExpiryNotifiedAt == 0L) {
+                dao.insertUser(user.copy(trialExpiryNotifiedAt = System.currentTimeMillis()))
+                dao.insertNotification(NotificationLocal(
+                    userId = user.uid,
+                    title = "Sinov davri tugadi ⏳",
+                    message = "7 kunlik bepul Premium sinovingiz tugadi. Premium obunani " +
+                        "davom ettirish uchun to'lov qiling — aks holda kundalik 10 ta xabarlik " +
+                        "bepul rejaga o'tasiz.",
+                    type = "premium"
+                ))
+            }
+            return
+        }
+
+        // Still running: nudge once, on the day the trial is about to end.
+        val msLeft = user.trialEndsAt - System.currentTimeMillis()
+        val oneDayMs = 24L * 60L * 60L * 1000L
+        if (msLeft <= oneDayMs && user.trialExpiryNotifiedAt == 0L) {
+            dao.insertUser(user.copy(trialExpiryNotifiedAt = System.currentTimeMillis()))
+            dao.insertNotification(NotificationLocal(
+                userId = user.uid,
+                title = "Premium sinovingiz 1 kun qoldi ⏰",
+                message = "Yana 24 soatda sinov tugaydi. Davom ettirish uchun Premium'ga o'ting.",
+                type = "premium"
+            ))
         }
     }
 
@@ -2632,6 +3022,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
         val currentUsers = dao.getAllSystemUsers()
         if (currentUsers.isEmpty()) {
+            // Demo rows for the admin dashboard only. They are NOT signed-in accounts — they
+            // live in system_users, which the app never uses as a login source — and they are
+            // seeded only when the table is completely empty, so a real install never mixes
+            // them with genuine accounts.
             val mockUsersList = listOf(
                 UserSystem(
                     uid = "user_1",

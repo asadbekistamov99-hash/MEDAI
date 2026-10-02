@@ -10,7 +10,7 @@ object Translations {
             "onboarding_title_2" to "Oilangizni kuzating",
             "onboarding_desc_2" to "Oila a'zolaringizning sog'lig'i, kunlik qadamlari va dori eslatmalarini real vaqt rejimida kuzatib boring.",
             "onboarding_title_3" to "Premium imkoniyatlar",
-            "onboarding_desc_3" to "OpenAI Vision tahlillari, cheksiz shifokor suhbatlari va oilaviy monitoring xizmatlaridan foydalaning.",
+            "onboarding_desc_3" to "MedAI Vision tahlillari, cheksiz shifokor suhbatlari va oilaviy monitoring xizmatlaridan foydalaning.",
             "next" to "Keyingi",
             "skip" to "O'tkazib yuborish",
             "get_started" to "Boshlash",
@@ -159,6 +159,30 @@ object Translations {
             "admin_stats_premium" to "Premium a'zolar",
             "admin_stats_pending" to "Kutilayotgan to'lovlar",
 
+            // --- Autentifikatsiya xatolari ---
+            "login_error_invalid_email" to "Email manzilini to'g'ri kiriting",
+            "login_error_password_required" to "Parolni kiriting",
+            "login_error_no_account" to "Bunday hisob topilmadi. Avval ro'yxatdan o'ting.",
+            "login_error_wrong_password" to "Parol noto'g'ri",
+            "register_error_invalid_email" to "Email manzilini to'g'ri kiriting",
+            "register_error_weak_password" to "Parol kamida 6 ta belgidan iborat bo'lishi kerak",
+            "register_error_name_required" to "Ismingizni kiriting",
+            "register_error_email_taken" to "Bu email bilan allaqon ro'yxatdan o'tilgan",
+            "register_error_generic" to "Ro'yxatdan o'tishda xatolik yuz berdi",
+            "chat_error_banned" to "Hisobingiz bloklangan",
+
+            // --- 1 haftalik Premium sinovi ---
+            "trial_banner_title" to "✨ 1 haftalik Premium sinovi",
+            "trial_banner_days" to "Barcha imkoniyatlar yana {days} kun ochiq",
+            "trial_banner_upgrade" to "Premium'ni davom ettirish",
+            "trial_upgrade_title" to "Sinov tugadi",
+            "trial_upgrade_body" to "7 kunlik bepul sinovingiz tugadi. Premium obunani " +
+                "davom ettirsangiz, AI shifokor cheksiz, oila monitoringi va barcha " +
+                "imkoniyatlar ochiq qoladi.",
+            "trial_ended_title" to "Sinov davri tugadi ⏳",
+            "trial_ended_body" to "Endi kundalik 10 ta bepul xabaringiz qoldi. Premium'ga o'tish " +
+                "uchun to'lov qiling.",
+
             "maintenance_title" to "Texnik ishlar olib borilmoqda",
             "maintenance_desc" to "MedAI hozirda yangilanmoqda. Iltimos, birozdan so'ng qayta urinib ko'ring.",
             "banned_title" to "Sizning akkauntingiz bloklangan",
@@ -172,7 +196,7 @@ object Translations {
             "onboarding_title_2" to "Следите за семьей",
             "onboarding_desc_2" to "Следите за здоровьем, ежедневными шагами и приемом лекарств членов вашей семьи в режиме реального времени.",
             "onboarding_title_3" to "Премиум возможности",
-            "onboarding_desc_3" to "Используйте аналитику OpenAI Vision, безлимитные чаты с доктором и семейный мониторинг.",
+            "onboarding_desc_3" to "Используйте аналитику MedAI Vision, безлимитные чаты с доктором и семейный мониторинг.",
             "next" to "Далее",
             "skip" to "Пропустить",
             "get_started" to "Начать",
@@ -321,6 +345,29 @@ object Translations {
             "admin_stats_premium" to "Премиум аккаунты",
             "admin_stats_pending" to "Ожидающие платежи",
 
+            // --- Ошибки авторизации ---
+            "login_error_invalid_email" to "Введите корректный адрес эл. почты",
+            "login_error_password_required" to "Введите пароль",
+            "login_error_no_account" to "Аккаунт не найден. Сначала зарегистрируйтесь.",
+            "login_error_wrong_password" to "Неверный пароль",
+            "register_error_invalid_email" to "Введите корректный адрес эл. почты",
+            "register_error_weak_password" to "Пароль должен содержать минимум 6 символов",
+            "register_error_name_required" to "Введите ваше имя",
+            "register_error_email_taken" to "Эта почта уже зарегистрирована",
+            "register_error_generic" to "Ошибка при регистрации",
+            "chat_error_banned" to "Ваш аккаунт заблокирован",
+
+            // --- Пробный период Premium (7 дней) ---
+            "trial_banner_title" to "✨ Пробный период Premium 7 дней",
+            "trial_banner_days" to "Все функции доступны ещё {days} дн.",
+            "trial_banner_upgrade" to "Продлить Premium",
+            "trial_upgrade_title" to "Пробный период завершён",
+            "trial_upgrade_body" to "Ваш 7-дневный пробный период завершён. Продлив подписку " +
+                "Premium, вы сохраните ИИ-врача без лимитов, мониторинг семьи и все функции.",
+            "trial_ended_title" to "Пробный период завершён ⏳",
+            "trial_ended_body" to "Осталось 10 бесплатных сообщений в день. Оформите подписку, " +
+                "чтобы вернуть все возможности.",
+
             "maintenance_title" to "Проводятся технические работы",
             "maintenance_desc" to "MedAI сейчас обновляется. Пожалуйста, попробуйте позже.",
             "banned_title" to "Ваш аккаунт заблокирован",
@@ -334,7 +381,7 @@ object Translations {
             "onboarding_title_2" to "Track your family",
             "onboarding_desc_2" to "Monitor your family members' health, daily steps, and medication reminders in real-time.",
             "onboarding_title_3" to "Premium features",
-            "onboarding_desc_3" to "Utilize OpenAI Vision analytics, unlimited doctor conversations, and family monitoring.",
+            "onboarding_desc_3" to "Use MedAI Vision analytics, unlimited doctor conversations, and family monitoring.",
             "next" to "Next",
             "skip" to "Skip",
             "get_started" to "Get Started",
@@ -482,6 +529,29 @@ object Translations {
             "admin_stats_total" to "Total Users",
             "admin_stats_premium" to "Premium Users",
             "admin_stats_pending" to "Pending Payments",
+
+            // --- Authentication errors ---
+            "login_error_invalid_email" to "Enter a valid email address",
+            "login_error_password_required" to "Enter your password",
+            "login_error_no_account" to "No account found. Please register first.",
+            "login_error_wrong_password" to "Wrong password",
+            "register_error_invalid_email" to "Enter a valid email address",
+            "register_error_weak_password" to "Password must be at least 6 characters",
+            "register_error_name_required" to "Enter your name",
+            "register_error_email_taken" to "This email is already registered",
+            "register_error_generic" to "Registration failed",
+            "chat_error_banned" to "Your account is blocked",
+
+            // --- 7-day Premium trial ---
+            "trial_banner_title" to "✨ 7-day Premium trial",
+            "trial_banner_days" to "All features open for {days} more day(s)",
+            "trial_banner_upgrade" to "Keep Premium",
+            "trial_upgrade_title" to "Your trial has ended",
+            "trial_upgrade_body" to "Your 7-day free trial has ended. Subscribe to Premium to " +
+                "keep unlimited AI doctor chats, family monitoring and every feature.",
+            "trial_ended_title" to "Trial period ended ⏳",
+            "trial_ended_body" to "You now have 10 free messages per day. Subscribe to keep " +
+                "all features unlocked.",
 
             "maintenance_title" to "Maintenance in Progress",
             "maintenance_desc" to "MedAI is currently undergoing scheduled maintenance. Please try again shortly.",

@@ -31,36 +31,36 @@ class AppViewModelAdminTest {
     @Before
     fun setup() {
         viewModel = AppViewModel(ApplicationProvider.getApplicationContext<Application>())
-        // Let AppViewModel's init{} (default-user seeding, Firestore listener setup wrapped in
-        // its own try/catch, etc.) finish running on the Robolectric main looper before each test.
+        // Let AppViewModel's init{} (config seeding, trial stamping, Firestore listener setup
+        // wrapped in its own try/catch) finish on the Robolectric main looper before each test.
         shadowOf(Looper.getMainLooper()).idle()
     }
 
     @Test
     fun `isSuperAdmin is true only for the configured admin email`() = runBlocking {
-        val seedUid = viewModel.dao.getCurrentUser()?.uid ?: "test-uid"
+        val seedUid = viewModel.daoForTest.getCurrentUser()?.uid ?: "test-uid"
 
-        viewModel.dao.insertUser(testUser(uid = seedUid, email = SUPER_ADMIN_EMAIL))
+        viewModel.daoForTest.insertUser(testUser(uid = seedUid, email = SUPER_ADMIN_EMAIL))
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(viewModel.isSuperAdmin)
 
-        viewModel.dao.insertUser(testUser(uid = seedUid, email = "someone.else@gmail.com"))
+        viewModel.daoForTest.insertUser(testUser(uid = seedUid, email = "someone.else@gmail.com"))
         shadowOf(Looper.getMainLooper()).idle()
         assertFalse(viewModel.isSuperAdmin)
     }
 
     @Test
     fun `isSuperAdmin matching ignores case and surrounding whitespace`() = runBlocking {
-        val seedUid = viewModel.dao.getCurrentUser()?.uid ?: "test-uid"
+        val seedUid = viewModel.daoForTest.getCurrentUser()?.uid ?: "test-uid"
 
-        viewModel.dao.insertUser(testUser(uid = seedUid, email = "  ${SUPER_ADMIN_EMAIL.uppercase()}  "))
+        viewModel.daoForTest.insertUser(testUser(uid = seedUid, email = "  ${SUPER_ADMIN_EMAIL.uppercase()}  "))
         shadowOf(Looper.getMainLooper()).idle()
         assertTrue(viewModel.isSuperAdmin)
     }
 
     @Test
     fun `isSuperAdmin is false when there is no signed-in user`() = runBlocking {
-        viewModel.dao.clearCurrentUser()
+        viewModel.daoForTest.clearCurrentUser()
         shadowOf(Looper.getMainLooper()).idle()
         assertFalse(viewModel.isSuperAdmin)
     }

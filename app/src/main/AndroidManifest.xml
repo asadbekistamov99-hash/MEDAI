@@ -6,6 +6,16 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!--
+      Medication reminders are the app's core promise, and until this permission existed no
+      reminder could ever be posted: on Android 13 (API 33) and above, a notification without
+      POST_NOTIFICATIONS is silently dropped, so the reminder feature could not work at all on
+      any current device. Must also be requested at runtime — see MedAINotificationScheduler.
+    -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Re-arms scheduled reminders after a reboot, when WorkManager's jobs are lost. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <!-- Location hardware is optional: don't exclude devices without GPS (e.g. some tablets) from install -->
     <uses-feature android:name="android.hardware.location" android:required="false" />
     <uses-feature android:name="android.hardware.location.gps" android:required="false" />
