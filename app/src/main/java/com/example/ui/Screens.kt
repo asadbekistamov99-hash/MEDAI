@@ -989,7 +989,11 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                     MedicalButton(
                         text = Translations.getString("register", lang),
                         onClick = {
-                            if (name.isNotEmpty() && email.isNotEmpty() && phone.isNotEmpty()) {
+                            if (password.length < 6) {
+                                Toast.makeText(context, "Parol kamida 6 belgidan iborat bo'lishi kerak", Toast.LENGTH_SHORT).show()
+                            } else if (password != confirmPassword) {
+                                Toast.makeText(context, "Parollar mos kelmadi", Toast.LENGTH_SHORT).show()
+                            } else if (name.isNotEmpty() && email.isNotEmpty() && phone.isNotEmpty()) {
                                 viewModel.registerUser(
                                     name = name,
                                     email = email,
@@ -999,6 +1003,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                                     bloodType = bloodType,
                                     height = height.toDoubleOrNull() ?: 175.0,
                                     weight = weight.toDoubleOrNull() ?: 70.0,
+                                    password = password,
                                     onSuccess = { onRegisterSuccess() }
                                 )
                             }
@@ -1031,7 +1036,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                                     val result = com.example.auth.GoogleAuthHelper.signIn(context)
                                     isGoogleSigningIn = false
                                     result.onSuccess { account ->
-                                        viewModel.loginWithGoogle(account.name, account.email, onSuccess = { onRegisterSuccess() })
+                                        viewModel.loginWithGoogle(account.name, account.email, account.uid, onSuccess = { onRegisterSuccess() })
                                     }.onFailure { e ->
                                         Toast.makeText(context, e.localizedMessage ?: "Google orqali ro'yxatdan o'tishda xatolik", Toast.LENGTH_LONG).show()
                                     }
@@ -1167,7 +1172,7 @@ fun LoginScreen(onNavigateToRegister: () -> Unit, onLoginSuccess: () -> Unit, vi
                 )
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { /* Simulated password reset */ }) {
+                    TextButton(onClick = { viewModel.resetPassword(email) }) {
                         Text(text = Translations.getString("forgot_password", lang), color = TextSecondary, fontSize = 13.sp)
                     }
                 }
@@ -1177,8 +1182,10 @@ fun LoginScreen(onNavigateToRegister: () -> Unit, onLoginSuccess: () -> Unit, vi
                 MedicalButton(
                     text = Translations.getString("login", lang),
                     onClick = {
-                        if (email.isNotEmpty()) {
-                            viewModel.loginUser(email, onSuccess = { onLoginSuccess() })
+                        if (email.isNotEmpty() && password.isNotEmpty()) {
+                            viewModel.loginUser(email, password, onSuccess = { onLoginSuccess() })
+                        } else {
+                            Toast.makeText(context, "Elektron pochta va parolni kiriting", Toast.LENGTH_SHORT).show()
                         }
                     }
                 )
@@ -1209,7 +1216,7 @@ fun LoginScreen(onNavigateToRegister: () -> Unit, onLoginSuccess: () -> Unit, vi
                                 val result = com.example.auth.GoogleAuthHelper.signIn(context)
                                 isGoogleSigningIn = false
                                 result.onSuccess { account ->
-                                    viewModel.loginWithGoogle(account.name, account.email, onSuccess = { onLoginSuccess() })
+                                    viewModel.loginWithGoogle(account.name, account.email, account.uid, onSuccess = { onLoginSuccess() })
                                 }.onFailure { e ->
                                     Toast.makeText(context, e.localizedMessage ?: "Google orqali kirishda xatolik", Toast.LENGTH_LONG).show()
                                 }

@@ -1,7 +1,10 @@
 @file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.example.ui
 
+import android.Manifest
 import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import android.net.Uri
 import android.widget.Toast
 import androidx.compose.animation.*
@@ -1287,6 +1290,16 @@ fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
     val acceptedFamily = familyMembers.filter { it.inviteStatus == "accepted" }
     var sosSent by remember { mutableStateOf(false) }
 
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { viewModel.refreshLocation() }
+    LaunchedEffect(Unit) {
+        viewModel.refreshLocation()
+        locationPermissionLauncher.launch(
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        )
+    }
+
     fun dial(phone: String) {
         try {
             context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
@@ -1370,7 +1383,7 @@ fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text("Joriy joylashuv", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
-                                Text(gpsLocation, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                                Text(gpsLocation.ifBlank { "Aniqlanmadi (ruxsat bering yoki GPS yoqing)" }, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
                             }
                         }
                         Spacer(modifier = Modifier.height(14.dp))

@@ -13,7 +13,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONObject
+import kotlin.coroutines.resume
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -23,9 +25,9 @@ data class SymptomQuestionsResult(
     val questions: List<String> = emptyList()
 )
 
-// Single source of truth for the super-admin account. This is a client-side-only check
-// (no server-side verification / Firebase custom claim yet) so it is not a real security
-// boundary, but keeping it in one place avoids the email string drifting across files.
+// Single source of truth for the super-admin account used by the UI. This is only a UI hint:
+// the real security boundary is the server-side `admin` custom claim (functions/index.js) that
+// firestore.rules checks. Keep it in sync with SUPER_ADMIN_EMAIL in functions/index.js.
 const val SUPER_ADMIN_EMAIL = "asadbekistamov99@gmail.com"
 
 class AppViewModel(application: Application) : AndroidViewModel(application) {
@@ -39,21 +41,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         initialValue = null
     )
 
-    // Re-derives from the live signed-in email on every read rather than trusting a stored
-    // isAdmin flag, so it stays correct even if a Room row was edited/seeded incorrectly.
+    // Derived from the live signed-in user's email (never from a stored flag). Reads the
+    // StateFlow's current value, so it is safe to call from composition (no blocking DB access).
     val isSuperAdmin: Boolean
-        get() {
-            val user = try {
-                kotlinx.coroutines.runBlocking(Dispatchers.IO) {
-                    dao.getCurrentUser()
-                }
-            } catch (t: Throwable) {
-                currentUser.value
-            } ?: currentUser.value
+        get() = currentUser.value?.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true
 
-            return user?.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true
-        }
-
+    // True only when a real Firebase project is configured (google-services.json present).
+    private fun firebaseReady(): Boolean = try {
+        com.google.firebase.FirebaseApp.getApps(getApplication<Application>()).isNotEmpty()
+    } catch (t: Throwable) {
+        false
+    }
 
     private var documentsJob: kotlinx.coroutines.Job? = null
     private var scansJob: kotlinx.coroutines.Job? = null
@@ -253,8 +251,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     private val _onboardingCompleted = MutableStateFlow(true)
     val onboardingCompleted: StateFlow<Boolean> = _onboardingCompleted.asStateFlow()
 
-    // --- Simulated GPS Location ---
-    private val _gpsLocation = MutableStateFlow("41.311081, 69.240562") // Tashkent default
+    // --- Device GPS Location (empty until a real fix is obtained via refreshLocation()) ---
+    private val _gpsLocation = MutableStateFlow("")
     val gpsLocation: StateFlow<String> = _gpsLocation.asStateFlow()
 
     // --- UI Dynamic States ---
@@ -315,20 +313,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     val loggedWater: StateFlow<Int> = _loggedWater.asStateFlow()
 
     init {
-        // Safe programmatic initialization of Firebase App
-        try {
-            if (com.google.firebase.FirebaseApp.getApps(application).isEmpty()) {
-                val options = com.google.firebase.FirebaseOptions.Builder()
-                    .setApplicationId("1:835669cb29b74b1f:android:835669cb29b7")
-                    .setProjectId("medai-uz-project")
-                    .setApiKey("AIzaSyFakeKeyForLocalAndroidAppPreviewRun")
-                    .build()
-                com.google.firebase.FirebaseApp.initializeApp(application, options)
-                Log.d("FirebaseInit", "Firebase App initialized programmatically successfully!")
-            }
-        } catch (e: Exception) {
-            Log.e("FirebaseInit", "Firebase initialization bypassed/failed: ${e.message}")
-        }
         viewModelScope.launch {
             // Prepopulate some app configuration if not already there
             val config = dao.getAppConfig()
@@ -337,50 +321,17 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             seedAdminDataIfNeeded()
             
-            // Activate Premium VIP membership for current user and ensure admin authorization
+            // Keep the stored admin hint consistent with the signed-in email. No default/demo
+            // account is ever created: with no user the app shows onboarding/login.
             val existingUser = dao.getCurrentUser()
             if (existingUser != null) {
                 val shouldBeAdmin = existingUser.email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
-                var updatedUser = existingUser
-                if (!existingUser.isPremium) {
-                    val oneYearExpiry = System.currentTimeMillis() + 365L * 24 * 3600 * 1000L
-                    updatedUser = updatedUser.copy(isPremium = true, premiumExpiry = oneYearExpiry)
-                }
                 if (existingUser.isAdmin != shouldBeAdmin) {
-                    updatedUser = updatedUser.copy(isAdmin = shouldBeAdmin)
+                    dao.insertUser(existingUser.copy(isAdmin = shouldBeAdmin))
                 }
-                // When resetting statistics as requested, bring score to 0 baseline if no activities completed yet
-                dao.insertUser(updatedUser)
                 recalculateHealthScore()
-            } else {
-                // If no user exists, create a default active Premium user profile for instant access with 0 baseline
-                val defaultUid = UUID.randomUUID().toString()
-                val defaultUser = UserLocal(
-                    uid = defaultUid,
-                    name = "Asadbek Istamov",
-                    email = SUPER_ADMIN_EMAIL,
-                    phone = "+998 90 123 45 67",
-                    dateOfBirth = "1999-05-15",
-                    gender = "male",
-                    bloodType = "O+",
-                    height = 178.0,
-                    weight = 72.0,
-                    isPremium = true,
-                    premiumExpiry = System.currentTimeMillis() + 365L * 24 * 3600 * 1000L,
-                    language = "uz",
-                    fcmToken = "fcm_token_" + defaultUid.take(6),
-                    createdAt = System.currentTimeMillis(),
-                    lastActive = System.currentTimeMillis(),
-                    healthScore = 0, // Starts strictly at 0 for all new users
-                    isAdmin = true,
-                    isBanned = false,
-                    avatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80"
-                )
-                dao.insertUser(defaultUser)
-                _onboardingCompleted.value = true
-                addMockFamilyData(defaultUid)
             }
-            
+
             checkPremiumExpiriesAndProcess()
 
 
@@ -418,10 +369,14 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
                         startFirestoreRemindersListener(user.uid)
                         startFirestoreVitalsListener(user.uid)
+                        startOwnUserDocListener(user.uid)
+                        startSettingsListener()
+                        pushUserProfile(user)
 
                         val isAdminUser = user.email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
                         if (isAdminUser) {
                             startAdminLogsFirestoreListener()
+                            startUsersCollectionListener()
                         }
                         startPaymentRequestsFirestoreListener(user.uid, isAdminUser)
 
@@ -452,43 +407,22 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     recalculateHealthScore()
                 }
 
-                // Simulate family members dynamic health updates to reflect REAL-TIME in UI
-                val list = familyMembers.value
-                if (list.isNotEmpty()) {
-                    val updated = list.map { member ->
-                        val stepChange = (5..20).random()
-                        val scoreShift = (-2..2).random()
-                        val newScore = (member.healthScore + scoreShift).coerceIn(30, 100)
-                        
-                        // Auto notify if member health falls below 40 as per push triggers specs
-                        if (newScore < 40 && member.healthScore >= 40 && member.inviteStatus == "accepted") {
-                            sendSimulatedPush(
-                                "⚠️ ${member.name} sog'lig'i yomonlashdi",
-                                "${member.name}ning salomatlik ko'rsatkichi $newScore gacha pasaydi. Iltimos, nazorat qiling.",
-                                "sos"
-                            )
-                        }
-
-                        member.copy(
-                            stepsToday = member.stepsToday + stepChange,
-                            healthScore = newScore,
-                            lastActive = System.currentTimeMillis()
-                        )
-                    }
-                    updated.forEach { dao.insertFamilyMember(it) }
-                }
             }
         }
     }
 
     // --- Authentication ---
+    // `uid` is the Firebase Auth uid when signed in through Firebase (so Firestore rules'
+    // `userId == request.auth.uid` checks pass); a random local id is only used in debug builds
+    // without a Firebase project. New accounts are always free tier and never admin by default.
     suspend fun registerUserSuspend(
         name: String, email: String, phone: String, dob: String, gender: String,
-        bloodType: String, height: Double, weight: Double
+        bloodType: String, height: Double, weight: Double,
+        uid: String? = null
     ) {
-        val uid = UUID.randomUUID().toString()
+        val userId = uid ?: UUID.randomUUID().toString()
         val user = UserLocal(
-            uid = uid,
+            uid = userId,
             name = name,
             email = email,
             phone = phone,
@@ -497,83 +431,137 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             bloodType = bloodType,
             height = height,
             weight = weight,
-            isPremium = true,
-            premiumExpiry = System.currentTimeMillis() + 365L * 24 * 3600 * 1000L,
+            isPremium = false,
+            premiumExpiry = null,
             language = _currentLanguage.value,
-            fcmToken = "simulated_fcm_token_" + UUID.randomUUID().toString().take(6),
+            fcmToken = "",
             createdAt = System.currentTimeMillis(),
             lastActive = System.currentTimeMillis(),
             healthScore = 0, // Starts at 0 for all new users; grows as rules & medical tasks are completed
-            isAdmin = email.equals(SUPER_ADMIN_EMAIL, ignoreCase = true),
+            isAdmin = email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true),
             isBanned = false,
-            avatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80"
+            avatarUrl = ""
         )
         dao.insertUser(user)
         _onboardingCompleted.value = true
-        
+
         // Add a welcome notification
         dao.insertNotification(NotificationLocal(
-            userId = uid,
+            userId = userId,
             title = "MedAI xush kelibsiz! 🎉",
             message = "Sizning AI shaxsiy tibbiy yordamchingiz ishga tushdi. Salomatligingizni bugundan boshlab yaxshilang.",
             type = "system"
         ))
-
-        // Add mock family members for simulation
-        addMockFamilyData(uid)
     }
+
+    private fun toast(message: String) {
+        Toast.makeText(getApplication(), message, Toast.LENGTH_LONG).show()
+    }
+
+    private suspend fun firebaseEmailAuth(email: String, password: String, create: Boolean): Result<String> =
+        suspendCancellableCoroutine { cont ->
+            try {
+                val auth = com.google.firebase.auth.FirebaseAuth.getInstance()
+                val task = if (create) auth.createUserWithEmailAndPassword(email, password)
+                else auth.signInWithEmailAndPassword(email, password)
+                task.addOnSuccessListener { result ->
+                    val uid = result.user?.uid
+                    if (cont.isActive) {
+                        cont.resume(if (uid.isNullOrEmpty()) Result.failure(IllegalStateException("Firebase uid yo'q")) else Result.success(uid))
+                    }
+                }.addOnFailureListener { e ->
+                    if (cont.isActive) cont.resume(Result.failure(e))
+                }
+            } catch (t: Throwable) {
+                if (cont.isActive) cont.resume(Result.failure(t))
+            }
+        }
 
     fun registerUser(
         name: String, email: String, phone: String, dob: String, gender: String,
         bloodType: String, height: Double, weight: Double,
+        password: String = "",
         onSuccess: () -> Unit = {}
     ) {
         viewModelScope.launch {
-            registerUserSuspend(name, email, phone, dob, gender, bloodType, height, weight)
+            val cleanEmail = email.trim()
+            var uid: String? = null
+            if (firebaseReady()) {
+                val result = firebaseEmailAuth(cleanEmail, password, create = true)
+                uid = result.getOrElse {
+                    toast(it.localizedMessage ?: "Ro'yxatdan o'tishda xatolik")
+                    return@launch
+                }
+            } else if (!com.example.BuildConfig.DEBUG) {
+                toast("Server sozlanmagan: Firebase ulanmagan")
+                return@launch
+            }
+            dao.clearCurrentUser()
+            registerUserSuspend(name, cleanEmail, phone, dob, gender, bloodType, height, weight, uid)
             onSuccess()
         }
     }
 
-    fun loginUser(email: String, onSuccess: () -> Unit = {}) {
+    fun loginUser(email: String, password: String = "", onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
             val trimmedEmail = email.trim()
-            val shouldBeAdmin = trimmedEmail.equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
-            // Attempt to login. If exists, we can use it. Otherwise, create a default user profile.
+            var uid: String? = null
+            if (firebaseReady()) {
+                val result = firebaseEmailAuth(trimmedEmail, password, create = false)
+                uid = result.getOrElse {
+                    toast(it.localizedMessage ?: "Kirishda xatolik")
+                    return@launch
+                }
+            } else if (!com.example.BuildConfig.DEBUG) {
+                toast("Server sozlanmagan: Firebase ulanmagan")
+                return@launch
+            }
             val current = dao.getCurrentUser()
-            if (current != null && current.email.equals(trimmedEmail, ignoreCase = true)) {
+            val sameAccount = current != null && current.email.equals(trimmedEmail, ignoreCase = true) &&
+                (uid == null || current.uid == uid)
+            if (sameAccount && current != null) {
                 dao.insertUser(current.copy(
                     lastActive = System.currentTimeMillis(),
-                    isAdmin = shouldBeAdmin
+                    isAdmin = trimmedEmail.equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
                 ))
             } else {
+                dao.clearCurrentUser()
                 registerUserSuspend(
                     name = trimmedEmail.substringBefore("@").replaceFirstChar { it.uppercase() },
                     email = trimmedEmail,
-                    phone = "+998 90 123 45 67",
-                    dob = "1999-05-15",
+                    phone = "",
+                    dob = "",
                     gender = "male",
-                    bloodType = "O+",
-                    height = 178.0,
-                    weight = 72.0
+                    bloodType = "",
+                    height = 0.0,
+                    weight = 0.0,
+                    uid = uid
                 )
             }
+            if (trimmedEmail.equals(SUPER_ADMIN_EMAIL, ignoreCase = true)) ensureAdminClaimIfEligible()
             onSuccess()
         }
     }
 
-    fun loginWithGoogle(name: String, email: String, onSuccess: () -> Unit = {}) {
+    fun loginWithGoogle(name: String, email: String, uid: String? = null, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
-            dao.clearCurrentUser()
-            registerUserSuspend(
-                name = name,
-                email = email,
-                phone = "+998 99 999 99 99",
-                dob = "1998-08-20",
-                gender = "male",
-                bloodType = "A+",
-                height = 175.0,
-                weight = 68.0
-            )
+            val current = dao.getCurrentUser()
+            if (current != null && uid != null && current.uid == uid) {
+                dao.insertUser(current.copy(lastActive = System.currentTimeMillis()))
+            } else {
+                dao.clearCurrentUser()
+                registerUserSuspend(
+                    name = name,
+                    email = email,
+                    phone = "",
+                    dob = "",
+                    gender = "male",
+                    bloodType = "",
+                    height = 0.0,
+                    weight = 0.0,
+                    uid = uid
+                )
+            }
             if (email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true)) {
                 ensureAdminClaimIfEligible()
             }
@@ -581,24 +569,48 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun resetPassword(email: String) {
+        val clean = email.trim()
+        if (clean.isEmpty()) {
+            toast("Avval elektron pochtangizni kiriting")
+            return
+        }
+        if (!firebaseReady()) {
+            toast("Server sozlanmagan: parolni tiklab bo'lmaydi")
+            return
+        }
+        try {
+            com.google.firebase.auth.FirebaseAuth.getInstance().sendPasswordResetEmail(clean)
+                .addOnSuccessListener { toast("Parolni tiklash havolasi pochtangizga yuborildi") }
+                .addOnFailureListener { toast(it.localizedMessage ?: "Xatolik yuz berdi") }
+        } catch (t: Throwable) {
+            toast("Xatolik: ${t.localizedMessage}")
+        }
+    }
+
     // Requests the server-side admin custom claim (see functions/index.js) for the
     // currently signed-in Firebase Auth user, when it's the configured admin account. This is
-    // what actually makes firestore.rules' isAdmin() check pass — the local isSuperAdmin
-    // property alone only controls what the UI shows, it has no server-side effect. Safe to
-    // call defensively (e.g. every admin-panel open): it no-ops once the claim is already set,
-    // and fails silently (logged only) if Cloud Functions aren't deployed yet.
+    // what actually makes firestore.rules' isAdmin() check pass. No-ops when Firebase isn't
+    // configured or the claim call fails (logged only).
     fun ensureAdminClaimIfEligible() {
-        val fbUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
-        if (!(fbUser.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true)) return
-        com.google.firebase.functions.FirebaseFunctions.getInstance()
-            .getHttpsCallable("claimAdminIfEligible")
-            .call()
-            .addOnSuccessListener {
-                Log.d("AdminClaim", "Server-side admin claim confirmed for ${fbUser.email}")
-            }
-            .addOnFailureListener { e ->
-                Log.w("AdminClaim", "Could not confirm server-side admin claim (functions not deployed yet?): ${e.message}")
-            }
+        if (!firebaseReady()) return
+        try {
+            val fbUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser ?: return
+            if (!(fbUser.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true)) return
+            com.google.firebase.functions.FirebaseFunctions.getInstance()
+                .getHttpsCallable("claimAdminIfEligible")
+                .call()
+                .addOnSuccessListener {
+                    // Force-refresh the ID token so the new custom claim is actually applied.
+                    fbUser.getIdToken(true)
+                    Log.d("AdminClaim", "Server-side admin claim confirmed for ${fbUser.email}")
+                }
+                .addOnFailureListener { e ->
+                    Log.w("AdminClaim", "Could not confirm server-side admin claim: ${e.message}")
+                }
+        } catch (t: Throwable) {
+            Log.w("AdminClaim", "Admin claim request skipped: ${t.message}")
+        }
     }
 
     fun logout() {
@@ -618,6 +630,21 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
             _firestoreReminders.value = emptyList()
             _firestoreVitals.value = emptyList()
+            try {
+                paymentRequestsListenerRegistration?.remove()
+                paymentRequestsListenerRegistration = null
+                adminLogsListenerRegistration?.remove()
+                adminLogsListenerRegistration = null
+                ownUserDocRegistration?.remove()
+                ownUserDocRegistration = null
+                settingsRegistration?.remove()
+                settingsRegistration = null
+                usersCollectionRegistration?.remove()
+                usersCollectionRegistration = null
+            } catch (e: Exception) {
+                Log.e("Auth", "Failed to remove listeners: ${e.message}")
+            }
+            lastInitializedUid = null
             dao.clearCurrentUser()
             _onboardingCompleted.value = false
         }
@@ -1315,25 +1342,58 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     // --- Emergency SOS System ---
+    // Reads the last known device location (requires the runtime location permission, which
+    // the SOS screen requests). Leaves the value empty when unavailable instead of faking one.
+    @android.annotation.SuppressLint("MissingPermission")
+    fun refreshLocation() {
+        val app = getApplication<Application>()
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+            app, android.Manifest.permission.ACCESS_FINE_LOCATION
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+            androidx.core.content.ContextCompat.checkSelfPermission(
+                app, android.Manifest.permission.ACCESS_COARSE_LOCATION
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) return
+        try {
+            com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(app)
+                .lastLocation
+                .addOnSuccessListener { loc ->
+                    if (loc != null) _gpsLocation.value = "%.6f, %.6f".format(Locale.US, loc.latitude, loc.longitude)
+                }
+        } catch (t: Throwable) {
+            Log.w("SOS", "Location unavailable: ${t.message}")
+        }
+    }
+
+    // Opens the system share sheet with the user's location so the message can be sent to
+    // family/contacts through any installed messenger or SMS app (no backend needed), and
+    // records the event in the in-app notification list.
     fun triggerSOS() {
         viewModelScope.launch {
             val user = currentUser.value ?: return@launch
             val loc = gpsLocation.value
+            val mapsLink = if (loc.isBlank()) "joylashuv aniqlanmadi" else "https://maps.google.com/?q=$loc"
 
             dao.insertNotification(NotificationLocal(
                 userId = user.uid,
                 title = "🆘 SOS signali yuborildi",
-                message = "Joylashuvingiz: $loc. Oila a'zolaringizga xabar yuborildi.",
+                message = if (loc.isBlank()) "Joylashuv aniqlanmadi" else "Joylashuvingiz: $loc",
                 type = "sos"
             ))
-            Toast.makeText(getApplication(), "SOS signali faollashtirildi! Favqulodda yordam jo'natilmoqda.", Toast.LENGTH_LONG).show()
 
-            // Alert accepted family members as per specifications
-            sendSimulatedPush(
-                "🆘 ${user.name} SOS signal yubordi!",
-                "Unga yordam kerak! Joylashuv: https://maps.google.com/?q=$loc",
-                "sos"
-            )
+            try {
+                val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(android.content.Intent.EXTRA_TEXT, "🆘 ${user.name} yordam so'ramoqda! Joylashuv: $mapsLink")
+                }
+                val chooser = android.content.Intent.createChooser(send, "SOS xabarini yuborish").apply {
+                    addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                getApplication<Application>().startActivity(chooser)
+            } catch (t: Throwable) {
+                Log.w("SOS", "Could not open share sheet: ${t.message}")
+                toast("SOS xabarini yuborib bo'lmadi. Tez yordam: 103")
+            }
         }
     }
 
@@ -1425,6 +1485,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 Log.e("FirestorePayment", "Failed to approve: ${ex.message}")
             }
 
+            // Persist the premium grant server-side so it reaches the user's own device.
+            val grantExpiry = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, 30) }.timeInMillis
+            setUserFlagsInFirestore(request.userId, mapOf("isPremium" to true, "premiumExpiry" to grantExpiry))
+
             // Trigger Premium Grant
             val user = dao.getCurrentUser()
             if (user != null && user.uid == request.userId) {
@@ -1480,72 +1544,40 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             val config = dao.getAppConfig() ?: AppConfigLocal()
             dao.insertAppConfig(config.copy(maintenanceMode = enabled))
-        }
-    }
-
-    fun banUserToggle(uid: String) {
-        viewModelScope.launch {
-            val user = dao.getCurrentUser()
-            if (user != null && user.uid == uid) {
-                dao.insertUser(user.copy(isBanned = !user.isBanned))
+            // Admin-only server write; every client mirrors it via startSettingsListener().
+            if (isSuperAdmin && firebaseReady()) {
+                try {
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                        .collection("settings").document("app_config")
+                        .set(mapOf("maintenanceMode" to enabled), com.google.firebase.firestore.SetOptions.merge())
+                        .addOnFailureListener { Log.w("FirestoreSettings", "Maintenance write failed: ${it.message}") }
+                } catch (t: Throwable) {
+                    Log.w("FirestoreSettings", "Maintenance write skipped: ${t.message}")
+                }
             }
         }
     }
 
-    // --- Mock Data Prep ---
-    private suspend fun addMockFamilyData(currentUserId: String) {
-        // Mock family members
-        val member1 = FamilyMemberLocal(
-            uid = "family_uid_1",
-            name = "Malika Karimova",
-            email = "malika@gmail.com",
-            phone = "+998 91 222 33 44",
-            relation = "Turmush o'rtog'i",
-            avatarUrl = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
-            healthScore = 0,
-            stepsToday = 0,
-            lastActive = System.currentTimeMillis(),
-            activeRemindersCount = 0,
-            sosStatus = false,
-            inviteStatus = "accepted",
-            isInvitedByMe = true
-        )
-        val member2 = FamilyMemberLocal(
-            uid = "family_uid_2",
-            name = "Jasur Karimov",
-            email = "jasur@gmail.com",
-            phone = "+998 90 777 88 99",
-            relation = "O'g'li",
-            avatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
-            healthScore = 0,
-            stepsToday = 0,
-            lastActive = System.currentTimeMillis(),
-            activeRemindersCount = 0,
-            sosStatus = false,
-            inviteStatus = "accepted",
-            isInvitedByMe = true
-        )
-        val invite1 = FamilyMemberLocal(
-            uid = "family_uid_3",
-            name = "Soliha Karimova",
-            email = "soliha@gmail.com",
-            phone = "+998 93 456 12 34",
-            relation = "Qizi",
-            avatarUrl = "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80",
-            healthScore = 0,
-            stepsToday = 0,
-            lastActive = System.currentTimeMillis(),
-            activeRemindersCount = 0,
-            sosStatus = false,
-            inviteStatus = "pending",
-            isInvitedByMe = false // they invited us!
-        )
+    private var settingsRegistration: com.google.firebase.firestore.ListenerRegistration? = null
 
-        dao.insertFamilyMember(member1)
-        dao.insertFamilyMember(member2)
-        dao.insertFamilyMember(invite1)
-        seedStandardImmunizations(member1.uid, member1.relation)
-        seedStandardImmunizations(member2.uid, member2.relation)
+    // Mirrors the global maintenance switch from Firestore (settings/app_config) for all users.
+    private fun startSettingsListener() {
+        if (!firebaseReady()) return
+        try {
+            settingsRegistration?.remove()
+            settingsRegistration = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("settings").document("app_config")
+                .addSnapshotListener { doc, e ->
+                    if (e != null || doc == null || !doc.exists()) return@addSnapshotListener
+                    val remote = doc.getBoolean("maintenanceMode") ?: return@addSnapshotListener
+                    viewModelScope.launch(Dispatchers.IO) {
+                        val config = dao.getAppConfig() ?: AppConfigLocal()
+                        if (config.maintenanceMode != remote) dao.insertAppConfig(config.copy(maintenanceMode = remote))
+                    }
+                }
+        } catch (t: Throwable) {
+            Log.w("FirestoreSettings", "Settings listener skipped: ${t.message}")
+        }
     }
 
     // --- Daily Health Tracking & Analytics ---
@@ -2172,13 +2204,33 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun addErrorLog(screen: String, errorMessage: String) {
         viewModelScope.launch {
             val user = currentUser.value
+            val device = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL} (API ${android.os.Build.VERSION.SDK_INT})"
+            val version = com.example.BuildConfig.VERSION_NAME
             dao.insertErrorLog(ErrorLog(
                 userId = user?.uid ?: "anonymous",
                 screen = screen,
                 errorMessage = errorMessage,
-                appVersion = "1.0",
-                deviceInfo = "Android Emulator / Local Device"
+                appVersion = version,
+                deviceInfo = device
             ))
+            if (firebaseReady() && com.google.firebase.auth.FirebaseAuth.getInstance().currentUser != null) {
+                try {
+                    com.google.firebase.firestore.FirebaseFirestore.getInstance().collection("errorLogs").add(
+                        hashMapOf(
+                            "userId" to (user?.uid ?: "anonymous"),
+                            "userName" to (user?.name ?: ""),
+                            "errorMessage" to errorMessage,
+                            "stackTrace" to "",
+                            "deviceModel" to device,
+                            "osVersion" to "Android ${android.os.Build.VERSION.RELEASE}",
+                            "appVersion" to version,
+                            "timestamp" to System.currentTimeMillis()
+                        )
+                    )
+                } catch (t: Throwable) {
+                    Log.w("FirestoreErrors", "Error log upload skipped: ${t.message}")
+                }
+            }
         }
     }
 
@@ -2394,6 +2446,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                     type = "premium"
                 ))
                 
+                setUserFlagsInFirestore(uid, mapOf("isPremium" to true, "premiumExpiry" to newExpiry))
                 logAdminAction("Extend Premium", name, "Premium obunasi $days kunga uzaytirildi.")
                 Toast.makeText(getApplication(), "Premium $days kunga uzaytirildi!", Toast.LENGTH_SHORT).show()
             }
@@ -2414,6 +2467,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 dao.insertUser(curr.copy(isBanned = true))
             }
             
+            setUserFlagsInFirestore(uid, mapOf("isBanned" to true))
             logAdminAction("Block User", name, "Bloklash sababi: $reason")
             Toast.makeText(getApplication(), "$name bloklandi", Toast.LENGTH_SHORT).show()
         }
@@ -2433,6 +2487,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 dao.insertUser(curr.copy(isBanned = false))
             }
             
+            setUserFlagsInFirestore(uid, mapOf("isBanned" to false))
             logAdminAction("Unblock User", name, "Foydalanuvchi blokdan chiqarildi")
             Toast.makeText(getApplication(), "$name blokdan chiqarildi", Toast.LENGTH_SHORT).show()
         }
@@ -2628,166 +2683,6 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
                 )
             )
             medList.forEach { dao.insertMedicine(it) }
-        }
-
-        val currentUsers = dao.getAllSystemUsers()
-        if (currentUsers.isEmpty()) {
-            val mockUsersList = listOf(
-                UserSystem(
-                    uid = "user_1",
-                    name = "Jamshid Alimov",
-                    email = "jamshid@gmail.com",
-                    phone = "+998 90 345 67 89",
-                    dateOfBirth = "1994-11-12",
-                    gender = "male",
-                    bloodType = "A+",
-                    height = 180.0,
-                    weight = 82.0,
-                    isPremium = true,
-                    premiumExpiry = System.currentTimeMillis() + (5 * 24 * 3600 * 1000L),
-                    language = "uz",
-                    fcmToken = "token_jamshid",
-                    createdAt = System.currentTimeMillis() - (20 * 24 * 3600 * 1000L),
-                    lastActive = System.currentTimeMillis() - (10 * 60 * 1000L),
-                    healthScore = 88,
-                    isAdmin = false,
-                    isBanned = false,
-                    avatarUrl = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80",
-                    currentScreen = "SymptomChecker",
-                    city = "Toshkent",
-                    lastScreenBeforeUpgrade = "SymptomChecker"
-                ),
-                UserSystem(
-                    uid = "user_2",
-                    name = "Sardorbek Karimov",
-                    email = "sardor@gmail.com",
-                    phone = "+998 91 123 45 67",
-                    dateOfBirth = "1997-03-24",
-                    gender = "male",
-                    bloodType = "O+",
-                    height = 175.0,
-                    weight = 70.0,
-                    isPremium = true,
-                    premiumExpiry = System.currentTimeMillis() + (2 * 24 * 3600 * 1000L),
-                    language = "uz",
-                    fcmToken = "token_sardor",
-                    createdAt = System.currentTimeMillis() - (15 * 24 * 3600 * 1000L),
-                    lastActive = System.currentTimeMillis() - (2 * 60 * 1000L),
-                    healthScore = 92,
-                    isAdmin = false,
-                    isBanned = false,
-                    avatarUrl = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80",
-                    currentScreen = "Home",
-                    city = "Samarqand",
-                    lastScreenBeforeUpgrade = "AiDoctor"
-                ),
-                UserSystem(
-                    uid = "user_3",
-                    name = "Malika Sobirova",
-                    email = "malika@gmail.com",
-                    phone = "+998 93 987 65 43",
-                    dateOfBirth = "2001-08-14",
-                    gender = "female",
-                    bloodType = "B-",
-                    height = 165.0,
-                    weight = 54.0,
-                    isPremium = false,
-                    premiumExpiry = null,
-                    language = "uz",
-                    fcmToken = "token_malika",
-                    createdAt = System.currentTimeMillis() - (5 * 24 * 3600 * 1000L),
-                    lastActive = System.currentTimeMillis() - (4 * 24 * 3600 * 1000L),
-                    healthScore = 79,
-                    isAdmin = false,
-                    isBanned = false,
-                    avatarUrl = "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80",
-                    currentScreen = "MedicineSearch",
-                    city = "Buxoro",
-                    lastScreenBeforeUpgrade = ""
-                ),
-                UserSystem(
-                    uid = "user_4",
-                    name = "Jasur Rustamov",
-                    email = "jasur@gmail.com",
-                    phone = "+998 97 765 43 21",
-                    dateOfBirth = "1992-06-30",
-                    gender = "male",
-                    bloodType = "AB+",
-                    height = 182.0,
-                    weight = 89.0,
-                    isPremium = false,
-                    premiumExpiry = null,
-                    language = "uz",
-                    fcmToken = "token_jasur",
-                    createdAt = System.currentTimeMillis() - (40 * 24 * 3600 * 1000L),
-                    lastActive = System.currentTimeMillis() - (12 * 24 * 3600 * 1000L),
-                    healthScore = 65,
-                    isAdmin = false,
-                    isBanned = false,
-                    avatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80",
-                    currentScreen = "Reminders",
-                    city = "Namangan",
-                    lastScreenBeforeUpgrade = ""
-                ),
-                UserSystem(
-                    uid = "user_5",
-                    name = "Zilola Toirova",
-                    email = "zilola@gmail.com",
-                    phone = "+998 94 444 33 22",
-                    dateOfBirth = "1995-10-05",
-                    gender = "female",
-                    bloodType = "O-",
-                    height = 168.0,
-                    weight = 59.0,
-                    isPremium = false,
-                    premiumExpiry = null,
-                    language = "uz",
-                    fcmToken = "token_zilola",
-                    createdAt = System.currentTimeMillis() - (60 * 24 * 3600 * 1000L),
-                    lastActive = System.currentTimeMillis() - (45 * 24 * 3600 * 1000L),
-                    healthScore = 55,
-                    isAdmin = false,
-                    isBanned = false,
-                    avatarUrl = "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80",
-                    currentScreen = "Profile",
-                    city = "Andijon",
-                    lastScreenBeforeUpgrade = ""
-                )
-            )
-            dao.insertSystemUsers(mockUsersList)
-
-            val mockActivities = listOf(
-                UserActivityLog(userId = "user_1", screenName = "Home", actionType = "view_screen", details = "Bosh ekranga kirdi"),
-                UserActivityLog(userId = "user_1", screenName = "SymptomChecker", actionType = "view_screen", details = "Simptomlar bo'limiga kirdi"),
-                UserActivityLog(userId = "user_1", screenName = "SymptomChecker", actionType = "symptom_check", details = "Isitma va tomoq og'rig'i bo'yicha tashxis o'tkazdi"),
-                UserActivityLog(userId = "user_2", screenName = "Home", actionType = "view_screen", details = "Bosh ekranga kirdi"),
-                UserActivityLog(userId = "user_2", screenName = "AiDoctor", actionType = "view_screen", details = "AI Shifokor bilan suhbatni boshladi"),
-                UserActivityLog(userId = "user_3", screenName = "MedicineSearch", actionType = "view_screen", details = "Dori qidirish bo'limiga kirdi"),
-                UserActivityLog(userId = "user_3", screenName = "MedicineSearch", actionType = "medicine_search", details = "Paratsetamol preparatini qidirdi"),
-                UserActivityLog(userId = "user_4", screenName = "Reminders", actionType = "view_screen", details = "Eslatmalar oynasini ochdi"),
-                UserActivityLog(userId = "user_4", screenName = "Reminders", actionType = "reminder_complete", details = "Vitamin D eslatmasini bajardi")
-            )
-            mockActivities.forEach { dao.insertUserActivity(it) }
-
-            val mockErrors = listOf(
-                ErrorLog(userId = "user_1", screen = "SymptomChecker", errorMessage = "Network timeout exception while calling Gemini API", appVersion = "1.1.2", deviceInfo = "Xiaomi Redmi Note 11", isResolved = false),
-                ErrorLog(userId = "user_3", screen = "LabAnalysis", errorMessage = "NullPointerException inside analyzeLabReportImage()", appVersion = "1.1.2", deviceInfo = "Samsung Galaxy S22", isResolved = false),
-                ErrorLog(userId = "user_4", screen = "Home", errorMessage = "SQLiteException: no such column", appVersion = "1.1.1", deviceInfo = "Realme 9 Pro", isResolved = true)
-            )
-            mockErrors.forEach { dao.insertErrorLog(it) }
-
-            val mockApiLogs = listOf(
-                ApiUsageLog(feature = "Symptom", tokensUsed = 1250, costEstimateUsd = 0.0025, timestamp = System.currentTimeMillis() - (2 * 3600 * 1000)),
-                ApiUsageLog(feature = "Doctor", tokensUsed = 2400, costEstimateUsd = 0.0048, timestamp = System.currentTimeMillis() - (5 * 3600 * 1000)),
-                ApiUsageLog(feature = "Lab", tokensUsed = 4100, costEstimateUsd = 0.0082, timestamp = System.currentTimeMillis() - (12 * 3600 * 1000)),
-                ApiUsageLog(feature = "Medicine", tokensUsed = 850, costEstimateUsd = 0.0017, timestamp = System.currentTimeMillis() - (24 * 3600 * 1000))
-            )
-            mockApiLogs.forEach { dao.insertApiUsageLog(it) }
-
-            val mockAdminLogs = listOf(
-                AdminLog(adminEmail = SUPER_ADMIN_EMAIL, action = "System Setup", targetUser = "All", details = "Tizim ma'lumotlari muvaffaqiyatli o'rnatildi.", timestamp = System.currentTimeMillis() - (24 * 3600 * 1000L))
-            )
-            mockAdminLogs.forEach { dao.insertAdminLog(it) }
         }
     }
 
@@ -3223,6 +3118,127 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+
+    // --- Firestore user profiles (server-side source of truth for premium / ban state) ---
+    private var ownUserDocRegistration: com.google.firebase.firestore.ListenerRegistration? = null
+    private var usersCollectionRegistration: com.google.firebase.firestore.ListenerRegistration? = null
+
+    // Writes only non-privileged profile fields. firestore.rules forbids the owner from
+    // touching isPremium / premiumExpiry / isBanned, which only admins can set.
+    private fun pushUserProfile(user: UserLocal) {
+        if (!firebaseReady()) return
+        try {
+            val fbUser = com.google.firebase.auth.FirebaseAuth.getInstance().currentUser
+            if (fbUser == null || fbUser.uid != user.uid) return
+            com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("users").document(user.uid)
+                .set(
+                    hashMapOf(
+                        "name" to user.name,
+                        "email" to user.email,
+                        "phone" to user.phone,
+                        "language" to user.language,
+                        "createdAt" to user.createdAt,
+                        "lastActive" to System.currentTimeMillis()
+                    ),
+                    com.google.firebase.firestore.SetOptions.merge()
+                )
+                .addOnFailureListener { Log.w("FirestoreUser", "Profile sync failed: ${it.message}") }
+        } catch (t: Throwable) {
+            Log.w("FirestoreUser", "Profile sync skipped: ${t.message}")
+        }
+    }
+
+    // Applies server-granted premium / ban state to the local profile.
+    private fun startOwnUserDocListener(uid: String) {
+        if (!firebaseReady()) return
+        try {
+            ownUserDocRegistration?.remove()
+            ownUserDocRegistration = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("users").document(uid)
+                .addSnapshotListener { doc, e ->
+                    if (e != null || doc == null || !doc.exists()) return@addSnapshotListener
+                    viewModelScope.launch(Dispatchers.IO) {
+                        val me = dao.getCurrentUser() ?: return@launch
+                        if (me.uid != uid) return@launch
+                        val banned = doc.getBoolean("isBanned") ?: me.isBanned
+                        val expiry = doc.getLong("premiumExpiry")
+                        val premium = (doc.getBoolean("isPremium") ?: false) &&
+                            (expiry == null || expiry > System.currentTimeMillis())
+                        if (banned != me.isBanned || premium != me.isPremium || (premium && expiry != me.premiumExpiry)) {
+                            dao.insertUser(me.copy(
+                                isBanned = banned,
+                                isPremium = premium,
+                                premiumExpiry = if (premium) expiry else null
+                            ))
+                        }
+                    }
+                }
+        } catch (t: Throwable) {
+            Log.w("FirestoreUser", "Own user listener skipped: ${t.message}")
+        }
+    }
+
+    // Admin only: mirrors every registered user into the local system_users table that the
+    // admin panel reads.
+    private fun startUsersCollectionListener() {
+        if (!firebaseReady()) return
+        try {
+            usersCollectionRegistration?.remove()
+            usersCollectionRegistration = com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("users")
+                .addSnapshotListener { snapshots, e ->
+                    if (e != null || snapshots == null) return@addSnapshotListener
+                    viewModelScope.launch(Dispatchers.IO) {
+                        val existing = dao.getAllSystemUsers().associateBy { it.uid }
+                        for (doc in snapshots.documents) {
+                            val prev = existing[doc.id]
+                            val email = doc.getString("email") ?: ""
+                            dao.insertSystemUser(UserSystem(
+                                uid = doc.id,
+                                name = doc.getString("name") ?: email.substringBefore("@"),
+                                email = email,
+                                phone = doc.getString("phone") ?: "",
+                                dateOfBirth = prev?.dateOfBirth ?: "",
+                                gender = prev?.gender ?: "",
+                                bloodType = prev?.bloodType ?: "",
+                                height = prev?.height ?: 0.0,
+                                weight = prev?.weight ?: 0.0,
+                                isPremium = doc.getBoolean("isPremium") ?: false,
+                                premiumExpiry = doc.getLong("premiumExpiry"),
+                                language = doc.getString("language") ?: "uz",
+                                fcmToken = prev?.fcmToken ?: "",
+                                createdAt = doc.getLong("createdAt") ?: System.currentTimeMillis(),
+                                lastActive = doc.getLong("lastActive") ?: System.currentTimeMillis(),
+                                healthScore = prev?.healthScore ?: 0,
+                                isAdmin = email.trim().equals(SUPER_ADMIN_EMAIL, ignoreCase = true),
+                                isBanned = doc.getBoolean("isBanned") ?: false,
+                                avatarUrl = prev?.avatarUrl ?: "",
+                                currentScreen = prev?.currentScreen ?: "Home",
+                                city = prev?.city ?: ""
+                            ))
+                        }
+                    }
+                }
+        } catch (t: Throwable) {
+            Log.w("FirestoreUser", "Users listener skipped: ${t.message}")
+        }
+    }
+
+    // Admin only: persists premium / ban decisions server-side so they apply on the target
+    // user's own device and cannot be altered by the client.
+    private fun setUserFlagsInFirestore(uid: String, fields: Map<String, Any?>) {
+        if (!firebaseReady()) return
+        try {
+            com.google.firebase.firestore.FirebaseFirestore.getInstance()
+                .collection("users").document(uid)
+                .set(fields, com.google.firebase.firestore.SetOptions.merge())
+                .addOnFailureListener { Log.w("FirestoreUser", "Admin flag update failed: ${it.message}") }
+        } catch (t: Throwable) {
+            Log.w("FirestoreUser", "Admin flag update skipped: ${t.message}")
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         documentsJob?.cancel()
@@ -3231,6 +3247,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         vitalsListenerRegistration?.remove()
         adminLogsListenerRegistration?.remove()
         paymentRequestsListenerRegistration?.remove()
+        ownUserDocRegistration?.remove()
+        usersCollectionRegistration?.remove()
+        settingsRegistration?.remove()
     }
 }
 

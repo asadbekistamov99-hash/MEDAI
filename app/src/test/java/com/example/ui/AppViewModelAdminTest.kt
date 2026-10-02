@@ -41,11 +41,11 @@ class AppViewModelAdminTest {
         val seedUid = viewModel.dao.getCurrentUser()?.uid ?: "test-uid"
 
         viewModel.dao.insertUser(testUser(uid = seedUid, email = SUPER_ADMIN_EMAIL))
-        shadowOf(Looper.getMainLooper()).idle()
+        awaitEmail(SUPER_ADMIN_EMAIL)
         assertTrue(viewModel.isSuperAdmin)
 
         viewModel.dao.insertUser(testUser(uid = seedUid, email = "someone.else@gmail.com"))
-        shadowOf(Looper.getMainLooper()).idle()
+        awaitEmail("someone.else@gmail.com")
         assertFalse(viewModel.isSuperAdmin)
     }
 
@@ -53,16 +53,27 @@ class AppViewModelAdminTest {
     fun `isSuperAdmin matching ignores case and surrounding whitespace`() = runBlocking {
         val seedUid = viewModel.dao.getCurrentUser()?.uid ?: "test-uid"
 
-        viewModel.dao.insertUser(testUser(uid = seedUid, email = "  ${SUPER_ADMIN_EMAIL.uppercase()}  "))
-        shadowOf(Looper.getMainLooper()).idle()
+        val padded = "  ${SUPER_ADMIN_EMAIL.uppercase()}  "
+        viewModel.dao.insertUser(testUser(uid = seedUid, email = padded))
+        awaitEmail(padded)
         assertTrue(viewModel.isSuperAdmin)
     }
 
     @Test
     fun `isSuperAdmin is false when there is no signed-in user`() = runBlocking {
         viewModel.dao.clearCurrentUser()
-        shadowOf(Looper.getMainLooper()).idle()
+        awaitEmail(null)
         assertFalse(viewModel.isSuperAdmin)
+    }
+
+    // currentUser is a Room-backed StateFlow updated on another dispatcher, so poll briefly.
+    private fun awaitEmail(expected: String?) {
+        val deadline = System.currentTimeMillis() + 5000
+        while (System.currentTimeMillis() < deadline) {
+            shadowOf(Looper.getMainLooper()).idle()
+            if (viewModel.currentUser.value?.email == expected) return
+            Thread.sleep(25)
+        }
     }
 
     private fun testUser(uid: String, email: String) = UserLocal(

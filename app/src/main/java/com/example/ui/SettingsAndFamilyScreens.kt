@@ -54,7 +54,7 @@ import java.text.SimpleDateFormat
 fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
     val lang by viewModel.currentLanguage.collectAsState()
     val user by viewModel.currentUser.collectAsState()
-    val isSuperAdmin = user?.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true
+    val isSuperAdmin = viewModel.isSuperAdmin
     val medicalDocs by viewModel.medicalDocuments.collectAsState()
     val context = LocalContext.current
 

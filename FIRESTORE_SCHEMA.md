@@ -97,6 +97,14 @@ The database uses four primary root collections:
 - **Purpose**: Cross-device sync for daily heart rate / blood pressure / weight logs.
 - **Fields**: `userId`, `date`, `timestamp`, `heartRate`, `bpSystolic`, `bpDiastolic`, `weight`, `note`.
 
+### 2.9. `users` Collection
+- **Path**: `/users/{uid}` (uid = Firebase Auth uid)
+- **Purpose**: Profile mirror used by the admin panel, plus the **server-controlled** premium / ban state.
+- **Fields**: `name`, `email`, `phone`, `language`, `createdAt`, `lastActive` (written by the owner); `isPremium`, `premiumExpiry`, `isBanned` (written **only by admins**; the user's device applies them via a snapshot listener).
+
+### 2.10. `settings/app_config`
+- `maintenanceMode` (boolean) is written by the admin and mirrored to every client.
+
 ---
 
 ## 3. Document Security Rules (`firestore.rules`)
@@ -137,7 +145,10 @@ firebase use --add
 # 4. Deploy all Firestore configuration files simultaneously
 firebase deploy --only firestore
 
-# 5. Install the Cloud Functions' dependencies, then deploy them
+# 5. Store the Gemini API key as a server-side secret (never put it in the APK)
+firebase functions:secrets:set GEMINI_API_KEY
+
+# 6. Install the Cloud Functions' dependencies, then deploy them
 #    (this is what actually grants the admin custom claim — see functions/index.js)
 cd functions && npm install && cd ..
 firebase deploy --only functions
@@ -147,3 +158,12 @@ After deploying functions, sign in to the app once with the configured admin Goo
 account (`SUPER_ADMIN_EMAIL` in `AppViewModel.kt`, kept in sync with `functions/index.js`) —
 the admin custom claim is granted automatically on that sign-in, and the Admin Panel
 self-heals it on every open after that (see `AppViewModel.ensureAdminClaimIfEligible()`).
+
+## 6. Required one-time setup (cannot be done from code)
+
+1. Add the real `google-services.json` (Firebase console → Project settings) to `app/`.
+2. Enable **Email/Password** and **Google** sign-in providers; paste the OAuth *Web client ID* into
+   `app/src/main/res/values/strings.xml` (`google_web_client_id`).
+3. Deploy rules + functions (section 5) and set the `GEMINI_API_KEY` secret. Release builds call
+   Gemini only through the `askGemini` function; the key embedded via `.env` is used by DEBUG builds only.
+4. Provide `KEYSTORE_PATH`, `STORE_PASSWORD`, `KEY_PASSWORD` for release signing.

@@ -10,6 +10,18 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.token.admin == true;
     }
 
+    // 0. Users Collection (profile mirror + server-controlled premium / ban state)
+    // The owner may create/update only non-privileged profile fields. isPremium, premiumExpiry
+    // and isBanned can be written by admins only, so a client can never grant itself premium.
+    match /users/{userId} {
+      allow read: if isAdmin() || (isAuthenticated() && request.auth.uid == userId);
+      allow create: if isAuthenticated() && request.auth.uid == userId
+        && !request.resource.data.keys().hasAny(['isPremium', 'premiumExpiry', 'isBanned']);
+      allow update: if isAdmin() || (isAuthenticated() && request.auth.uid == userId
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['isPremium', 'premiumExpiry', 'isBanned']));
+      allow delete: if false;
+    }
+
     // 1. Content Collection (Articles, health tips, popups, announcements, banners)
     // Read: Allowed for anyone (public read) so users can see health tips and banners without friction.
     // Write: Allowed only for administrators.

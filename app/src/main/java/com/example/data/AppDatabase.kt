@@ -36,7 +36,7 @@ import androidx.room.RoomDatabase
         AdminLog::class
     ],
     version = 3,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun appDao(): AppDao
@@ -52,7 +52,9 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "medai_database"
                 )
-                .fallbackToDestructiveMigration()
+                // Never wipe users' health data on a normal upgrade: every future version bump
+                // must ship an explicit Migration (schemas are exported to app/schemas).
+                .fallbackToDestructiveMigrationOnDowngrade()
                 .build()
                 INSTANCE = instance
                 instance

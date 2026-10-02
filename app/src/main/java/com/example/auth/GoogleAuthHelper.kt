@@ -15,7 +15,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-data class GoogleSignInResult(val name: String, val email: String)
+data class GoogleSignInResult(val name: String, val email: String, val uid: String)
 
 /**
  * Real Google Sign-In via the Credential Manager API + Firebase Auth (replaces the previous
@@ -62,7 +62,7 @@ object GoogleAuthHelper {
                     ?: "Foydalanuvchi"
                 val email = firebaseUser.email ?: googleIdTokenCredential.id
 
-                Result.success(GoogleSignInResult(name = name, email = email))
+                Result.success(GoogleSignInResult(name = name, email = email, uid = firebaseUser.uid))
             } else {
                 Result.failure(IllegalStateException("Kutilmagan hisob ma'lumoti turi qaytdi"))
             }
