@@ -115,7 +115,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         item {
-            val isPremium = user?.isPremium ?: false
+            val isPremium = user?.hasPremiumAccess ?: false
             val heroBrush = if (isPremium) {
                 Brush.linearGradient(listOf(PremiumPurple, Color(0xFF4C1D95)))
             } else {
@@ -1021,34 +1021,44 @@ fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Box(
+            // One premium hero instead of three stacked rows. This is the funnel moment, so
+            // the badge, the promise and the pitch belong in a single block of brand colour.
+            Column(
                 modifier = Modifier
-                    .size(80.dp)
-                    .background(PremiumPurple.copy(alpha = 0.15f), CircleShape)
-                    .border(2.dp, PremiumPurple, CircleShape),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(PremiumGradient)
+                    .padding(horizontal = 24.dp, vertical = 26.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.Default.Star,
-                    contentDescription = null,
-                    tint = PremiumPurple,
-                    modifier = Modifier.size(42.dp)
+                Box(
+                    modifier = Modifier
+                        .size(64.dp)
+                        .background(Color.White.copy(alpha = 0.22f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(34.dp)
+                    )
+                }
+                Spacer(Modifier.height(Spacing.md))
+                Text(
+                    text = Translations.getString("premium_upgrade_title", lang),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = Color.White,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(Spacing.sm))
+                Text(
+                    text = Translations.getString("premium_upgrade_desc", lang),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.White.copy(alpha = 0.88f),
+                    textAlign = TextAlign.Center
                 )
             }
-            
-            Text(
-                text = Translations.getString("premium_upgrade_title", lang),
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = PremiumPurple
-            )
-            
-            Text(
-                text = Translations.getString("premium_upgrade_desc", lang),
-                fontSize = 14.sp,
-                color = TextSecondary,
-                textAlign = TextAlign.Center
-            )
 
             // Price tag card
             Card(
@@ -1062,15 +1072,14 @@ fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(Brush.horizontalGradient(listOf(PremiumPurple, Color(0xFF9333EA))))
+                        .background(Brush.horizontalGradient(listOf(Color(0xFF8B5CF6), Color(0xFF6D28D9))))
                         .padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = Translations.getString("premium_price", lang),
-                        color = Color.White,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 30.sp
+                        style = MaterialTheme.typography.displaySmall,
+                        color = Color.White
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
@@ -1079,9 +1088,8 @@ fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             "Все профессиональные функции разблокируются",
                             "Unlock all professional features completely"
                         ),
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color.White.copy(alpha = 0.85f)
                     )
                 }
             }
@@ -1101,9 +1109,8 @@ fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 ) {
                     Text(
                         text = getLangText("Premium Imkoniyatlari:", "Возможности Премиум:", "Premium Features:"),
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryGreen,
-                        fontSize = 16.sp
+                        style = MaterialTheme.typography.titleSmall,
+                        color = PrimaryGreen
                     )
 
                     val features = listOf(
@@ -1122,12 +1129,12 @@ fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = null,
-                                tint = PrimaryGreen,
+                                tint = SuccessGreen,
                                 modifier = Modifier.size(18.dp)
                             )
                             Text(
                                 text = feat,
-                                fontSize = 13.sp,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = TextPrimary
                             )
                         }
@@ -1174,31 +1181,22 @@ fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             Spacer(modifier = Modifier.height(8.dp))
 
             if (!showCheckInput) {
-                Button(
+                MedAIButton(
+                    text = Translations.getString("premium_upload_check", lang),
                     onClick = { showCheckInput = true },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PremiumPurple, contentColor = Color.White)
-                ) {
-                    Text(text = Translations.getString("premium_upload_check", lang), fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
+                    icon = Icons.Default.ReceiptLong,
+                    brush = PremiumGradient
+                )
             } else {
-                Button(
+                MedAIButton(
+                    text = Translations.getString("premium_submit", lang),
                     onClick = {
                         // Simulate check upload
                         viewModel.submitPaymentCheck("simulated_payment_check_base64_receipt")
                         showCheckInput = false
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen, contentColor = Color.White)
-                ) {
-                    Text(text = Translations.getString("premium_submit", lang), fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                }
+                    icon = Icons.Default.CheckCircle
+                )
             }
         }
     }
@@ -2034,7 +2032,7 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                     lastActive = System.currentTimeMillis()
                                                 )
                                                 coroutineScope.launch {
-                                                    viewModel.dao.insertFamilyMember(updatedMember)
+                                                    viewModel.updateFamilyMember(updatedMember)
                                                 }
                                                 Toast.makeText(viewModel.getApplication(), getLangText("Ko'rsatkichlar muvaffaqiyatli saqlandi!", "Показатели успешно сохранены!", "Vital readings saved successfully!"), Toast.LENGTH_SHORT).show()
                                             }
@@ -2806,7 +2804,7 @@ fun AnalyticsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 fun ServicesScreen(viewModel: AppViewModel, onBack: () -> Unit, onNavigateToUpgrade: () -> Unit) {
     val lang by viewModel.currentLanguage.collectAsState()
     val user by viewModel.currentUser.collectAsState()
-    val isPremium = user?.isPremium ?: false
+    val isPremium = user?.hasPremiumAccess ?: false
 
     val context = LocalContext.current
 
@@ -2829,10 +2827,8 @@ fun ServicesScreen(viewModel: AppViewModel, onBack: () -> Unit, onNavigateToUpgr
             item {
                 Text(
                     text = "Shahar tanlang:".uppercase(),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
-                    color = TextSecondary,
-                    letterSpacing = 1.sp
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondary
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
@@ -2840,22 +2836,11 @@ fun ServicesScreen(viewModel: AppViewModel, onBack: () -> Unit, onNavigateToUpgr
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     listOf("Toshkent", "Samarqand", "Buxoro", "Namangan").forEach { city ->
-                        val isSelected = selectedCity == city
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50.dp))
-                                .background(if (isSelected) PrimaryGreen else Color.White)
-                                .border(1.dp, if (isSelected) PrimaryGreen else MedicalBorder, RoundedCornerShape(50.dp))
-                                .clickable { selectedCity = city }
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = city,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isSelected) Color.White else TextPrimary
-                            )
-                        }
+                        MedAIChip(
+                            text = city,
+                            selected = selectedCity == city,
+                            onClick = { selectedCity = city }
+                        )
                     }
                 }
             }
@@ -2864,10 +2849,8 @@ fun ServicesScreen(viewModel: AppViewModel, onBack: () -> Unit, onNavigateToUpgr
             item {
                 Text(
                     text = "Yo'nalish tanlang:".uppercase(),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 10.sp,
-                    color = TextSecondary,
-                    letterSpacing = 1.sp
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondary
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
@@ -2875,22 +2858,11 @@ fun ServicesScreen(viewModel: AppViewModel, onBack: () -> Unit, onNavigateToUpgr
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     listOf("Terapevt", "Kardiolog", "Pediatr", "Stomatolog", "Klinika").forEach { spec ->
-                        val isSelected = selectedSpecialty == spec
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(50.dp))
-                                .background(if (isSelected) PrimaryGreen else MaterialTheme.colorScheme.surface)
-                                .border(1.dp, if (isSelected) PrimaryGreen else MedicalBorder, RoundedCornerShape(50.dp))
-                                .clickable { selectedSpecialty = spec }
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Text(
-                                text = spec,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isSelected) Color.White else TextPrimary
-                            )
-                        }
+                        MedAIChip(
+                            text = spec,
+                            selected = selectedSpecialty == spec,
+                            onClick = { selectedSpecialty = spec }
+                        )
                     }
                 }
             }
@@ -3242,29 +3214,11 @@ fun NotificationsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     .background(MaterialTheme.colorScheme.background),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Box(
-                        modifier = Modifier
-                            .size(84.dp)
-                            .background(PrimaryGreen.copy(alpha = 0.08f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(imageVector = Icons.Default.NotificationsNone, contentDescription = null, tint = PrimaryGreen.copy(alpha = 0.6f), modifier = Modifier.size(40.dp))
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Hozircha hech qanday bildirishnoma yo'q.",
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Yangi bildirishnomalar shu yerda paydo bo'ladi",
-                        color = TextSecondary,
-                        fontSize = 12.sp
-                    )
-                }
+                MedAIEmptyState(
+                    title = "Hozircha hech qanday bildirishnoma yo'q.",
+                    message = "Yangi bildirishnomalar shu yerda paydo bo'ladi",
+                    icon = Icons.Default.NotificationsNone
+                )
             }
         } else {
             LazyColumn(

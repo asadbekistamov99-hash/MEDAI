@@ -387,31 +387,11 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                         .padding(vertical = 32.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier.size(64.dp).background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text("💊", fontSize = 28.sp)
-                                        }
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text(
-                                            text = "Hozircha hech qanday dori eslatmasi yo'q.",
-                                            fontWeight = FontWeight.Bold,
-                                            color = TextPrimary,
-                                            textAlign = TextAlign.Center
-                                        )
-                                        Text(
-                                            text = "Dori ichish jadvallarini Firestore-da saqlash va nazorat qilish uchun yuqoridagi tugmani bosing.",
-                                            fontSize = 12.sp,
-                                            color = TextSecondary,
-                                            textAlign = TextAlign.Center,
-                                            modifier = Modifier.padding(horizontal = 24.dp)
-                                        )
-                                    }
+                                    MedAIEmptyState(
+                                        title = "Hozircha hech qanday dori eslatmasi yo'q.",
+                                        message = "Dori ichish jadvallarini saqlash va nazorat qilish uchun yuqoridagi tugmani bosing.",
+                                        icon = Icons.Default.Medication
+                                    )
                                 }
                             }
                         } else {
@@ -1043,7 +1023,7 @@ fun HistoryScreen(viewModel: AppViewModel) {
                                 }
                                 IconButton(
                                     onClick = {
-                                        scope.launch { viewModel.dao.deleteSymptomCheck(check.id) }
+                                        viewModel.deleteSymptomCheck(check.id)
                                     },
                                     modifier = Modifier
                                         .background(ErrorRed.copy(alpha = 0.08f), CircleShape)
@@ -1065,10 +1045,18 @@ fun HistoryScreen(viewModel: AppViewModel) {
 // --- SCREEN: GENERAL CHAT ---
 
 @Composable
-fun GeneralChatScreen(viewModel: AppViewModel) {
+fun GeneralChatScreen(
+    viewModel: AppViewModel,
+    onNavigateToUpgrade: () -> Unit = {}
+) {
     val lang by viewModel.currentLanguage.collectAsState()
-    val chatMessages by remember { viewModel.dao.getChatMessagesFlow("general") }.collectAsState(initial = emptyList())
+    val chatMessages by viewModel.generalChatMessages().collectAsState(initial = emptyList())
+    val hasPremium by viewModel.hasPremiumAccess.collectAsState()
     var messageText by remember { mutableStateOf("") }
+
+    // The free daily quota. Shown up front rather than only as a refusal on send, so the user
+    // knows the limit exists and has the upgrade path in view before they hit it.
+    val freeQuota by viewModel.freeChatQuota.collectAsState()
 
     Scaffold(
         topBar = { AppHeader(title = Translations.getString("tab_chat", lang)) },
@@ -1100,8 +1088,15 @@ fun GeneralChatScreen(viewModel: AppViewModel) {
                     IconButton(
                         onClick = {
                             if (messageText.isNotEmpty()) {
-                                viewModel.sendChatMessage(messageText, "general")
-                                messageText = ""
+                                // Only clear the field once the message is actually accepted;
+                                // when the quota is spent sendChatMessage routes to the paywall
+                                // and the typed text should survive so nothing is lost.
+                                val accepted = viewModel.sendChatMessage(
+                                    message = messageText,
+                                    chatType = "general",
+                                    onUpgradeRequired = onNavigateToUpgrade
+                                )
+                                if (accepted) messageText = ""
                             }
                         },
                         modifier = Modifier
@@ -1136,8 +1131,8 @@ fun GeneralChatScreen(viewModel: AppViewModel) {
                             .fillMaxWidth()
                             .shadow(6.dp, RoundedCornerShape(22.dp))
                             .clip(RoundedCornerShape(22.dp))
-                            .background(Brush.linearGradient(listOf(LightGreen, Color(0xFFE3F6F2))))
-                            .border(1.dp, PrimaryGreen.copy(alpha = 0.15f), RoundedCornerShape(22.dp))
+                            .background(Brush.linearGradient(listOf(LightGreen, Color(0xFFE6F6F4))))
+                            .border(1.dp, PrimaryGreen.copy(alpha = 0.18f), RoundedCornerShape(22.dp))
                             .padding(22.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -1195,16 +1190,13 @@ fun GeneralChatScreen(viewModel: AppViewModel) {
                 }
 
                 item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.width(3.dp).height(14.dp).background(PrimaryGreen, RoundedCornerShape(2.dp)))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "Tezkor savollar (bir bosishda so'rang):",
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = TextSecondary
-                        )
-                    }
+                    // horizontalPadding = 0: this list already pads its own content by 16dp, and
+                    // the header's default 20dp would leave this row hanging out of alignment.
+                    MedAISectionHeader(
+                        title = "Tezkor savollar",
+                        subtitle = "Bir bosishda so'rang",
+                        horizontalPadding = 0.dp,
+                    )
                 }
 
                 items(quickQuestions) { (emoji, question) ->
@@ -1214,8 +1206,14 @@ fun GeneralChatScreen(viewModel: AppViewModel) {
                             .shadow(2.dp, RoundedCornerShape(14.dp))
                             .clip(RoundedCornerShape(14.dp))
                             .background(Color.White)
-                            .border(1.dp, MedicalBorder, RoundedCornerShape(14.dp))
-                            .clickable { viewModel.sendChatMessage(question, "general") }
+                            .border(1.dp, DividerSoft, RoundedCornerShape(14.dp))
+                            .clickable {
+                                viewModel.sendChatMessage(
+                                    message = question,
+                                    chatType = "general",
+                                    onUpgradeRequired = onNavigateToUpgrade
+                                )
+                            }
                             .padding(horizontal = 14.dp, vertical = 13.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {

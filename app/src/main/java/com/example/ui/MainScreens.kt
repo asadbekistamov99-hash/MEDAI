@@ -94,7 +94,10 @@ fun MainContainer(
                 when (selectedTab) {
                     0 -> HomeScreen(viewModel, onNavigateToFeature)
                     1 -> HistoryScreen(viewModel)
-                    2 -> GeneralChatScreen(viewModel)
+                    2 -> GeneralChatScreen(
+                        viewModel = viewModel,
+                        onNavigateToUpgrade = { onNavigateToFeature("upgrade") }
+                    )
                     3 -> ProfileScreen(viewModel, navController)
                 }
             }
@@ -114,66 +117,79 @@ fun MedicalBottomNavigation(
     lang: String
 ) {
     Surface(
-        color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 8.dp,
+        color = Color.White,
+        shadowElevation = 16.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .height(82.dp)
-            .border(1.dp, MedicalBorder, RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+            .height(84.dp)
+            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .navigationBarsPadding()
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceAround
-        ) {
-            MedicalBottomTabItem(
-                selected = selectedTab == 0,
-                icon = Icons.Default.Home,
-                label = Translations.getString("tab_home", lang),
-                onClick = { onTabSelected(0) }
-            )
-            MedicalBottomTabItem(
-                selected = selectedTab == 1,
-                icon = Icons.Default.History,
-                label = Translations.getString("tab_history", lang),
-                onClick = { onTabSelected(1) }
-            )
-
-            // Center QR Code Button (Neon Cyan)
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Hairline so the bar separates from scrolling content even on light backgrounds.
             Box(
                 modifier = Modifier
-                    .size(56.dp)
-                    .shadow(8.dp, CircleShape, ambientColor = PrimaryGreen, spotColor = PrimaryGreen)
-                    .background(
-                        Brush.verticalGradient(listOf(PrimaryGreen, DarkGreen)),
-                        CircleShape
-                    )
-                    .clickable(onClick = onQrClicked),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(DividerSoft)
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceAround
             ) {
-                Icon(
-                    imageVector = Icons.Default.QrCodeScanner,
-                    contentDescription = "QR Scanner",
-                    tint = Color.White,
-                    modifier = Modifier.size(28.dp)
+                MedicalBottomTabItem(
+                    selected = selectedTab == 0,
+                    icon = Icons.Default.Home,
+                    label = Translations.getString("tab_home", lang),
+                    onClick = { onTabSelected(0) }
+                )
+                MedicalBottomTabItem(
+                    selected = selectedTab == 1,
+                    icon = Icons.Default.History,
+                    label = Translations.getString("tab_history", lang),
+                    onClick = { onTabSelected(1) }
+                )
+
+                // Center action: family QR. Lifted out of the bar with a white ring so it
+                // reads as the primary action rather than a fifth tab.
+                Box(
+                    modifier = Modifier
+                        .size(58.dp)
+                        .shadow(10.dp, CircleShape, ambientColor = PrimaryGreen, spotColor = PrimaryGreen)
+                        .background(Color.White, CircleShape)
+                        .padding(4.dp)
+                        .clip(CircleShape)
+                        .background(
+                            Brush.linearGradient(listOf(Teal400, Teal700)),
+                            CircleShape
+                        )
+                        .clickable(onClick = onQrClicked),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.QrCodeScanner,
+                        contentDescription = "QR Scanner",
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+
+                MedicalBottomTabItem(
+                    selected = selectedTab == 2,
+                    icon = Icons.Default.Chat,
+                    label = Translations.getString("tab_chat", lang),
+                    onClick = { onTabSelected(2) }
+                )
+                MedicalBottomTabItem(
+                    selected = selectedTab == 3,
+                    icon = Icons.Default.Person,
+                    label = Translations.getString("tab_profile", lang),
+                    onClick = { onTabSelected(3) }
                 )
             }
-
-            MedicalBottomTabItem(
-                selected = selectedTab == 2,
-                icon = Icons.Default.Chat,
-                label = Translations.getString("tab_chat", lang),
-                onClick = { onTabSelected(2) }
-            )
-            MedicalBottomTabItem(
-                selected = selectedTab == 3,
-                icon = Icons.Default.Person,
-                label = Translations.getString("tab_profile", lang),
-                onClick = { onTabSelected(3) }
-            )
         }
     }
 }
@@ -185,6 +201,16 @@ fun RowScope.MedicalBottomTabItem(
     label: String,
     onClick: () -> Unit
 ) {
+    val tint by animateColorAsState(
+        targetValue = if (selected) PrimaryGreen else TextSecondary,
+        animationSpec = tween(180),
+        label = "tabTint"
+    )
+    val pill by animateColorAsState(
+        targetValue = if (selected) PrimaryGreen.copy(alpha = 0.12f) else Color.Transparent,
+        animationSpec = tween(180),
+        label = "tabPill"
+    )
     Column(
         modifier = Modifier
             .weight(1f)
@@ -192,35 +218,32 @@ fun RowScope.MedicalBottomTabItem(
                 onClick = onClick,
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null
-            ),
+            )
+            .padding(vertical = 6.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        val animScale by animateFloatAsState(targetValue = if (selected) 1.12f else 1.0f, label = "tabScale")
-        
         Box(
             modifier = Modifier
-                .size(46.dp, 28.dp)
-                .scale(animScale)
-                .background(
-                    if (selected) PrimaryGreen.copy(alpha = 0.15f) else Color.Transparent,
-                    RoundedCornerShape(14.dp)
-                ),
+                .size(46.dp, 30.dp)
+                .clip(RoundedCornerShape(15.dp))
+                .background(pill),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = if (selected) PrimaryGreen else TextSecondary,
+                tint = tint,
                 modifier = Modifier.size(22.dp)
             )
         }
-        Spacer(modifier = Modifier.height(3.dp))
+        Spacer(modifier = Modifier.height(2.dp))
         Text(
             text = label,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.Bold,
-            color = if (selected) PrimaryGreen else TextSecondary
+            style = MaterialTheme.typography.labelSmall,
+            color = tint,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }
@@ -233,11 +256,15 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
     val lang by viewModel.currentLanguage.collectAsState()
     val steps by viewModel.dailySteps.collectAsState()
     val unreadNotifications by viewModel.unreadNotificationsCount.collectAsState()
+    val trialDays by viewModel.trialDaysRemaining.collectAsState()
 
-    val isPremium = user?.isPremium ?: false
+    // hasPremiumAccess (paid subscription OR unexpired free trial) rather than the raw
+    // isPremium column, so a trial account sees the same features a paying one does.
+    val isPremium = user?.hasPremiumAccess ?: false
 
     // Staggered enter animation for home screen rows
     var animateRows by remember { mutableStateOf(false) }
+    var trialBannerDismissed by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         animateRows = true
     }
@@ -248,23 +275,39 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
             .background(Color.Transparent),
         contentPadding = PaddingValues(bottom = 24.dp)
     ) {
+        // Trial countdown, above everything else. Dismissable for the session, but it comes back
+        // on next launch — a user should not be able to bury the one warning that their free
+        // access is finite.
+        if (trialDays > 0 && !trialBannerDismissed) {
+            item {
+                TrialBanner(
+                    daysRemaining = trialDays,
+                    lang = lang,
+                    onUpgradeClick = { onNavigate("upgrade") },
+                    onDismiss = { trialBannerDismissed = true },
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                )
+            }
+        }
+
         // 1. App Header: Hamburger, left-aligned brand block with slogan, Bell
         item {
             AnimatedVisibility(
                 visible = animateRows,
                 enter = slideInVertically(initialOffsetY = { -50 }) + fadeIn(animationSpec = tween(500))
             ) {
-                Surface(
-                    color = MaterialTheme.colorScheme.surface,
+                // Branded gradient bar. The home screen used to open on a plain white strip
+                // that matched every other screen; carrying the brand colour here makes the
+                // launch feel like a product rather than a list.
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, MedicalBorder, RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp)),
-                    shadowElevation = 4.dp
+                        .background(BrandGradient)
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 14.dp),
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -272,14 +315,15 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(PrimaryGreen.copy(alpha = 0.1f), CircleShape)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.22f))
                                 .clickable { onNavigate("services") },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Menu,
                                 contentDescription = "Menu",
-                                tint = PrimaryGreen,
+                                tint = Color.White,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -293,7 +337,7 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                                     text = "MedAI",
                                     fontWeight = FontWeight.ExtraBold,
                                     fontSize = 22.sp,
-                                    color = PrimaryGreen,
+                                    color = Color.White,
                                     letterSpacing = -0.5.sp
                                 )
 
@@ -333,7 +377,7 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                             Text(
                                 text = Translations.getString("app_slogan", lang),
                                 fontSize = 11.sp,
-                                color = TextSecondary,
+                                color = Color.White.copy(alpha = 0.78f),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -353,7 +397,8 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(PrimaryGreen.copy(alpha = 0.1f), CircleShape)
+                                .clip(CircleShape)
+                                .background(Color.White.copy(alpha = 0.22f))
                         ) {
                             val bellTransition = rememberInfiniteTransition(label = "bell")
                             val bellRotation by bellTransition.animateFloat(
@@ -376,7 +421,7 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                                 Icon(
                                     imageVector = Icons.Default.Notifications,
                                     contentDescription = "Notifications",
-                                    tint = PrimaryGreen,
+                                    tint = Color.White,
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
@@ -386,9 +431,9 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
                                         .offset(x = (-2).dp, y = 2.dp)
-                                        .size(16.dp)
-                                        .background(ErrorRed, CircleShape)
-                                        .border(1.dp, Color.White, CircleShape),
+                                    .size(16.dp)
+                                    .background(ErrorRed, CircleShape)
+                                    .border(2.dp, Teal700, CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
@@ -426,11 +471,20 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                         contentScale = ContentScale.Crop,
                         modifier = Modifier.matchParentSize()
                     )
-                    // Faint white wash only, so dark text stays legible without hiding the photo
+                    // Directional scrim: dense on the left where the greeting sits, clear on the
+                    // right so the photo still reads. A flat 12% wash made the copy fight the image.
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .background(Color.White.copy(alpha = 0.12f))
+                            .background(
+                                Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color.White.copy(alpha = 0.90f),
+                                        Color.White.copy(alpha = 0.66f),
+                                        Color.White.copy(alpha = 0.16f),
+                                    ),
+                                )
+                            )
                     )
 
                     Row(
@@ -443,16 +497,16 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = String.format(Translations.getString("home_greeting", lang), user?.name ?: ""),
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.ExtraBold,
+                                style = MaterialTheme.typography.headlineMedium,
                                 color = TextPrimary,
-                                letterSpacing = -0.5.sp
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = "Bugun o'zingizni qanday his qilyapsiz?",
-                                fontSize = 13.sp,
-                                color = TextPrimary.copy(alpha = 0.75f)
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextPrimary.copy(alpha = 0.72f)
                             )
                         }
 
