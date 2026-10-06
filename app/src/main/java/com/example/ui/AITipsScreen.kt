@@ -1,46 +1,51 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package com.example.ui
 
-import android.widget.Toast
-import androidx.compose.animation.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bedtime
+import androidx.compose.material.icons.filled.DirectionsRun
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Restaurant
+import androidx.compose.material.icons.filled.SelfImprovement
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.i18n.Translations
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import android.net.Uri
-import android.util.Base64
-import androidx.compose.ui.platform.LocalContext
-import coil.compose.AsyncImage
-import com.example.ui.theme.*
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import java.text.SimpleDateFormat
+import com.example.ui.theme.MedAITheme
+import com.example.ui.theme.MedAITint
 
 // --- SCREEN: AI PERSONALIZED DAILY HEALTH TIPS ---
 
+private data class TipKind(val code: String, val icon: ImageVector, val tint: MedAITint, val title: String)
+
 @Composable
 fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
     val lang by viewModel.currentLanguage.collectAsState()
     val tips by viewModel.aiTipsText.collectAsState()
@@ -54,153 +59,92 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
         }
     }
 
+    val kinds = listOf(
+        TipKind("nutrition", Icons.Default.Restaurant, c.tintPeach, Translations.getString("tab_nutrition", lang)),
+        TipKind("activity", Icons.Default.DirectionsRun, c.tintTeal, Translations.getString("tab_activity", lang)),
+        TipKind("sleep", Icons.Default.Bedtime, c.tintViolet, Translations.getString("tab_sleep", lang)),
+        TipKind("mental", Icons.Default.SelfImprovement, c.tintSky, Translations.getString("tab_mental", lang)),
+    )
+    val loadingText = medText(lang, "Maslahat tayyorlanmoqda...", "Готовим совет...", "Preparing your tip...")
+
     Scaffold(
-        topBar = { AppHeader(title = Translations.getString("ai_tips_title", lang), onBack = onBack) }
+        containerColor = c.canvas,
+        topBar = { AppHeader(title = Translations.getString("ai_tips_title", lang), onBack = onBack) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(medai.canvas)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // personalized user details card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = medai.surface),
-                shape = RoundedCornerShape(18.dp),
-                border = BorderStroke(1.dp, medai.border)
-            ) {
-                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier.size(40.dp).background(medai.brand.copy(alpha = 0.12f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = medai.brand, modifier = Modifier.size(20.dp))
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(text = "Shaxsiy tavsiya tahlili", fontWeight = FontWeight.Bold, color = medai.textPrimary, fontSize = 14.sp)
-                        Text(text = "AI shaxsiy parametrlaringiz (Bo'y, vazn, jins) asosida maslahat beradi", fontSize = 11.sp, color = medai.textSecondary)
+            // What the tips are based on
+            MedAIInfoBanner(
+                text = medText(
+                    lang,
+                    "AI shaxsiy parametrlaringiz (bo'y, vazn, jins) asosida maslahat beradi.",
+                    "AI даёт советы с учётом ваших параметров (рост, вес, пол).",
+                    "AI tailors advice to your profile (height, weight, gender).",
+                ),
+                tone = MedAITone.Info,
+            )
+
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                kinds.forEach { k ->
+                    MedAIFilterChip(text = k.title, selected = selectedTab == k.code, onClick = { selectedTab = k.code })
+                }
+            }
+
+            if (isLoading) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    MedAISpinner(size = 22.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Text(loadingText, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+                }
+                repeat(3) {
+                    MedAISkeleton(Modifier.fillMaxWidth().height(96.dp), animated = false)
+                }
+            } else {
+                val selected = kinds.first { it.code == selectedTab }
+                // Selected tip, in full.
+                TipCard(selected, tips[selected.code] ?: loadingText, full = true, onClick = null)
+
+                val others = kinds.filter { it.code != selectedTab && tips[it.code] != null }
+                if (others.isNotEmpty()) {
+                    MedSectionTitle(medText(lang, "Boshqa maslahatlar", "Другие советы", "More tips"))
+                    others.forEach { k ->
+                        TipCard(k, tips[k.code].orEmpty(), full = false, onClick = { selectedTab = k.code })
                     }
                 }
             }
 
-            // Advice Tabs
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                listOf(
-                    "nutrition" to Translations.getString("tab_nutrition", lang),
-                    "activity" to Translations.getString("tab_activity", lang),
-                    "sleep" to Translations.getString("tab_sleep", lang),
-                    "mental" to Translations.getString("tab_mental", lang)
-                ).forEach { (code, label) ->
-                    val isSelected = selectedTab == code
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { selectedTab = code },
-                        label = { Text(label, fontWeight = FontWeight.Bold) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            containerColor = medai.surface,
-                            labelColor = medai.textSecondary,
-                            selectedContainerColor = medai.brand,
-                            selectedLabelColor = Color.White
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            enabled = true,
-                            selected = isSelected,
-                            borderColor = medai.border,
-                            selectedBorderColor = medai.brand
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isLoading) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = medai.brand)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = when (lang) {
-                                "uz" -> "Maslahat tayyorlanmoqda..."
-                                "ru" -> "Готовим совет..."
-                                else -> "Preparing your tip..."
-                            },
-                            fontSize = 12.sp,
-                            color = medai.textSecondary
-                        )
-                    }
-                } else {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(6.dp, RoundedCornerShape(24.dp), ambientColor = medai.brand.copy(alpha = 0.12f), spotColor = medai.brand.copy(alpha = 0.12f)),
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = medai.surface),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        border = BorderStroke(1.dp, medai.border)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .background(medai.brand.copy(alpha = 0.1f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                val icon = when (selectedTab) {
-                                    "nutrition" -> Icons.Default.Restaurant
-                                    "activity" -> Icons.Default.DirectionsRun
-                                    "sleep" -> Icons.Default.Bedtime
-                                    else -> Icons.Default.SelfImprovement
-                                }
-                                Icon(imageVector = icon, contentDescription = null, tint = medai.brand, modifier = Modifier.size(32.dp))
-                            }
-
-                            val tipContent = tips[selectedTab] ?: "Yuklanmoqda..."
-                            Text(
-                                text = tipContent,
-                                fontSize = 16.sp,
-                                textAlign = TextAlign.Center,
-                                color = medai.textPrimary,
-                                lineHeight = 24.sp
-                            )
-                        }
-                    }
-                }
-            }
-
-            Button(
+            MedAISecondaryButton(
+                text = Translations.getString("ai_tips_refresh", lang),
                 onClick = { viewModel.fetchPersonalizedTips() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-                    .height(52.dp),
-                shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = medai.brand, contentColor = Color.White)
-            ) {
-                Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = Translations.getString("ai_tips_refresh", lang), fontWeight = FontWeight.Bold)
-            }
+                modifier = Modifier.fillMaxWidth(),
+                icon = Icons.Default.Refresh,
+            )
         }
+    }
+}
+
+@Composable
+private fun TipCard(kind: TipKind, body: String, full: Boolean, onClick: (() -> Unit)?) {
+    val c = MedAITheme.colors
+    MedAICard(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            MedIconDisc(kind.icon, kind.tint.bg, kind.tint.fg, size = 40.dp)
+            Spacer(Modifier.width(12.dp))
+            Text(kind.title, style = MaterialTheme.typography.titleMedium, color = c.textPrimary, modifier = Modifier.weight(1f))
+        }
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = body,
+            style = if (full) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.bodyMedium,
+            color = if (full) c.textPrimary else c.textSecondary,
+            maxLines = if (full) Int.MAX_VALUE else 2,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
