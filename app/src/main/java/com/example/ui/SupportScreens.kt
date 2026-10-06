@@ -46,6 +46,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+    val medai = MedAITheme.colors
+
     val lang by viewModel.currentLanguage.collectAsState()
     val reminderItems by viewModel.reminders.collectAsState()
     val todayMetricsState by viewModel.todayMetrics.collectAsState()
@@ -82,13 +84,13 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MedicalBackground)
+                .background(medai.canvas)
         ) {
             // Tab Header
             TabRow(
                 selectedTabIndex = selectedTab,
-                containerColor = Color.White,
-                contentColor = PrimaryGreen
+                containerColor = medai.surface,
+                contentColor = medai.brand
             ) {
                 tabTitles.forEachIndexed { index, title ->
                     Tab(
@@ -121,7 +123,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 onClick = { isAdding = !isAdding },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                                colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                             ) {
                                 Icon(
                                     imageVector = if (isAdding) Icons.Default.Close else Icons.Default.Add,
@@ -141,7 +143,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                    border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.2f))
+                                    border = BorderStroke(1.dp, medai.brand.copy(alpha = 0.2f))
                                 ) {
                                     Column(
                                         modifier = Modifier.padding(16.dp),
@@ -151,7 +153,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             text = "Yangi eslatma tafsilotlari",
                                             style = MaterialTheme.typography.titleMedium.copy(
                                                 fontWeight = FontWeight.Bold,
-                                                color = TextPrimary
+                                                color = medai.textPrimary
                                             )
                                         )
 
@@ -165,8 +167,8 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             singleLine = true,
                                             shape = RoundedCornerShape(12.dp),
                                             colors = OutlinedTextFieldDefaults.colors(
-                                                focusedBorderColor = PrimaryGreen,
-                                                unfocusedBorderColor = MedicalBorder
+                                                focusedBorderColor = medai.brand,
+                                                unfocusedBorderColor = medai.border
                                             )
                                         )
 
@@ -180,8 +182,8 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                 singleLine = true,
                                                 shape = RoundedCornerShape(12.dp),
                                                 colors = OutlinedTextFieldDefaults.colors(
-                                                    focusedBorderColor = PrimaryGreen,
-                                                    unfocusedBorderColor = MedicalBorder
+                                                    focusedBorderColor = medai.brand,
+                                                    unfocusedBorderColor = medai.border
                                                 )
                                             )
                                             
@@ -210,14 +212,14 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             singleLine = true,
                                             shape = RoundedCornerShape(12.dp),
                                             colors = OutlinedTextFieldDefaults.colors(
-                                                focusedBorderColor = PrimaryGreen,
-                                                unfocusedBorderColor = MedicalBorder
+                                                focusedBorderColor = medai.brand,
+                                                unfocusedBorderColor = medai.border
                                             )
                                         )
 
                                         // Frequency settings
                                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            Text("Takroriylik (Frequency Settings)", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = TextSecondary)
+                                            Text("Takroriylik (Frequency Settings)", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = medai.textSecondary)
                                             Row(
                                                 modifier = Modifier.horizontalScroll(rememberScrollState()),
                                                 horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -236,8 +238,8 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                         Card(
                                             modifier = Modifier.fillMaxWidth(),
                                             shape = RoundedCornerShape(12.dp),
-                                            colors = CardDefaults.cardColors(containerColor = LightGreen.copy(alpha = 0.3f)),
-                                            border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.15f))
+                                            colors = CardDefaults.cardColors(containerColor = medai.brandSoft.copy(alpha = 0.3f)),
+                                            border = BorderStroke(1.dp, medai.brand.copy(alpha = 0.15f))
                                         ) {
                                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                                 Row(
@@ -249,20 +251,20 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                         Icon(
                                                             imageVector = if (notificationsEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
                                                             contentDescription = null,
-                                                            tint = if (notificationsEnabled) PrimaryGreen else TextSecondary,
+                                                            tint = if (notificationsEnabled) medai.brand else medai.textSecondary,
                                                             modifier = Modifier.size(20.dp)
                                                         )
-                                                        Text("Bildirishnomalar (Notifications)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = TextPrimary)
+                                                        Text("Bildirishnomalar (Notifications)", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = medai.textPrimary)
                                                     }
                                                     Switch(
                                                         checked = notificationsEnabled,
                                                         onCheckedChange = { notificationsEnabled = it },
-                                                        colors = SwitchDefaults.colors(checkedThumbColor = PrimaryGreen)
+                                                        colors = SwitchDefaults.colors(checkedThumbColor = medai.brand)
                                                     )
                                                 }
 
                                                 if (notificationsEnabled) {
-                                                    Text("Eslatish vaqti sozlamasi:", fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+                                                    Text("Eslatish vaqti sozlamasi:", fontSize = 11.sp, color = medai.textSecondary, fontWeight = FontWeight.Medium)
                                                     Row(
                                                         modifier = Modifier.horizontalScroll(rememberScrollState()),
                                                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -286,7 +288,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
                                         // Target Family Member
                                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                                            Text("Kim uchun (Kim qabul qiladi):", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = TextSecondary)
+                                            Text("Kim uchun (Kim qabul qiladi):", fontWeight = FontWeight.SemiBold, fontSize = 12.sp, color = medai.textSecondary)
                                             
                                             Row(
                                                 modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -314,7 +316,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                 Text(
                                                     text = "Eslatma ${targetFamily} uchun belgilanmoqda",
                                                     fontSize = 11.sp,
-                                                    color = PremiumPurple,
+                                                    color = medai.premium,
                                                     fontWeight = FontWeight.Bold,
                                                     modifier = Modifier.padding(start = 2.dp)
                                                 )
@@ -330,8 +332,8 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             modifier = Modifier.fillMaxWidth(),
                                             shape = RoundedCornerShape(12.dp),
                                             colors = OutlinedTextFieldDefaults.colors(
-                                                focusedBorderColor = PrimaryGreen,
-                                                unfocusedBorderColor = MedicalBorder
+                                                focusedBorderColor = medai.brand,
+                                                unfocusedBorderColor = medai.border
                                             )
                                         )
 
@@ -357,7 +359,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                 }
                                             },
                                             modifier = Modifier.fillMaxWidth(),
-                                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                                            colors = ButtonDefaults.buttonColors(containerColor = medai.brand),
                                             shape = RoundedCornerShape(12.dp)
                                         ) {
                                             Text("Eslatmani Saqlash (Firestore)", fontWeight = FontWeight.Bold)
@@ -373,7 +375,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 text = "Mening dori jadvallarim 🗓️",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.ExtraBold,
-                                    color = TextPrimary
+                                    color = medai.textPrimary
                                 ),
                                 modifier = Modifier.padding(vertical = 4.dp)
                             )
@@ -402,7 +404,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     modifier = Modifier.fillMaxWidth(),
                                     shape = RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                    border = BorderStroke(1.dp, if (isCompletedToday) SuccessGreen.copy(alpha = 0.25f) else MedicalBorder.copy(alpha = 0.4f)),
+                                    border = BorderStroke(1.dp, if (isCompletedToday) medai.success.copy(alpha = 0.25f) else medai.border.copy(alpha = 0.4f)),
                                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                                 ) {
                                     Column(
@@ -423,7 +425,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                 Box(
                                                     modifier = Modifier
                                                         .size(44.dp)
-                                                        .background(if (isCompletedToday) LightGreen else PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                                                        .background(if (isCompletedToday) medai.brandSoft else medai.brand.copy(alpha = 0.1f), CircleShape),
                                                     contentAlignment = Alignment.Center
                                                 ) {
                                                     Text(text = "💊", fontSize = 20.sp)
@@ -435,20 +437,20 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                             text = item.medicineName,
                                                             fontWeight = FontWeight.Bold,
                                                             fontSize = 16.sp,
-                                                            color = TextPrimary
+                                                            color = medai.textPrimary
                                                         )
                                                         
                                                         // Dosage badge
                                                         Box(
                                                             modifier = Modifier
-                                                                .background(PrimaryGreen.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
+                                                                .background(medai.brand.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
                                                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                                                         ) {
                                                             Text(
                                                                 text = item.dosage,
                                                                 fontSize = 10.sp,
                                                                 fontWeight = FontWeight.Bold,
-                                                                color = PrimaryGreen
+                                                                color = medai.brand
                                                             )
                                                         }
                                                     }
@@ -458,11 +460,11 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                                                         modifier = Modifier.padding(top = 2.dp)
                                                     ) {
-                                                        Icon(imageVector = Icons.Default.Schedule, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(12.dp))
+                                                        Icon(imageVector = Icons.Default.Schedule, contentDescription = null, tint = medai.textSecondary, modifier = Modifier.size(12.dp))
                                                         Text(
                                                             text = "${item.time} - ${item.frequency}",
                                                             fontSize = 12.sp,
-                                                            color = TextSecondary,
+                                                            color = medai.textSecondary,
                                                             fontWeight = FontWeight.Medium
                                                         )
                                                     }
@@ -472,7 +474,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             Switch(
                                                 checked = item.isActive,
                                                 onCheckedChange = { viewModel.toggleFirestoreReminderActive(item.id, item.isActive) },
-                                                colors = SwitchDefaults.colors(checkedThumbColor = PrimaryGreen)
+                                                colors = SwitchDefaults.colors(checkedThumbColor = medai.brand)
                                             )
                                         }
 
@@ -491,14 +493,14 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                     Icon(
                                                         imageVector = if (item.notificationsEnabled) Icons.Default.NotificationsActive else Icons.Default.NotificationsOff,
                                                         contentDescription = null,
-                                                        tint = if (item.notificationsEnabled) WarningOrange else TextSecondary,
+                                                        tint = if (item.notificationsEnabled) medai.warning else medai.textSecondary,
                                                         modifier = Modifier.size(12.dp)
                                                     )
                                                     Text(
                                                         text = if (item.notificationsEnabled) "Eslatma: ${item.notificationFrequency}" else "Eslatma yo'q",
                                                         fontSize = 11.sp,
                                                         fontWeight = FontWeight.SemiBold,
-                                                        color = if (item.notificationsEnabled) WarningOrange else TextSecondary
+                                                        color = if (item.notificationsEnabled) medai.warning else medai.textSecondary
                                                     )
                                                 }
                                             }
@@ -506,12 +508,12 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             if (item.targetFamilyMember != null) {
                                                 Box(
                                                     modifier = Modifier
-                                                        .background(PremiumPurple.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
+                                                        .background(medai.premium.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
                                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                                 ) {
                                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                        Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = PremiumPurple, modifier = Modifier.size(12.dp))
-                                                        Text(text = item.targetFamilyMember, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PremiumPurple)
+                                                        Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = medai.premium, modifier = Modifier.size(12.dp))
+                                                        Text(text = item.targetFamilyMember, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = medai.premium)
                                                     }
                                                 }
                                             }
@@ -525,13 +527,13 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                     .padding(8.dp)
                                             ) {
                                                 Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                                    Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(14.dp))
-                                                    Text(text = item.notes, fontSize = 11.sp, color = TextSecondary, lineHeight = 14.sp)
+                                                    Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = medai.textSecondary, modifier = Modifier.size(14.dp))
+                                                    Text(text = item.notes, fontSize = 11.sp, color = medai.textSecondary, lineHeight = 14.sp)
                                                 }
                                             }
                                         }
 
-                                        Divider(color = MedicalBorder.copy(alpha = 0.2f))
+                                        Divider(color = medai.border.copy(alpha = 0.2f))
 
                                         Row(
                                             modifier = Modifier.fillMaxWidth(),
@@ -544,16 +546,16 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                         verticalAlignment = Alignment.CenterVertically,
                                                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                                                         modifier = Modifier
-                                                            .background(LightGreen, RoundedCornerShape(8.dp))
+                                                            .background(medai.brandSoft, RoundedCornerShape(8.dp))
                                                             .padding(horizontal = 12.dp, vertical = 6.dp)
                                                     ) {
-                                                        Icon(imageVector = Icons.Default.Done, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
-                                                        Text(text = "Bugun ichildi ✅", fontSize = 12.sp, color = SuccessGreen, fontWeight = FontWeight.Bold)
+                                                        Icon(imageVector = Icons.Default.Done, contentDescription = null, tint = medai.success, modifier = Modifier.size(16.dp))
+                                                        Text(text = "Bugun ichildi ✅", fontSize = 12.sp, color = medai.success, fontWeight = FontWeight.Bold)
                                                     }
                                                 } else {
                                                     Button(
                                                         onClick = { viewModel.completeFirestoreReminder(item.id, item.completedDates) },
-                                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                                                        colors = ButtonDefaults.buttonColors(containerColor = medai.brand),
                                                         shape = RoundedCornerShape(8.dp),
                                                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
                                                         modifier = Modifier.height(36.dp)
@@ -562,7 +564,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                     }
                                                 }
                                             } else {
-                                                Text(text = "Eslatma faol emas", fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.Medium)
+                                                Text(text = "Eslatma faol emas", fontSize = 11.sp, color = medai.textSecondary, fontWeight = FontWeight.Medium)
                                             }
 
                                             IconButton(
@@ -571,7 +573,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                     .background(Color(0xFFFFEBEE), CircleShape)
                                                     .size(36.dp)
                                             ) {
-                                                Icon(imageVector = Icons.Default.Delete, contentDescription = "O'chirish", tint = ErrorRed, modifier = Modifier.size(18.dp))
+                                                Icon(imageVector = Icons.Default.Delete, contentDescription = "O'chirish", tint = medai.danger, modifier = Modifier.size(18.dp))
                                             }
                                         }
                                     }
@@ -597,11 +599,11 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .shadow(6.dp, RoundedCornerShape(20.dp), ambientColor = AccentCyan.copy(alpha = 0.15f), spotColor = AccentCyan.copy(alpha = 0.15f)),
+                                .shadow(6.dp, RoundedCornerShape(20.dp), ambientColor = medai.info.copy(alpha = 0.15f), spotColor = medai.info.copy(alpha = 0.15f)),
                             shape = RoundedCornerShape(20.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            colors = CardDefaults.cardColors(containerColor = medai.surface),
                             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                            border = BorderStroke(1.dp, MedicalBorder)
+                            border = BorderStroke(1.dp, medai.border)
                         ) {
                             Column(
                                 modifier = Modifier.padding(24.dp),
@@ -612,13 +614,13 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     CircularProgressIndicator(
                                         progress = progressFraction,
                                         modifier = Modifier.fillMaxSize(),
-                                        color = AccentCyan,
+                                        color = medai.info,
                                         strokeWidth = 8.dp,
-                                        trackColor = MedicalBorder
+                                        trackColor = medai.border
                                     )
                                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                         Text(text = "💧", fontSize = 32.sp)
-                                        Text(text = "$currentGlasses / $waterGoal", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = TextPrimary)
+                                        Text(text = "$currentGlasses / $waterGoal", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = medai.textPrimary)
                                     }
                                 }
 
@@ -626,7 +628,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     text = if (currentGlasses >= waterGoal) "Ajoyib! Bugungi suv ichish normasi bajarildi! 🏆" else "Suv ichish salomatlik uchun juda muhim!",
                                     fontWeight = FontWeight.Medium,
                                     fontSize = 14.sp,
-                                    color = TextSecondary,
+                                    color = medai.textSecondary,
                                     textAlign = TextAlign.Center
                                 )
 
@@ -637,15 +639,15 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     IconButton(
                                         onClick = { viewModel.updateWaterProgress(-1) },
                                         modifier = Modifier
-                                            .background(AccentCyan.copy(alpha = 0.1f), CircleShape)
+                                            .background(medai.info.copy(alpha = 0.1f), CircleShape)
                                             .size(48.dp)
                                     ) {
-                                        Text("-", fontSize = 24.sp, color = AccentCyan, fontWeight = FontWeight.Bold)
+                                        Text("-", fontSize = 24.sp, color = medai.info, fontWeight = FontWeight.Bold)
                                     }
 
                                     Button(
                                         onClick = { viewModel.updateWaterProgress(1) },
-                                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan, contentColor = Color.White),
+                                        colors = ButtonDefaults.buttonColors(containerColor = medai.info, contentColor = Color.White),
                                         shape = RoundedCornerShape(14.dp),
                                         modifier = Modifier.height(48.dp)
                                     ) {
@@ -655,10 +657,10 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     IconButton(
                                         onClick = { viewModel.updateWaterProgress(1) },
                                         modifier = Modifier
-                                            .background(AccentCyan.copy(alpha = 0.1f), CircleShape)
+                                            .background(medai.info.copy(alpha = 0.1f), CircleShape)
                                             .size(48.dp)
                                     ) {
-                                        Text("+", fontSize = 20.sp, color = AccentCyan, fontWeight = FontWeight.Bold)
+                                        Text("+", fontSize = 20.sp, color = medai.info, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -668,11 +670,11 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            border = BorderStroke(1.dp, MedicalBorder)
+                            colors = CardDefaults.cardColors(containerColor = medai.surface),
+                            border = BorderStroke(1.dp, medai.border)
                         ) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(text = "Suv ichish maqsadini sozlash", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                                Text(text = "Suv ichish maqsadini sozlash", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = medai.textPrimary)
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     modifier = Modifier.fillMaxWidth()
@@ -683,7 +685,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             onClick = { viewModel.updateWaterGoal(goal) },
                                             label = { Text("$goal stakan") },
                                             colors = FilterChipDefaults.filterChipColors(
-                                                selectedContainerColor = AccentCyan,
+                                                selectedContainerColor = medai.info,
                                                 selectedLabelColor = Color.White
                                             )
                                         )
@@ -697,11 +699,11 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            border = BorderStroke(1.dp, MedicalBorder)
+                            colors = CardDefaults.cardColors(containerColor = medai.surface),
+                            border = BorderStroke(1.dp, medai.border)
                         ) {
                             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(text = "Eslatma chastotasi (Suv)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                                Text(text = "Eslatma chastotasi (Suv)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = medai.textPrimary)
                                 Row(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                                     modifier = Modifier.fillMaxWidth()
@@ -712,7 +714,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             onClick = { selectedFreq = hours },
                                             label = { Text(label) },
                                             colors = FilterChipDefaults.filterChipColors(
-                                                selectedContainerColor = AccentCyan,
+                                                selectedContainerColor = medai.info,
                                                 selectedLabelColor = Color.White
                                             )
                                         )
@@ -749,7 +751,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             text = SimpleDateFormat("MMMM yyyy", Locale.getDefault()).format(Date()),
                             fontWeight = FontWeight.Bold,
                             fontSize = 18.sp,
-                            color = PrimaryGreen,
+                            color = medai.brand,
                             modifier = Modifier.align(Alignment.CenterHorizontally)
                         )
 
@@ -757,8 +759,8 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
-                            border = BorderStroke(1.dp, MedicalBorder)
+                            colors = CardDefaults.cardColors(containerColor = medai.surface),
+                            border = BorderStroke(1.dp, medai.border)
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
                                 // Weekdays Header
@@ -769,7 +771,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             modifier = Modifier.weight(1f),
                                             textAlign = TextAlign.Center,
                                             fontWeight = FontWeight.Bold,
-                                            color = TextSecondary,
+                                            color = medai.textSecondary,
                                             fontSize = 12.sp
                                         )
                                     }
@@ -798,10 +800,10 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                     else -> {
                                                         val completedCount = try { org.json.JSONArray(dayMetrics.completedRemindersJson).length() } catch(e: Exception) { 0 }
                                                         when {
-                                                            activeCount == 0 -> TextSecondary
-                                                            completedCount >= activeCount -> PrimaryGreen
-                                                            completedCount > 0 -> WarningOrange
-                                                            else -> ErrorRed
+                                                            activeCount == 0 -> medai.textSecondary
+                                                            completedCount >= activeCount -> medai.brand
+                                                            completedCount > 0 -> medai.warning
+                                                            else -> medai.danger
                                                         }
                                                     }
                                                 }
@@ -814,10 +816,10 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                         .aspectRatio(1f)
                                                         .padding(2.dp)
                                                         .clip(RoundedCornerShape(8.dp))
-                                                        .background(if (isInspected) PrimaryGreen.copy(alpha = 0.15f) else Color.Transparent)
+                                                        .background(if (isInspected) medai.brand.copy(alpha = 0.15f) else Color.Transparent)
                                                         .border(
                                                             width = if (isInspected) 1.dp else 0.dp,
-                                                            color = if (isInspected) PrimaryGreen else Color.Transparent,
+                                                            color = if (isInspected) medai.brand else Color.Transparent,
                                                             shape = RoundedCornerShape(8.dp)
                                                         )
                                                         .clickable { selectedDayInspect = dayNum },
@@ -828,7 +830,7 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                                             text = dayNum.toString(),
                                                             fontSize = 12.sp,
                                                             fontWeight = if (isInspected) FontWeight.Bold else FontWeight.Normal,
-                                                            color = if (isInspected) PrimaryGreen else TextPrimary
+                                                            color = if (isInspected) medai.brand else medai.textPrimary
                                                         )
                                                         if (dotColor != Color.Transparent) {
                                                             Box(
@@ -855,31 +857,31 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Card(
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = Color.White),
-                                border = BorderStroke(1.dp, MedicalBorder)
+                                colors = CardDefaults.cardColors(containerColor = medai.surface),
+                                border = BorderStroke(1.dp, medai.border)
                             ) {
                                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(
                                         text = "$inspectDateStr - Kunlik hisobot",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
-                                        color = PrimaryGreen
+                                        color = medai.brand
                                     )
 
                                     if (dayMetrics == null) {
-                                        Text(text = "Ushbu kunda hech qanday ma'lumot kiritilmagan.", fontSize = 12.sp, color = TextSecondary)
+                                        Text(text = "Ushbu kunda hech qanday ma'lumot kiritilmagan.", fontSize = 12.sp, color = medai.textSecondary)
                                     } else {
                                         val completedCount = try { org.json.JSONArray(dayMetrics.completedRemindersJson).length() } catch(e: Exception) { 0 }
-                                        Text(text = "🥤 Suv ichilgan: ${dayMetrics.waterGlasses} stakan (Maqsad: ${dayMetrics.waterGoal})", fontSize = 12.sp, color = TextPrimary)
-                                        Text(text = "💊 Qabul qilingan dorilar: $completedCount", fontSize = 12.sp, color = TextPrimary)
+                                        Text(text = "🥤 Suv ichilgan: ${dayMetrics.waterGlasses} stakan (Maqsad: ${dayMetrics.waterGoal})", fontSize = 12.sp, color = medai.textPrimary)
+                                        Text(text = "💊 Qabul qilingan dorilar: $completedCount", fontSize = 12.sp, color = medai.textPrimary)
                                         if (dayMetrics.weight > 0) {
-                                            Text(text = "⚖️ Vazn: ${dayMetrics.weight} kg", fontSize = 12.sp, color = TextPrimary)
+                                            Text(text = "⚖️ Vazn: ${dayMetrics.weight} kg", fontSize = 12.sp, color = medai.textPrimary)
                                         }
                                         if (dayMetrics.bpSystolic > 0) {
-                                            Text(text = "🩸 Qon bosimi: ${dayMetrics.bpSystolic}/${dayMetrics.bpDiastolic} mmHg", fontSize = 12.sp, color = TextPrimary)
+                                            Text(text = "🩸 Qon bosimi: ${dayMetrics.bpSystolic}/${dayMetrics.bpDiastolic} mmHg", fontSize = 12.sp, color = medai.textPrimary)
                                         }
                                         if (dayMetrics.heartRate > 0) {
-                                            Text(text = "❤️ Puls: ${dayMetrics.heartRate} BPM", fontSize = 12.sp, color = TextPrimary)
+                                            Text(text = "❤️ Puls: ${dayMetrics.heartRate} BPM", fontSize = 12.sp, color = medai.textPrimary)
                                         }
                                     }
                                 }
@@ -896,6 +898,8 @@ fun ReminderScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
 @Composable
 fun HistoryScreen(viewModel: AppViewModel) {
+    val medai = MedAITheme.colors
+
     val lang by viewModel.currentLanguage.collectAsState()
     val checks by viewModel.symptomChecks.collectAsState()
     val scope = rememberCoroutineScope()
@@ -907,7 +911,7 @@ fun HistoryScreen(viewModel: AppViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MedicalBackground)
+                .background(medai.canvas)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -917,7 +921,7 @@ fun HistoryScreen(viewModel: AppViewModel) {
                         .fillMaxWidth()
                         .shadow(6.dp, RoundedCornerShape(20.dp))
                         .clip(RoundedCornerShape(20.dp))
-                        .background(Brush.linearGradient(listOf(PrimaryGreen, DarkGreen)))
+                        .background(Brush.linearGradient(listOf(medai.brand, medai.brandStrong)))
                 ) {
                     Box(
                         modifier = Modifier
@@ -970,18 +974,18 @@ fun HistoryScreen(viewModel: AppViewModel) {
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Box(
-                                modifier = Modifier.size(72.dp).background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                                modifier = Modifier.size(72.dp).background(medai.brand.copy(alpha = 0.1f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.Default.HourglassEmpty, contentDescription = null, modifier = Modifier.size(32.dp), tint = PrimaryGreen)
+                                Icon(imageVector = Icons.Default.HourglassEmpty, contentDescription = null, modifier = Modifier.size(32.dp), tint = medai.brand)
                             }
                             Spacer(modifier = Modifier.height(12.dp))
-                            Text("Tarix bo'sh", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = TextPrimary)
+                            Text("Tarix bo'sh", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = medai.textPrimary)
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 "Qidiruv natijalari bu yerda saqlanadi.",
                                 fontSize = 12.sp,
-                                color = TextSecondary,
+                                color = medai.textSecondary,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.padding(horizontal = 32.dp)
                             )
@@ -993,8 +997,8 @@ fun HistoryScreen(viewModel: AppViewModel) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        border = BorderStroke(1.dp, MedicalBorder)
+                        colors = CardDefaults.cardColors(containerColor = medai.surface),
+                        border = BorderStroke(1.dp, medai.border)
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             Row(
@@ -1004,18 +1008,18 @@ fun HistoryScreen(viewModel: AppViewModel) {
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                                     Box(
-                                        modifier = Modifier.size(40.dp).background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                                        modifier = Modifier.size(40.dp).background(medai.brand.copy(alpha = 0.1f), CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(imageVector = Icons.Default.Event, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
+                                        Icon(imageVector = Icons.Default.Event, contentDescription = null, tint = medai.brand, modifier = Modifier.size(20.dp))
                                     }
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Column {
-                                        Text(text = "Simptom tekshiruvi: ${check.bodyPart}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                                        Text(text = "Simptom tekshiruvi: ${check.bodyPart}", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = medai.textPrimary)
                                         Text(
                                             text = "Kiritilgan simptomlar: ${check.symptomsInput}",
                                             fontSize = 12.sp,
-                                            color = TextSecondary,
+                                            color = medai.textSecondary,
                                             maxLines = 1,
                                             overflow = TextOverflow.Ellipsis
                                         )
@@ -1026,14 +1030,14 @@ fun HistoryScreen(viewModel: AppViewModel) {
                                         viewModel.deleteSymptomCheck(check.id)
                                     },
                                     modifier = Modifier
-                                        .background(ErrorRed.copy(alpha = 0.08f), CircleShape)
+                                        .background(medai.danger.copy(alpha = 0.08f), CircleShape)
                                         .size(36.dp)
                                 ) {
-                                    Icon(imageVector = Icons.Default.Delete, contentDescription = "O'chirish", tint = ErrorRed, modifier = Modifier.size(16.dp))
+                                    Icon(imageVector = Icons.Default.Delete, contentDescription = "O'chirish", tint = medai.danger, modifier = Modifier.size(16.dp))
                                 }
                             }
-                            Divider(color = MedicalBorder)
-                            Text(text = check.resultJson, fontSize = 12.sp, color = TextSecondary, lineHeight = 16.sp, maxLines = 4)
+                            Divider(color = medai.border)
+                            Text(text = check.resultJson, fontSize = 12.sp, color = medai.textSecondary, lineHeight = 16.sp, maxLines = 4)
                         }
                     }
                 }
@@ -1049,6 +1053,8 @@ fun GeneralChatScreen(
     viewModel: AppViewModel,
     onNavigateToUpgrade: () -> Unit = {}
 ) {
+    val medai = MedAITheme.colors
+
     val lang by viewModel.currentLanguage.collectAsState()
     val chatMessages by viewModel.generalChatMessages().collectAsState(initial = emptyList())
     val hasPremium by viewModel.hasPremiumAccess.collectAsState()
@@ -1073,15 +1079,15 @@ fun GeneralChatScreen(
                     OutlinedTextField(
                         value = messageText,
                         onValueChange = { messageText = it },
-                        placeholder = { Text("AI Sog'liq maslahatchisidan so'rang...", color = TextSecondary.copy(alpha = 0.6f)) },
+                        placeholder = { Text("AI Sog'liq maslahatchisidan so'rang...", color = medai.textSecondary.copy(alpha = 0.6f)) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(24.dp),
-                        textStyle = androidx.compose.ui.text.TextStyle(color = TextPrimary, fontSize = 14.sp),
+                        textStyle = androidx.compose.ui.text.TextStyle(color = medai.textPrimary, fontSize = 14.sp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = Color(0xFFF8FFFE),
                             unfocusedContainerColor = Color(0xFFF8FFFE),
-                            focusedBorderColor = PrimaryGreen,
-                            unfocusedBorderColor = MedicalBorder
+                            focusedBorderColor = medai.brand,
+                            unfocusedBorderColor = medai.border
                         )
                     )
 
@@ -1100,7 +1106,7 @@ fun GeneralChatScreen(
                             }
                         },
                         modifier = Modifier
-                            .background(Brush.horizontalGradient(listOf(PrimaryGreen, DarkGreen)), CircleShape)
+                            .background(Brush.horizontalGradient(listOf(medai.brand, medai.brandStrong)), CircleShape)
                             .size(48.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White)
@@ -1121,7 +1127,7 @@ fun GeneralChatScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .background(MedicalBackground)
+                    .background(medai.canvas)
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
@@ -1131,8 +1137,8 @@ fun GeneralChatScreen(
                             .fillMaxWidth()
                             .shadow(6.dp, RoundedCornerShape(22.dp))
                             .clip(RoundedCornerShape(22.dp))
-                            .background(Brush.linearGradient(listOf(LightGreen, Color(0xFFE6F6F4))))
-                            .border(1.dp, PrimaryGreen.copy(alpha = 0.18f), RoundedCornerShape(22.dp))
+                            .background(Brush.linearGradient(listOf(medai.brandSoft, Color(0xFFE6F6F4))))
+                            .border(1.dp, medai.brand.copy(alpha = 0.18f), RoundedCornerShape(22.dp))
                             .padding(22.dp),
                         contentAlignment = Alignment.Center
                     ) {
@@ -1141,14 +1147,14 @@ fun GeneralChatScreen(
                                 modifier = Modifier
                                     .size(60.dp)
                                     .shadow(4.dp, CircleShape)
-                                    .background(Brush.linearGradient(listOf(PrimaryGreen, DarkGreen)), CircleShape),
+                                    .background(Brush.linearGradient(listOf(medai.brand, medai.brandStrong)), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(imageVector = Icons.Default.SmartToy, contentDescription = null, tint = Color.White, modifier = Modifier.size(30.dp))
                             }
                             Spacer(modifier = Modifier.height(10.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(modifier = Modifier.size(6.dp).background(SuccessGreen, CircleShape))
+                                Box(modifier = Modifier.size(6.dp).background(medai.success, CircleShape))
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = when (lang) {
@@ -1158,7 +1164,7 @@ fun GeneralChatScreen(
                                     },
                                     fontSize = 11.5.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = DarkGreen
+                                    color = medai.brandStrong
                                 )
                             }
                             Spacer(modifier = Modifier.height(6.dp))
@@ -1170,7 +1176,7 @@ fun GeneralChatScreen(
                                 },
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 17.sp,
-                                color = TextPrimary,
+                                color = medai.textPrimary,
                                 textAlign = TextAlign.Center
                             )
                             Spacer(modifier = Modifier.height(4.dp))
@@ -1181,7 +1187,7 @@ fun GeneralChatScreen(
                                     else -> "Ask about symptoms, nutrition, or your lab results."
                                 },
                                 fontSize = 12.5.sp,
-                                color = TextSecondary,
+                                color = medai.textSecondary,
                                 textAlign = TextAlign.Center,
                                 lineHeight = 17.sp
                             )
@@ -1205,8 +1211,8 @@ fun GeneralChatScreen(
                             .fillMaxWidth()
                             .shadow(2.dp, RoundedCornerShape(14.dp))
                             .clip(RoundedCornerShape(14.dp))
-                            .background(Color.White)
-                            .border(1.dp, DividerSoft, RoundedCornerShape(14.dp))
+                            .background(medai.surface)
+                            .border(1.dp, medai.divider, RoundedCornerShape(14.dp))
                             .clickable {
                                 viewModel.sendChatMessage(
                                     message = question,
@@ -1222,11 +1228,11 @@ fun GeneralChatScreen(
                         Text(
                             text = question,
                             fontSize = 13.5.sp,
-                            color = TextPrimary,
+                            color = medai.textPrimary,
                             fontWeight = FontWeight.Medium,
                             modifier = Modifier.weight(1f)
                         )
-                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
+                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = medai.textSecondary, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -1235,7 +1241,7 @@ fun GeneralChatScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .background(MedicalBackground)
+                    .background(medai.canvas)
                     .padding(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
                 contentPadding = PaddingValues(vertical = 12.dp)
@@ -1248,7 +1254,7 @@ fun GeneralChatScreen(
                     ) {
                         Card(
                             colors = CardDefaults.cardColors(
-                                containerColor = if (isUser) PrimaryGreen else Color.White
+                                containerColor = if (isUser) medai.brand else Color.White
                             ),
                             shape = RoundedCornerShape(
                                 topStart = 16.dp,
@@ -1256,13 +1262,13 @@ fun GeneralChatScreen(
                                 bottomStart = if (isUser) 16.dp else 4.dp,
                                 bottomEnd = if (isUser) 4.dp else 16.dp
                             ),
-                            border = if (isUser) null else BorderStroke(1.dp, MedicalBorder),
+                            border = if (isUser) null else BorderStroke(1.dp, medai.border),
                             elevation = CardDefaults.cardElevation(defaultElevation = if (isUser) 0.dp else 1.dp),
                             modifier = Modifier.widthIn(max = 280.dp)
                         ) {
                             Text(
                                 text = msg.content,
-                                color = if (isUser) Color.White else TextPrimary,
+                                color = if (isUser) Color.White else medai.textPrimary,
                                 modifier = Modifier.padding(12.dp),
                                 fontSize = 14.sp,
                                 lineHeight = 19.sp
@@ -1279,6 +1285,8 @@ fun GeneralChatScreen(
 
 @Composable
 fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+    val medai = MedAITheme.colors
+
     val context = LocalContext.current
     val familyMembers by viewModel.familyMembers.collectAsState()
     val gpsLocation by viewModel.gpsLocation.collectAsState()
@@ -1295,7 +1303,7 @@ fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
     Scaffold(
         topBar = { AppHeader(title = "SOS Favqulodda Yordam", onBack = onBack) },
-        containerColor = MedicalBackground
+        containerColor = medai.canvas
     ) { innerPadding ->
         LazyColumn(
             modifier = Modifier
@@ -1317,9 +1325,9 @@ fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         modifier = Modifier
                             .size(140.dp)
                             .scale(pulseScale)
-                            .shadow(16.dp, CircleShape, ambientColor = ErrorRed, spotColor = ErrorRed)
+                            .shadow(16.dp, CircleShape, ambientColor = medai.danger, spotColor = medai.danger)
                             .clip(CircleShape)
-                            .background(Brush.radialGradient(colors = listOf(Color(0xFFEF5350), ErrorRed)))
+                            .background(Brush.radialGradient(colors = listOf(Color(0xFFEF5350), medai.danger)))
                             .clickable {
                                 dial("103")
                             },
@@ -1340,7 +1348,7 @@ fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     Text(
                         text = "Tez tibbiy yordam chaqirish uchun bosing",
                         fontSize = 13.sp,
-                        color = TextSecondary,
+                        color = medai.textSecondary,
                         textAlign = TextAlign.Center
                     )
                 }
@@ -1353,22 +1361,22 @@ fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         .shadow(4.dp, RoundedCornerShape(20.dp)),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MedicalBorder)
+                    border = BorderStroke(1.dp, medai.border)
                 ) {
                     Column(modifier = Modifier.padding(18.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
-                                    .background(ErrorRed.copy(alpha = 0.12f), CircleShape),
+                                    .background(medai.danger.copy(alpha = 0.12f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = ErrorRed, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = medai.danger, modifier = Modifier.size(20.dp))
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("Joriy joylashuv", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = TextSecondary)
-                                Text(gpsLocation, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
+                                Text("Joriy joylashuv", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = medai.textSecondary)
+                                Text(gpsLocation, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = medai.textPrimary)
                             }
                         }
                         Spacer(modifier = Modifier.height(14.dp))
@@ -1379,7 +1387,7 @@ fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             },
                             modifier = Modifier.fillMaxWidth().height(48.dp),
                             shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
+                            colors = ButtonDefaults.buttonColors(containerColor = medai.danger)
                         ) {
                             Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(8.dp))
@@ -1397,7 +1405,7 @@ fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     text = "TEZKOR RAQAMLAR".uppercase(),
                     fontWeight = FontWeight.Bold,
                     fontSize = 11.sp,
-                    color = PrimaryGreen,
+                    color = medai.brand,
                     letterSpacing = 1.2.sp
                 )
             }
@@ -1411,15 +1419,15 @@ fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 .clickable { dial(number) },
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            border = BorderStroke(1.dp, MedicalBorder)
+                            border = BorderStroke(1.dp, medai.border)
                         ) {
                             Column(
                                 modifier = Modifier.padding(vertical = 14.dp).fillMaxWidth(),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
-                                Text(number, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = ErrorRed)
+                                Text(number, fontSize = 18.sp, fontWeight = FontWeight.ExtraBold, color = medai.danger)
                                 Spacer(modifier = Modifier.height(2.dp))
-                                Text(label, fontSize = 11.sp, color = TextSecondary)
+                                Text(label, fontSize = 11.sp, color = medai.textSecondary)
                             }
                         }
                     }
@@ -1432,7 +1440,7 @@ fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         text = "OILA A'ZOLARI".uppercase(),
                         fontWeight = FontWeight.Bold,
                         fontSize = 11.sp,
-                        color = PrimaryGreen,
+                        color = medai.brand,
                         letterSpacing = 1.2.sp
                     )
                 }
@@ -1441,7 +1449,7 @@ fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, MedicalBorder)
+                        border = BorderStroke(1.dp, medai.border)
                     ) {
                         Row(
                             modifier = Modifier.padding(14.dp).fillMaxWidth(),
@@ -1450,21 +1458,21 @@ fun SOSScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
-                                    .background(LightGreen, CircleShape),
+                                    .background(medai.brandSoft, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.Person, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
+                                Icon(Icons.Default.Person, contentDescription = null, tint = medai.brand, modifier = Modifier.size(20.dp))
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(member.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
-                                Text(member.relation, fontSize = 12.sp, color = TextSecondary)
+                                Text(member.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = medai.textPrimary)
+                                Text(member.relation, fontSize = 12.sp, color = medai.textSecondary)
                             }
                             IconButton(
                                 onClick = { dial(member.phone) },
-                                modifier = Modifier.size(40.dp).background(PrimaryGreen.copy(alpha = 0.1f), CircleShape)
+                                modifier = Modifier.size(40.dp).background(medai.brand.copy(alpha = 0.1f), CircleShape)
                             ) {
-                                Icon(Icons.Default.Call, contentDescription = "Qo'ng'iroq", tint = PrimaryGreen, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Default.Call, contentDescription = "Qo'ng'iroq", tint = medai.brand, modifier = Modifier.size(18.dp))
                             }
                         }
                     }

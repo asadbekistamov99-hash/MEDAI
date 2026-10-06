@@ -55,49 +55,41 @@ import kotlinx.coroutines.launch
 
 // --- GLOBAL MEDICAL COMPONENTS ---
 //
-// These six composables are the spine of the app: every one of the 16 screens renders
-// through them, so refining them here is what actually moves the whole product rather than
-// one screen at a time. Signatures are intentionally unchanged so the ~900 existing call
-// sites keep working.
+// These composables are the spine of the app: nearly every screen renders through them, so they
+// are thin wrappers over MedAIKit.kt. Signatures are unchanged so existing call sites keep
+// working; colours come from MedAITheme, so light and dark both work.
+
+private val DefaultCardBorder = BorderStroke(1.dp, MedicalBorder)
 
 @Composable
 fun MedicalCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
-    borderStroke: BorderStroke? = BorderStroke(1.dp, MedicalBorder),
+    borderStroke: BorderStroke? = DefaultCardBorder,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
+    val medai = MedAITheme.colors
+    // The default border is a light-only constant; swap it for the themed hairline.
+    val stroke = if (borderStroke === DefaultCardBorder) BorderStroke(1.dp, medai.border) else borderStroke
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
     val scale by animateFloatAsState(
-        targetValue = if (isPressed && onClick != null) 0.98f else 1.0f,
-        animationSpec = tween(140),
+        targetValue = if (pressed && onClick != null) 0.985f else 1f,
+        animationSpec = tween(120),
         label = "cardScale"
     )
-    val elevation by animateDpAsState(
-        targetValue = if (isPressed && onClick != null) 14.dp else 5.dp,
-        animationSpec = tween(140),
-        label = "cardElevation"
-    )
-
-    Card(
+    val shape = RoundedCornerShape(MedAICorners.card)
+    Column(
         modifier = modifier
             .scale(scale)
+            .clip(shape)
+            .background(medai.surface)
+            .then(if (stroke != null) Modifier.border(stroke, shape) else Modifier)
             .then(
                 if (onClick != null) {
-                    Modifier.clickable(
-                        interactionSource = interactionSource,
-                        indication = ripple(color = PrimaryGreen.copy(alpha = 0.1f)),
-                        onClick = onClick
-                    )
-                } else {
-                    Modifier
-                }
+                    Modifier.clickable(interactionSource = source, indication = null, role = Role.Button, onClick = onClick)
+                } else Modifier
             ),
-        shape = RoundedCornerShape(MedAICorners.card),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
-        border = borderStroke,
         content = content
     )
 }
@@ -109,65 +101,7 @@ fun MedicalButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     enabled: Boolean = true
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.97f else 1.0f,
-        animationSpec = tween(120),
-        label = "btnScale"
-    )
-    val shape = RoundedCornerShape(MedAICorners.control)
-    val brush = if (enabled) {
-        Brush.horizontalGradient(colors = listOf(Teal500, Teal700))
-    } else {
-        Brush.horizontalGradient(colors = listOf(MedicalBorder, MedicalBorder))
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(54.dp)
-            .scale(scale)
-            .shadow(
-                elevation = if (enabled) 8.dp else 0.dp,
-                shape = shape,
-                ambientColor = PrimaryGreen.copy(alpha = 0.35f),
-                spotColor = PrimaryGreen.copy(alpha = 0.35f)
-            )
-            .clip(shape)
-            .background(brush)
-            .clickable(
-                enabled = enabled,
-                interactionSource = interactionSource,
-                indication = ripple(color = Color.White.copy(alpha = 0.18f)),
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (enabled) Color.White else TextSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Text(
-                text = text,
-                color = if (enabled) Color.White else TextSecondary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 0.1.sp
-            )
-        }
-    }
-}
+) = MedAIPrimaryButton(text = text, onClick = onClick, modifier = modifier.fillMaxWidth(), icon = icon, enabled = enabled)
 
 @Composable
 fun MedicalSecondaryButton(
@@ -176,49 +110,7 @@ fun MedicalSecondaryButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     enabled: Boolean = true
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.97f else 1.0f,
-        animationSpec = tween(120),
-        label = "secondaryBtnScale"
-    )
-    val shape = RoundedCornerShape(MedAICorners.control)
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(54.dp)
-            .scale(scale)
-            .clip(shape)
-            .background(LightGreen)
-            .border(1.5.dp, PrimaryGreen.copy(alpha = 0.45f), shape)
-            .clickable(
-                enabled = enabled,
-                interactionSource = interactionSource,
-                indication = ripple(color = PrimaryGreen.copy(alpha = 0.12f)),
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            if (icon != null) {
-                Icon(imageVector = icon, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Text(
-                text = text,
-                color = PrimaryGreen,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
+) = MedAISecondaryButton(text = text, onClick = onClick, modifier = modifier.fillMaxWidth(), icon = icon, enabled = enabled)
 
 @Composable
 fun MedicalDangerButton(
@@ -227,64 +119,7 @@ fun MedicalDangerButton(
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
     enabled: Boolean = true
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed && enabled) 0.97f else 1.0f,
-        animationSpec = tween(120),
-        label = "dangerBtnScale"
-    )
-    val shape = RoundedCornerShape(MedAICorners.control)
-    val brush = if (enabled) {
-        DangerGradient
-    } else {
-        Brush.horizontalGradient(colors = listOf(MedicalBorder, MedicalBorder))
-    }
-
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(54.dp)
-            .scale(scale)
-            .shadow(
-                elevation = if (enabled) 8.dp else 0.dp,
-                shape = shape,
-                ambientColor = ErrorRed.copy(alpha = 0.35f),
-                spotColor = ErrorRed.copy(alpha = 0.35f)
-            )
-            .clip(shape)
-            .background(brush)
-            .clickable(
-                enabled = enabled,
-                interactionSource = interactionSource,
-                indication = ripple(color = Color.White.copy(alpha = 0.18f)),
-                onClick = onClick
-            ),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            if (icon != null) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (enabled) Color.White else TextSecondary,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-            }
-            Text(
-                text = text,
-                color = if (enabled) Color.White else TextSecondary,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
+) = MedAIDangerButton(text = text, onClick = onClick, modifier = modifier.fillMaxWidth(), icon = icon, enabled = enabled)
 
 @Composable
 fun MedicalTextField(
@@ -297,71 +132,24 @@ fun MedicalTextField(
     trailingIcon: @Composable (() -> Unit)? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     errorText: String? = null
-) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = label.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = if (errorText != null) ErrorRed else TextSecondary,
-            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
-        )
-
-        var isFocused by remember { mutableStateOf(false) }
-
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            placeholder = { Text(placeholder, color = TextSecondary.copy(alpha = 0.55f), fontSize = 15.sp) },
-            leadingIcon = {
-                Icon(
-                    imageVector = leadingIcon,
-                    contentDescription = null,
-                    tint = when {
-                        errorText != null -> ErrorRed
-                        isFocused -> PrimaryGreen
-                        else -> TextSecondary
-                    },
-                    modifier = Modifier.size(21.dp)
-                )
-            },
-            trailingIcon = trailingIcon,
-            visualTransformation = visualTransformation,
-            keyboardOptions = keyboardOptions,
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .onFocusChanged { isFocused = it.isFocused },
-            shape = RoundedCornerShape(MedAICorners.control),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color.White,
-                unfocusedContainerColor = Color.White,
-                errorContainerColor = Color.White,
-                focusedBorderColor = PrimaryGreen,
-                unfocusedBorderColor = MedicalBorder,
-                errorBorderColor = ErrorRed,
-                focusedTextColor = TextPrimary,
-                unfocusedTextColor = TextPrimary
-            )
-        )
-        if (errorText != null) {
-            Text(
-                text = errorText,
-                style = MaterialTheme.typography.bodySmall,
-                color = ErrorRed,
-                modifier = Modifier.padding(top = 5.dp, start = 4.dp)
-            )
-        }
-    }
-}
+) = MedAITextField(
+    value = value,
+    onValueChange = onValueChange,
+    label = label,
+    modifier = Modifier.fillMaxWidth(),
+    placeholder = placeholder,
+    leadingIcon = leadingIcon,
+    error = errorText,
+    visualTransformation = visualTransformation,
+    trailingContent = trailingIcon,
+    keyboardOptions = keyboardOptions,
+)
 
 /**
- * Top bar for every secondary screen.
+ * Top bar for every secondary screen: flat, on the canvas, with a hairline underneath.
  *
- * A branded gradient band rather than a white settings-style bar: it separates the page from
- * the content, carries the product's colour into every screen, and gives the back button a
- * real affordance. The action slot sits on a white pill so call sites that pass an icon with
- * an explicit dark tint (e.g. the clear-chat button on the AI doctor screen) stay legible.
+ * MaterialTheme is edge-to-edge (MainActivity calls enableEdgeToEdge) and call sites put this in
+ * a Scaffold topBar slot, which does not inset its content, hence the explicit status-bar padding.
  */
 @Composable
 fun AppHeader(
@@ -369,62 +157,50 @@ fun AppHeader(
     onBack: (() -> Unit)? = null,
     actions: @Composable (RowScope.() -> Unit)? = null
 ) {
-    Row(
+    val medai = MedAITheme.colors
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(BrandGradient)
-            // MaterialTheme is edge-to-edge (MainActivity calls enableEdgeToEdge), and every
-            // call site puts this in a Scaffold topBar slot, which does not inset its content.
-            // The previous CenterAlignedTopAppBar did this for us via TopAppBarDefaults; a plain
-            // Row does not, so without this the back button would sit under the status bar.
+            .background(medai.canvas)
             .statusBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
     ) {
-        if (onBack != null) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.22f))
-                    .clickable { onBack() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Back",
-                    tint = Color.White,
-                    modifier = Modifier.size(20.dp)
-                )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 64.dp)
+                .padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (onBack != null) {
+                Box(
+                    modifier = Modifier
+                        .size(MinTouch)
+                        .clip(CircleShape)
+                        .clickable(role = Role.Button) { onBack() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = medai.textPrimary
+                    )
+                }
+            } else {
+                Spacer(modifier = Modifier.width(12.dp))
             }
-            Spacer(modifier = Modifier.width(12.dp))
-        } else {
-            Spacer(modifier = Modifier.width(4.dp))
-        }
-
-        Text(
-            text = title,
-            fontWeight = FontWeight.Bold,
-            fontSize = 19.sp,
-            color = Color.White,
-            letterSpacing = (-0.3).sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f)
-        )
-
-        if (actions != null) {
-            Spacer(modifier = Modifier.width(8.dp))
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(MedAICorners.pill))
-                    .background(Color.White.copy(alpha = 0.92f))
-                    .padding(horizontal = 4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                actions()
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = medai.textPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+            )
+            if (actions != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) { actions() }
             }
         }
+        Box(Modifier.fillMaxWidth().height(1.dp).background(medai.border))
     }
 }
 
@@ -436,9 +212,11 @@ fun MetricCard(
     color: Color,
     modifier: Modifier = Modifier
 ) {
+    val medai = MedAITheme.colors
+
     MedicalCard(
         modifier = modifier.padding(4.dp),
-        borderStroke = BorderStroke(1.dp, DividerSoft)
+        borderStroke = BorderStroke(1.dp, medai.divider)
     ) {
         Row(
             modifier = Modifier
@@ -460,13 +238,13 @@ fun MetricCard(
                 Text(
                     text = title.uppercase(),
                     style = MaterialTheme.typography.labelSmall,
-                    color = TextSecondary
+                    color = medai.textSecondary
                 )
                 Spacer(modifier = Modifier.height(1.dp))
                 Text(
                     text = value,
                     style = MaterialTheme.typography.titleLarge,
-                    color = TextPrimary,
+                    color = medai.textPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -575,6 +353,8 @@ fun LoadingDotsAnimation(modifier: Modifier = Modifier) {
 
 @Composable
 fun SplashScreen(onNavigateToOnboarding: () -> Unit, onNavigateToHome: () -> Unit, viewModel: AppViewModel) {
+    val medai = MedAITheme.colors
+
     val user by viewModel.currentUser.collectAsState()
     val scale = remember { Animatable(0f) }
 
@@ -627,7 +407,7 @@ fun SplashScreen(onNavigateToOnboarding: () -> Unit, onNavigateToHome: () -> Uni
                             ambientColor = Color.White,
                             spotColor = Color.White,
                         )
-                        .background(Color.White, CircleShape),
+                        .background(medai.surface, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
@@ -861,6 +641,8 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit, viewModel: AppViewModel) {
 
 @Composable
 fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit, viewModel: AppViewModel) {
+    val medai = MedAITheme.colors
+
     val lang by viewModel.currentLanguage.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -883,7 +665,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MedicalBackground)
+            .background(medai.canvas)
     ) {
         // Curved top header (30% of screen)
         Box(
@@ -936,8 +718,8 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 item {
-                    Text(text = Translations.getString("register", lang), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
-                    Text(text = Translations.getString("app_slogan", lang), fontSize = 13.sp, color = TextSecondary)
+                    Text(text = Translations.getString("register", lang), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = medai.textPrimary)
+                    Text(text = Translations.getString("app_slogan", lang), fontSize = 13.sp, color = medai.textSecondary)
                     Spacer(modifier = Modifier.height(8.dp))
                 }
 
@@ -985,7 +767,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                                 Icon(
                                     imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
                                     contentDescription = null,
-                                    tint = PrimaryGreen
+                                    tint = medai.brand
                                 )
                             }
                         }
@@ -1037,7 +819,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                             text = Translations.getString("gender_label", lang).uppercase(),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryGreen,
+                            color = medai.brand,
                             letterSpacing = 1.2.sp,
                             modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
                         )
@@ -1046,17 +828,17 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                                 RadioButton(
                                     selected = gender == "male",
                                     onClick = { gender = "male" },
-                                    colors = RadioButtonDefaults.colors(selectedColor = PrimaryGreen)
+                                    colors = RadioButtonDefaults.colors(selectedColor = medai.brand)
                                 )
-                                Text(Translations.getString("gender_male", lang), color = TextPrimary)
+                                Text(Translations.getString("gender_male", lang), color = medai.textPrimary)
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 RadioButton(
                                     selected = gender == "female",
                                     onClick = { gender = "female" },
-                                    colors = RadioButtonDefaults.colors(selectedColor = PrimaryGreen)
+                                    colors = RadioButtonDefaults.colors(selectedColor = medai.brand)
                                 )
-                                Text(Translations.getString("gender_female", lang), color = TextPrimary)
+                                Text(Translations.getString("gender_female", lang), color = medai.textPrimary)
                             }
                         }
                     }
@@ -1068,7 +850,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                             text = Translations.getString("blood_type_label", lang).uppercase(),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = PrimaryGreen,
+                            color = medai.brand,
                             letterSpacing = 1.2.sp,
                             modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
                         )
@@ -1082,7 +864,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                                     onClick = { bloodType = bType },
                                     label = { Text(bType) },
                                     colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = PrimaryGreen,
+                                        selectedContainerColor = medai.brand,
                                         selectedLabelColor = Color.White
                                     )
                                 )
@@ -1135,9 +917,9 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.Center
                     ) {
-                        Box(modifier = Modifier.weight(1f).height(1.dp).background(MedicalBorder))
-                        Text(text = " yoki ", color = TextSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp))
-                        Box(modifier = Modifier.weight(1f).height(1.dp).background(MedicalBorder))
+                        Box(modifier = Modifier.weight(1f).height(1.dp).background(medai.border))
+                        Text(text = " yoki ", color = medai.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp))
+                        Box(modifier = Modifier.weight(1f).height(1.dp).background(medai.border))
                     }
                 }
 
@@ -1163,11 +945,11 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                             .fillMaxWidth()
                             .height(54.dp),
                         shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.5.dp, MedicalBorder),
+                        border = BorderStroke(1.5.dp, medai.border),
                         colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface)
                     ) {
                         if (isGoogleSigningIn) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = PrimaryGreen)
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = medai.brand)
                         } else {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -1180,7 +962,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
                                 Text(text = "l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                                 Text(text = "e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text(text = Translations.getString("google_sign_in", lang), color = TextPrimary, fontWeight = FontWeight.Bold)
+                                Text(text = Translations.getString("google_sign_in", lang), color = medai.textPrimary, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -1188,7 +970,7 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
 
                 item {
                     TextButton(onClick = onNavigateToLogin) {
-                        Text(text = Translations.getString("already_have_account", lang), color = PrimaryGreen, fontWeight = FontWeight.Bold)
+                        Text(text = Translations.getString("already_have_account", lang), color = medai.brand, fontWeight = FontWeight.Bold)
                     }
                     Spacer(modifier = Modifier.height(24.dp))
                 }
@@ -1201,6 +983,8 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
 
 @Composable
 fun LoginScreen(onNavigateToRegister: () -> Unit, onLoginSuccess: () -> Unit, viewModel: AppViewModel) {
+    val medai = MedAITheme.colors
+
     val lang by viewModel.currentLanguage.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -1233,7 +1017,7 @@ fun LoginScreen(onNavigateToRegister: () -> Unit, onLoginSuccess: () -> Unit, vi
                 Box(
                     modifier = Modifier
                         .size(72.dp)
-                        .background(Color.White, CircleShape),
+                        .background(medai.surface, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(

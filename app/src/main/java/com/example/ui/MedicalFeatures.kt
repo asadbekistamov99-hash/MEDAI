@@ -40,6 +40,8 @@ import java.text.SimpleDateFormat
 
 @Composable
 fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+    val medai = MedAITheme.colors
+
     val lang by viewModel.currentLanguage.collectAsState()
     val isChecking by viewModel.isCheckingSymptoms.collectAsState()
     val resultText by viewModel.symptomResultText.collectAsState()
@@ -75,7 +77,7 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MedicalBackground)
+                .background(medai.canvas)
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -85,28 +87,28 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 text = (if (lang == "uz") "1. Belgilarni kiriting" else if (lang == "ru") "1. Введите симптомы" else "1. Enter Symptoms").uppercase(),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = PrimaryGreen,
+                color = medai.brand,
                 letterSpacing = 1.sp
             )
 
             OutlinedTextField(
                 value = symptomsText,
                 onValueChange = { symptomsText = it },
-                placeholder = { Text(Translations.getString("symptom_input_placeholder", lang), color = TextSecondary.copy(alpha = 0.6f)) },
+                placeholder = { Text(Translations.getString("symptom_input_placeholder", lang), color = medai.textSecondary.copy(alpha = 0.6f)) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                textStyle = androidx.compose.ui.text.TextStyle(color = TextPrimary, fontSize = 15.sp),
+                textStyle = androidx.compose.ui.text.TextStyle(color = medai.textPrimary, fontSize = 15.sp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color(0xFFF8FFFE),
                     unfocusedContainerColor = Color(0xFFF8FFFE),
-                    focusedBorderColor = PrimaryGreen,
-                    unfocusedBorderColor = MedicalBorder,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary
+                    focusedBorderColor = medai.brand,
+                    unfocusedBorderColor = medai.border,
+                    focusedTextColor = medai.textPrimary,
+                    unfocusedTextColor = medai.textPrimary
                 ),
                 trailingIcon = {
                     IconButton(onClick = { viewModel.checkSymptoms(symptomsText, selectedBodyPart, selectedDurationCode, selectedSeverityCode) }) {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = PrimaryGreen)
+                        Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = medai.brand)
                     }
                 }
             )
@@ -138,7 +140,7 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 text = (if (lang == "uz") "2. Tana sohasini tanlang" else if (lang == "ru") "2. Выберите область тела" else "2. Select Body Area").uppercase(),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = PrimaryGreen,
+                color = medai.brand,
                 letterSpacing = 1.sp
             )
             Row(
@@ -151,15 +153,15 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         modifier = Modifier
                             .weight(1f)
                             .clip(RoundedCornerShape(14.dp))
-                            .background(if (selected) PrimaryGreen else Color.White)
-                            .border(1.dp, if (selected) PrimaryGreen else MedicalBorder, RoundedCornerShape(14.dp))
+                            .background(if (selected) medai.brand else Color.White)
+                            .border(1.dp, if (selected) medai.brand else medai.border, RoundedCornerShape(14.dp))
                             .clickable { selectedBodyPart = code }
                             .padding(vertical = 12.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = label,
-                            color = if (selected) Color.White else TextSecondary,
+                            color = if (selected) Color.White else medai.textSecondary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 11.sp
                         )
@@ -172,7 +174,7 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 text = (if (lang == "uz") "3. Belgilar davomiyligi" else if (lang == "ru") "3. Продолжительность симптомов" else "3. Duration of Symptoms").uppercase(),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = PrimaryGreen,
+                color = medai.brand,
                 letterSpacing = 1.sp
             )
             Row(
@@ -194,7 +196,7 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 text = (if (lang == "uz") "4. Belgilar og'irligi" else if (lang == "ru") "4. Тяжесть симптомов" else "4. Symptom Severity").uppercase(),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
-                color = PrimaryGreen,
+                color = medai.brand,
                 letterSpacing = 1.sp
             )
             Row(
@@ -204,16 +206,16 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 severityOptions.forEach { (display, code) ->
                     val isSelected = selectedSeverityCode == code
                     val dotColor = when (code) {
-                        "Mild" -> SuccessGreen
-                        "Moderate" -> WarningOrange
-                        else -> ErrorRed
+                        "Mild" -> medai.success
+                        "Moderate" -> medai.warning
+                        else -> medai.danger
                     }
                     val selectedBgColor = when (code) {
-                        "Mild" -> SuccessGreen.copy(alpha = 0.12f)
-                        "Moderate" -> WarningOrange.copy(alpha = 0.12f)
-                        else -> ErrorRed.copy(alpha = 0.12f)
+                        "Mild" -> medai.success.copy(alpha = 0.12f)
+                        "Moderate" -> medai.warning.copy(alpha = 0.12f)
+                        else -> medai.danger.copy(alpha = 0.12f)
                     }
-                    val borderColor = if (isSelected) dotColor else MedicalBorder
+                    val borderColor = if (isSelected) dotColor else medai.border
                     val bgColor = if (isSelected) selectedBgColor else Color.White
 
                     Box(
@@ -233,7 +235,7 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Box(modifier = Modifier.size(8.dp).background(dotColor, CircleShape))
                             Text(
                                 text = display,
-                                color = if (isSelected) dotColor else TextSecondary,
+                                color = if (isSelected) dotColor else medai.textSecondary,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 13.sp
                             )
@@ -246,13 +248,13 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             if (user?.isPremium == false) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = PremiumPurple.copy(alpha = 0.08f)),
+                    colors = CardDefaults.cardColors(containerColor = medai.premium.copy(alpha = 0.08f)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = PremiumPurple)
+                        Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = medai.premium)
                         Spacer(modifier = Modifier.width(12.dp))
-                        Text(text = Translations.getString("premium_upsell_banner", lang), fontSize = 11.sp, color = PremiumPurple, fontWeight = FontWeight.Bold)
+                        Text(text = Translations.getString("premium_upsell_banner", lang), fontSize = 11.sp, color = medai.premium, fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -293,7 +295,7 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     text = if (lang == "uz") "Oxirgi tekshiruvlar" else if (lang == "ru") "Последние проверки" else "Recent Checks",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
-                    color = TextPrimary
+                    color = medai.textPrimary
                 )
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -317,13 +319,13 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             if (insightText.isNotEmpty()) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = LightGreen.copy(alpha = 0.6f)),
+                    colors = CardDefaults.cardColors(containerColor = medai.brandSoft.copy(alpha = 0.6f)),
                     shape = RoundedCornerShape(14.dp)
                 ) {
                     Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.TrendingUp, contentDescription = null, tint = PrimaryGreen)
+                        Icon(imageVector = Icons.Default.TrendingUp, contentDescription = null, tint = medai.brand)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = insightText, fontSize = 13.sp, color = TextPrimary, fontWeight = FontWeight.Medium)
+                        Text(text = insightText, fontSize = 13.sp, color = medai.textPrimary, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -336,7 +338,7 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
             ) {
                 if (isChecking) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
@@ -357,26 +359,26 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 if (matchedAllergies.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = ErrorRed.copy(alpha = 0.1f)),
-                        border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.4f)),
+                        colors = CardDefaults.cardColors(containerColor = medai.danger.copy(alpha = 0.1f)),
+                        border = BorderStroke(1.dp, medai.danger.copy(alpha = 0.4f)),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = ErrorRed)
+                            Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = medai.danger)
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
                                     text = if (lang == "uz") "⚠️ Diqqat! Bu dori sizga allergiya qilishi mumkin:"
                                            else if (lang == "ru") "⚠️ Внимание! Это лекарство может вызвать аллергию:"
                                            else "⚠️ Warning! This medicine may cause an allergy:",
-                                    color = ErrorRed,
+                                    color = medai.danger,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 13.sp
                                 )
                                 Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = matchedAllergies.joinToString(", "),
-                                    color = ErrorRed,
+                                    color = medai.danger,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp
                                 )
@@ -388,11 +390,11 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(6.dp, RoundedCornerShape(20.dp), ambientColor = PrimaryGreen.copy(alpha = 0.15f), spotColor = PrimaryGreen.copy(alpha = 0.15f)),
+                        .shadow(6.dp, RoundedCornerShape(20.dp), ambientColor = medai.brand.copy(alpha = 0.15f), spotColor = medai.brand.copy(alpha = 0.15f)),
                     shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = medai.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                    border = BorderStroke(1.dp, MedicalBorder)
+                    border = BorderStroke(1.dp, medai.border)
                 ) {
                     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                         Row(
@@ -400,20 +402,20 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             Box(
-                                modifier = Modifier.size(36.dp).background(PrimaryGreen.copy(alpha = 0.12f), CircleShape),
+                                modifier = Modifier.size(36.dp).background(medai.brand.copy(alpha = 0.12f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.Default.Assessment, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(18.dp))
+                                Icon(imageVector = Icons.Default.Assessment, contentDescription = null, tint = medai.brand, modifier = Modifier.size(18.dp))
                             }
                             Text(
                                 text = if (lang == "uz") "Tahlil natijalari" else if (lang == "ru") "Результаты анализа" else "Analysis Results",
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                color = medai.textPrimary
                             )
                         }
 
-                        Divider(color = MedicalBorder)
+                        Divider(color = medai.border)
 
                         // Selected Metadata summary for context
                         Row(
@@ -443,18 +445,18 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             colors = CardColors(
-                                containerColor = ErrorRed.copy(alpha = 0.05f),
-                                contentColor = TextSecondary,
+                                containerColor = medai.danger.copy(alpha = 0.05f),
+                                contentColor = medai.textSecondary,
                                 disabledContainerColor = Color.Transparent,
                                 disabledContentColor = Color.Transparent
                             ),
                             shape = RoundedCornerShape(12.dp),
-                            border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.25f))
+                            border = BorderStroke(1.dp, medai.danger.copy(alpha = 0.25f))
                         ) {
                             Column(modifier = Modifier.padding(12.dp)) {
-                                Text(text = Translations.getString("disclaimer_title", lang), color = ErrorRed, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text(text = Translations.getString("disclaimer_title", lang), color = medai.danger, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 Spacer(modifier = Modifier.height(4.dp))
-                                Text(text = Translations.getString("disclaimer_desc", lang), color = TextSecondary, fontSize = 11.sp)
+                                Text(text = Translations.getString("disclaimer_desc", lang), color = medai.textSecondary, fontSize = 11.sp)
                             }
                         }
                     }
@@ -466,6 +468,8 @@ fun SymptomCheckerScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
 @Composable
 fun RichMarkdownText(text: String, modifier: Modifier = Modifier) {
+    val medai = MedAITheme.colors
+
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val lines = text.split("\n")
         lines.forEach { line ->
@@ -477,7 +481,7 @@ fun RichMarkdownText(text: String, modifier: Modifier = Modifier) {
                 Text(
                     text = headerText,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = PrimaryGreen,
+                    color = medai.brand,
                     modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
                 )
             } else if (trimmed.startsWith("-") || trimmed.startsWith("*")) {
@@ -486,11 +490,11 @@ fun RichMarkdownText(text: String, modifier: Modifier = Modifier) {
                     modifier = Modifier.fillMaxWidth().padding(start = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(text = "•", style = MaterialTheme.typography.bodyMedium, color = PrimaryGreen, fontWeight = FontWeight.Bold)
+                    Text(text = "•", style = MaterialTheme.typography.bodyMedium, color = medai.brand, fontWeight = FontWeight.Bold)
                     Text(
                         text = bulletText,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextPrimary,
+                        color = medai.textPrimary,
                         lineHeight = 20.sp
                     )
                 }
@@ -501,7 +505,7 @@ fun RichMarkdownText(text: String, modifier: Modifier = Modifier) {
                     val parts = trimmed.split("**")
                     parts.forEachIndexed { index, part ->
                         if (index % 2 == 1) {
-                            builder.pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold, color = PrimaryGreen))
+                            builder.pushStyle(androidx.compose.ui.text.SpanStyle(fontWeight = FontWeight.Bold, color = medai.brand))
                             builder.append(part)
                             builder.pop()
                         } else {
@@ -513,7 +517,7 @@ fun RichMarkdownText(text: String, modifier: Modifier = Modifier) {
                 Text(
                     text = annotatedString,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimary,
+                    color = medai.textPrimary,
                     lineHeight = 20.sp
                 )
             }
@@ -525,6 +529,8 @@ fun RichMarkdownText(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+    val medai = MedAITheme.colors
+
     val lang by viewModel.currentLanguage.collectAsState()
     val chatMessages by viewModel.doctorChatMessages().collectAsState(initial = emptyList())
 
@@ -538,7 +544,7 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 onBack = onBack,
                 actions = {
                     IconButton(onClick = { viewModel.clearChatHistory("doctor") }) {
-                        Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = "Clear Chat", tint = TextSecondary)
+                        Icon(imageVector = Icons.Default.DeleteOutline, contentDescription = "Clear Chat", tint = medai.textSecondary)
                     }
                 }
             )
@@ -556,15 +562,15 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     OutlinedTextField(
                         value = messageText,
                         onValueChange = { messageText = it },
-                        placeholder = { Text("Dori, kasallik yoki tahlil haqida so'rang...", color = TextSecondary.copy(alpha = 0.6f)) },
+                        placeholder = { Text("Dori, kasallik yoki tahlil haqida so'rang...", color = medai.textSecondary.copy(alpha = 0.6f)) },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(24.dp),
-                        textStyle = androidx.compose.ui.text.TextStyle(color = TextPrimary, fontSize = 14.sp),
+                        textStyle = androidx.compose.ui.text.TextStyle(color = medai.textPrimary, fontSize = 14.sp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = Color(0xFFF8FFFE),
                             unfocusedContainerColor = Color(0xFFF8FFFE),
-                            focusedBorderColor = PremiumPurple,
-                            unfocusedBorderColor = MedicalBorder
+                            focusedBorderColor = medai.premium,
+                            unfocusedBorderColor = medai.border
                         )
                     )
 
@@ -577,7 +583,7 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             }
                         },
                         modifier = Modifier
-                            .background(Brush.horizontalGradient(listOf(PremiumPurple, Color(0xFF5E35B1))), CircleShape)
+                            .background(Brush.horizontalGradient(listOf(medai.premium, Color(0xFF5E35B1))), CircleShape)
                             .size(48.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White)
@@ -590,7 +596,7 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MedicalBackground)
+                .background(medai.canvas)
         ) {
             // Quick Chat Chips
             Row(
@@ -611,13 +617,13 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         onClick = { messageText = chip },
                         label = { Text(chip) },
                         colors = FilterChipDefaults.filterChipColors(
-                            containerColor = Color.White,
-                            labelColor = TextSecondary
+                            containerColor = medai.surface,
+                            labelColor = medai.textSecondary
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = false,
-                            borderColor = MedicalBorder
+                            borderColor = medai.border
                         )
                     )
                 }
@@ -627,10 +633,10 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Box(
-                            modifier = Modifier.size(72.dp).background(PremiumLight, CircleShape),
+                            modifier = Modifier.size(72.dp).background(medai.premiumSoft, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(imageVector = Icons.Default.SmartToy, contentDescription = null, tint = PremiumPurple, modifier = Modifier.size(34.dp))
+                            Icon(imageVector = Icons.Default.SmartToy, contentDescription = null, tint = medai.premium, modifier = Modifier.size(34.dp))
                         }
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
@@ -641,7 +647,7 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             },
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = TextPrimary
+                            color = medai.textPrimary
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
@@ -651,7 +657,7 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 else -> "Type your question or pick a chip above"
                             },
                             fontSize = 12.sp,
-                            color = TextSecondary,
+                            color = medai.textSecondary,
                             textAlign = TextAlign.Center,
                             modifier = Modifier.padding(horizontal = 32.dp)
                         )
@@ -673,7 +679,7 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         ) {
                             Card(
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isUser) PremiumPurple else Color.White
+                                    containerColor = if (isUser) medai.premium else Color.White
                                 ),
                                 shape = RoundedCornerShape(
                                     topStart = 16.dp,
@@ -681,13 +687,13 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     bottomStart = if (isUser) 16.dp else 4.dp,
                                     bottomEnd = if (isUser) 4.dp else 16.dp
                                 ),
-                                border = if (isUser) null else BorderStroke(1.dp, MedicalBorder),
+                                border = if (isUser) null else BorderStroke(1.dp, medai.border),
                                 elevation = CardDefaults.cardElevation(defaultElevation = if (isUser) 0.dp else 1.dp),
                                 modifier = Modifier.widthIn(max = 280.dp)
                             ) {
                                 Text(
                                     text = msg.content,
-                                    color = if (isUser) Color.White else TextPrimary,
+                                    color = if (isUser) Color.White else medai.textPrimary,
                                     modifier = Modifier.padding(12.dp),
                                     fontSize = 14.sp,
                                     lineHeight = 19.sp
@@ -705,6 +711,8 @@ fun AIDoctorScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
 @Composable
 fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+    val medai = MedAITheme.colors
+
     val lang by viewModel.currentLanguage.collectAsState()
     val tips by viewModel.aiTipsText.collectAsState()
     val isLoading by viewModel.isLoadingTips.collectAsState()
@@ -724,28 +732,28 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MedicalBackground)
+                .background(medai.canvas)
         ) {
             // personalized user details card
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(16.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
+                colors = CardDefaults.cardColors(containerColor = medai.surface),
                 shape = RoundedCornerShape(18.dp),
-                border = BorderStroke(1.dp, MedicalBorder)
+                border = BorderStroke(1.dp, medai.border)
             ) {
                 Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Box(
-                        modifier = Modifier.size(40.dp).background(PrimaryGreen.copy(alpha = 0.12f), CircleShape),
+                        modifier = Modifier.size(40.dp).background(medai.brand.copy(alpha = 0.12f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(20.dp))
+                        Icon(imageVector = Icons.Default.AutoAwesome, contentDescription = null, tint = medai.brand, modifier = Modifier.size(20.dp))
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(text = "Shaxsiy tavsiya tahlili", fontWeight = FontWeight.Bold, color = TextPrimary, fontSize = 14.sp)
-                        Text(text = "AI shaxsiy parametrlaringiz (Bo'y, vazn, jins) asosida maslahat beradi", fontSize = 11.sp, color = TextSecondary)
+                        Text(text = "Shaxsiy tavsiya tahlili", fontWeight = FontWeight.Bold, color = medai.textPrimary, fontSize = 14.sp)
+                        Text(text = "AI shaxsiy parametrlaringiz (Bo'y, vazn, jins) asosida maslahat beradi", fontSize = 11.sp, color = medai.textSecondary)
                     }
                 }
             }
@@ -770,16 +778,16 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         onClick = { selectedTab = code },
                         label = { Text(label, fontWeight = FontWeight.Bold) },
                         colors = FilterChipDefaults.filterChipColors(
-                            containerColor = Color.White,
-                            labelColor = TextSecondary,
-                            selectedContainerColor = PrimaryGreen,
+                            containerColor = medai.surface,
+                            labelColor = medai.textSecondary,
+                            selectedContainerColor = medai.brand,
                             selectedLabelColor = Color.White
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = isSelected,
-                            borderColor = MedicalBorder,
-                            selectedBorderColor = PrimaryGreen
+                            borderColor = medai.border,
+                            selectedBorderColor = medai.brand
                         )
                     )
                 }
@@ -796,7 +804,7 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             ) {
                 if (isLoading) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = PrimaryGreen)
+                        CircularProgressIndicator(color = medai.brand)
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = when (lang) {
@@ -805,18 +813,18 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 else -> "Preparing your tip..."
                             },
                             fontSize = 12.sp,
-                            color = TextSecondary
+                            color = medai.textSecondary
                         )
                     }
                 } else {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .shadow(6.dp, RoundedCornerShape(24.dp), ambientColor = PrimaryGreen.copy(alpha = 0.12f), spotColor = PrimaryGreen.copy(alpha = 0.12f)),
+                            .shadow(6.dp, RoundedCornerShape(24.dp), ambientColor = medai.brand.copy(alpha = 0.12f), spotColor = medai.brand.copy(alpha = 0.12f)),
                         shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = medai.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        border = BorderStroke(1.dp, MedicalBorder)
+                        border = BorderStroke(1.dp, medai.border)
                     ) {
                         Column(
                             modifier = Modifier.padding(24.dp),
@@ -826,7 +834,7 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Box(
                                 modifier = Modifier
                                     .size(64.dp)
-                                    .background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                                    .background(medai.brand.copy(alpha = 0.1f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 val icon = when (selectedTab) {
@@ -835,7 +843,7 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     "sleep" -> Icons.Default.Bedtime
                                     else -> Icons.Default.SelfImprovement
                                 }
-                                Icon(imageVector = icon, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(32.dp))
+                                Icon(imageVector = icon, contentDescription = null, tint = medai.brand, modifier = Modifier.size(32.dp))
                             }
 
                             val tipContent = tips[selectedTab] ?: "Yuklanmoqda..."
@@ -843,7 +851,7 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 text = tipContent,
                                 fontSize = 16.sp,
                                 textAlign = TextAlign.Center,
-                                color = TextPrimary,
+                                color = medai.textPrimary,
                                 lineHeight = 24.sp
                             )
                         }
@@ -858,7 +866,7 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     .padding(24.dp)
                     .height(52.dp),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen, contentColor = Color.White)
+                colors = ButtonDefaults.buttonColors(containerColor = medai.brand, contentColor = Color.White)
             ) {
                 Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
@@ -872,6 +880,8 @@ fun AITipsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
 @Composable
 fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+    val medai = MedAITheme.colors
+
     val lang by viewModel.currentLanguage.collectAsState()
     val drugResult by viewModel.drugInfoResult.collectAsState()
     val isLoading by viewModel.isLoadingDrug.collectAsState()
@@ -899,7 +909,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MedicalBackground)
+                .background(medai.canvas)
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -908,21 +918,21 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text(Translations.getString("drug_search_placeholder", lang), color = TextSecondary.copy(alpha = 0.6f)) },
+                placeholder = { Text(Translations.getString("drug_search_placeholder", lang), color = medai.textSecondary.copy(alpha = 0.6f)) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
-                textStyle = androidx.compose.ui.text.TextStyle(color = TextPrimary, fontSize = 15.sp),
+                textStyle = androidx.compose.ui.text.TextStyle(color = medai.textPrimary, fontSize = 15.sp),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedContainerColor = Color(0xFFF8FFFE),
                     unfocusedContainerColor = Color(0xFFF8FFFE),
-                    focusedBorderColor = AccentCyan,
-                    unfocusedBorderColor = MedicalBorder,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary
+                    focusedBorderColor = medai.info,
+                    unfocusedBorderColor = medai.border,
+                    focusedTextColor = medai.textPrimary,
+                    unfocusedTextColor = medai.textPrimary
                 ),
                 trailingIcon = {
                     IconButton(onClick = { viewModel.searchDrugInfo(searchQuery) }) {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = AccentCyan)
+                        Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = medai.info)
                     }
                 }
             )
@@ -937,7 +947,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     text = "Qidiruv tarixi".uppercase(),
                     fontSize = 11.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextSecondary,
+                    color = medai.textSecondary,
                     letterSpacing = 1.sp
                 )
                 
@@ -946,13 +956,13 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     IconButton(
                         onClick = { showScannerDialog = true },
                         modifier = Modifier
-                            .background(PrimaryGreen.copy(alpha = 0.15f), CircleShape)
+                            .background(medai.brand.copy(alpha = 0.15f), CircleShape)
                             .size(36.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.PhotoCamera,
                             contentDescription = "Scan Prescription",
-                            tint = PrimaryGreen,
+                            tint = medai.brand,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -961,13 +971,13 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     IconButton(
                         onClick = { showInteractionDialog = true },
                         modifier = Modifier
-                            .background(PremiumPurple.copy(alpha = 0.15f), CircleShape)
+                            .background(medai.premium.copy(alpha = 0.15f), CircleShape)
                             .size(36.dp)
                     ) {
                         Icon(
                             imageVector = Icons.Default.CompareArrows,
                             contentDescription = "Check Interactions",
-                            tint = PremiumPurple,
+                            tint = medai.premium,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -1000,19 +1010,19 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 if (matchedAllergies.isNotEmpty()) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = ErrorRed.copy(alpha = 0.1f)),
-                        border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.4f)),
+                        colors = CardDefaults.cardColors(containerColor = medai.danger.copy(alpha = 0.1f)),
+                        border = BorderStroke(1.dp, medai.danger.copy(alpha = 0.4f)),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Cancel, contentDescription = null, tint = ErrorRed)
+                            Icon(imageVector = Icons.Default.Cancel, contentDescription = null, tint = medai.danger)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (lang == "uz") "❌ Bu dori sizga mos emas — ${matchedAllergies.joinToString(", ")} allergiyangiz bor"
                                        else if (lang == "ru") "❌ Это лекарство вам не подходит — у вас аллергия на ${matchedAllergies.joinToString(", ")}"
                                        else "❌ This medicine is not suitable for you — you have allergy to ${matchedAllergies.joinToString(", ")}",
                                 fontSize = 12.sp,
-                                color = ErrorRed,
+                                color = medai.danger,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -1020,19 +1030,19 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 } else {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = SuccessGreen.copy(alpha = 0.1f)),
-                        border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f)),
+                        colors = CardDefaults.cardColors(containerColor = medai.success.copy(alpha = 0.1f)),
+                        border = BorderStroke(1.dp, medai.success.copy(alpha = 0.4f)),
                         shape = RoundedCornerShape(14.dp)
                     ) {
                         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen)
+                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = medai.success)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (lang == "uz") "✅ Bu dori allergiyangiz bilan mos keladi"
                                        else if (lang == "ru") "✅ Это лекарство совместимо с вашей аллергией"
                                        else "✅ This medicine is compatible with your allergies",
                                 fontSize = 12.sp,
-                                color = SuccessGreen,
+                                color = medai.success,
                                 fontWeight = FontWeight.Bold
                             )
                         }
@@ -1043,7 +1053,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             if (isLoading) {
                 Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = AccentCyan)
+                        CircularProgressIndicator(color = medai.info)
                         Spacer(modifier = Modifier.height(10.dp))
                         Text(
                             text = when (lang) {
@@ -1052,7 +1062,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 else -> "Searching..."
                             },
                             fontSize = 12.sp,
-                            color = TextSecondary
+                            color = medai.textSecondary
                         )
                     }
                 }
@@ -1061,17 +1071,17 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        border = BorderStroke(1.dp, MedicalBorder)
+                        colors = CardDefaults.cardColors(containerColor = medai.surface),
+                        border = BorderStroke(1.dp, medai.border)
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(modifier = Modifier.size(6.dp).background(AccentCyan, CircleShape))
+                                Box(modifier = Modifier.size(6.dp).background(medai.info, CircleShape))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = key, fontWeight = FontWeight.Bold, color = AccentCyan, fontSize = 14.sp)
+                                Text(text = key, fontWeight = FontWeight.Bold, color = medai.info, fontSize = 14.sp)
                             }
                             Spacer(modifier = Modifier.height(6.dp))
-                            Text(text = value, fontSize = 13.sp, color = TextPrimary, lineHeight = 19.sp)
+                            Text(text = value, fontSize = 13.sp, color = medai.textPrimary, lineHeight = 19.sp)
                         }
                     }
                 }
@@ -1085,7 +1095,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             onDismissRequest = { showScannerDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = null, tint = PrimaryGreen)
+                    Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = null, tint = medai.brand)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = if (lang == "uz") "Retseptni skanerlash" else if (lang == "ru") "Сканирование рецепта" else "Scan Prescription", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
@@ -1096,7 +1106,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         text = if (lang == "uz") "Skanerlashni simulyatsiya qilish uchun retsept turlardan birini tanlang va yuboring."
                                else "Выберите тип рецепта для симуляции сканирования.",
                         fontSize = 13.sp,
-                        color = TextSecondary
+                        color = medai.textSecondary
                     )
 
                     val presets = listOf(
@@ -1111,28 +1121,28 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 viewModel.scanPrescriptionImage(mockPrescriptionBase64)
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = LightGreen, contentColor = PrimaryGreen),
+                            colors = ButtonDefaults.buttonColors(containerColor = medai.brandSoft, contentColor = medai.brand),
                             shape = RoundedCornerShape(10.dp)
                         ) {
-                            Text(text = title, color = PrimaryGreen, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                            Text(text = title, color = medai.brand, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
 
                     if (isScanningPrescription) {
                         Box(modifier = Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator(color = PrimaryGreen)
+                                CircularProgressIndicator(color = medai.brand)
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text("Skanerlanmoqda...", fontSize = 12.sp, color = TextSecondary)
+                                Text("Skanerlanmoqda...", fontSize = 12.sp, color = medai.textSecondary)
                             }
                         }
                     } else if (prescriptionScanResult.isNotEmpty()) {
-                        Divider(color = MedicalBorder)
+                        Divider(color = medai.border)
                         Text(
                             text = "Natija:",
                             fontWeight = FontWeight.Bold,
                             fontSize = 14.sp,
-                            color = PrimaryGreen
+                            color = medai.brand
                         )
                         Box(
                             modifier = Modifier
@@ -1140,14 +1150,14 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 .heightIn(max = 180.dp)
                                 .verticalScroll(rememberScrollState())
                         ) {
-                            Text(text = prescriptionScanResult, fontSize = 12.sp, color = TextPrimary)
+                            Text(text = prescriptionScanResult, fontSize = 12.sp, color = medai.textPrimary)
                         }
                     }
                 }
             },
             confirmButton = {
                 TextButton(onClick = { showScannerDialog = false }) {
-                    Text(text = "Yopish", color = PrimaryGreen)
+                    Text(text = "Yopish", color = medai.brand)
                 }
             }
         )
@@ -1159,7 +1169,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             onDismissRequest = { showInteractionDialog = false },
             title = {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.CompareArrows, contentDescription = null, tint = PremiumPurple)
+                    Icon(imageVector = Icons.Default.CompareArrows, contentDescription = null, tint = medai.premium)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(text = if (lang == "uz") "Dori o'zaro ta'siri" else if (lang == "ru") "Взаимодействие лекарств" else "Drug Interactions", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
@@ -1173,7 +1183,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         text = if (lang == "uz") "Tekshirish uchun 2 dan 5 tagacha dori nomini yozing:"
                                else "Введите от 2 до 5 лекарств для проверки:",
                         fontSize = 13.sp,
-                        color = TextSecondary
+                        color = medai.textSecondary
                     )
 
                     drugInputs.forEachIndexed { idx, value ->
@@ -1193,7 +1203,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     if (drugInputs.size < 5) {
                         TextButton(
                             onClick = { drugInputs = drugInputs + "" },
-                            colors = ButtonDefaults.textButtonColors(contentColor = PremiumPurple)
+                            colors = ButtonDefaults.textButtonColors(contentColor = medai.premium)
                         ) {
                             Icon(imageVector = Icons.Default.Add, contentDescription = null)
                             Spacer(modifier = Modifier.width(4.dp))
@@ -1205,7 +1215,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         onClick = { viewModel.checkDrugInteractions(drugInputs) },
                         enabled = drugInputs.count { it.isNotBlank() } >= 2 && !isCheckingInteractions,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = PremiumPurple),
+                        colors = ButtonDefaults.buttonColors(containerColor = medai.premium),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         if (isCheckingInteractions) {
@@ -1216,7 +1226,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     }
 
                     if (interactionResult.isNotEmpty()) {
-                        Divider(color = MedicalBorder)
+                        Divider(color = medai.border)
 
                         // Parse status marker
                         val isSafe = interactionResult.contains("STATUS: SAFE")
@@ -1224,10 +1234,10 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         val isDangerous = interactionResult.contains("STATUS: DANGEROUS")
 
                         val (statusText, statusColor) = when {
-                            isSafe -> "✅ Xavfsiz (Safe)" to PrimaryGreen
-                            isCaution -> "⚠️ Ehtiyot bo'ling (Caution)" to WarningOrange
-                            isDangerous -> "❌ Birga ichmang! (Dangerous)" to ErrorRed
-                            else -> "Natija" to TextPrimary
+                            isSafe -> "✅ Xavfsiz (Safe)" to medai.brand
+                            isCaution -> "⚠️ Ehtiyot bo'ling (Caution)" to medai.warning
+                            isDangerous -> "❌ Birga ichmang! (Dangerous)" to medai.danger
+                            else -> "Natija" to medai.textPrimary
                         }
 
                         Card(
@@ -1257,7 +1267,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     .replace("STATUS: DANGEROUS", "")
                                     .trim(),
                                 fontSize = 12.sp,
-                                color = TextPrimary
+                                color = medai.textPrimary
                             )
                         }
                     }
@@ -1265,7 +1275,7 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             },
             confirmButton = {
                 TextButton(onClick = { showInteractionDialog = false }) {
-                    Text(text = "Yopish", color = PremiumPurple)
+                    Text(text = "Yopish", color = medai.premium)
                 }
             }
         )
@@ -1276,6 +1286,8 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
 @Composable
 fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
+    val medai = MedAITheme.colors
+
     val lang by viewModel.currentLanguage.collectAsState()
     val labResultText by viewModel.labAnalysisResult.collectAsState()
     val isLoading by viewModel.isLoadingLab.collectAsState()
@@ -1351,7 +1363,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MedicalBackground)
+                .background(medai.canvas)
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             contentPadding = PaddingValues(vertical = 16.dp)
@@ -1361,8 +1373,8 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
-                    colors = CardDefaults.cardColors(containerColor = LightGreen.copy(alpha = 0.5f)),
-                    border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.15f))
+                    colors = CardDefaults.cardColors(containerColor = medai.brandSoft.copy(alpha = 0.5f)),
+                    border = BorderStroke(1.dp, medai.brand.copy(alpha = 0.15f))
                 ) {
                     Row(
                         modifier = Modifier.padding(16.dp),
@@ -1406,10 +1418,10 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         .fillMaxWidth()
                         .height(200.dp)
                         .clip(RoundedCornerShape(18.dp))
-                        .background(Color.White)
+                        .background(medai.surface)
                         .border(
                             width = 2.dp,
-                            color = if (selectedImageUri != null) PrimaryGreen else MedicalBorder,
+                            color = if (selectedImageUri != null) medai.brand else medai.border,
                             shape = RoundedCornerShape(18.dp)
                         )
                         .clickable {
@@ -1455,7 +1467,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     "ru" -> "Выбранный образец:"
                                     else -> "Selected Sample:"
                                 },
-                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold, color = medai.brand)
                             )
                             Text(
                                 text = when (lang) {
@@ -1473,11 +1485,11 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 },
                                 style = MaterialTheme.typography.bodySmall,
                                 textAlign = TextAlign.Center,
-                                color = TextSecondary
+                                color = medai.textSecondary
                             )
                             Button(
                                 onClick = { selectedPresetIndex = null },
-                                colors = ButtonDefaults.buttonColors(containerColor = LightGreen, contentColor = PrimaryGreen),
+                                colors = ButtonDefaults.buttonColors(containerColor = medai.brandSoft, contentColor = medai.brand),
                                 shape = RoundedCornerShape(8.dp),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                 modifier = Modifier.height(32.dp)
@@ -1500,7 +1512,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Icon(
                                 imageVector = Icons.Default.AddPhotoAlternate,
                                 contentDescription = null,
-                                tint = PrimaryGreen,
+                                tint = medai.brand,
                                 modifier = Modifier.size(48.dp)
                             )
                             Text(
@@ -1511,7 +1523,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Text(
                                 text = Translations.getString("lab_upload_hint", lang),
                                 fontSize = 11.sp,
-                                color = TextSecondary
+                                color = medai.textSecondary
                             )
                         }
                     }
@@ -1548,8 +1560,8 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                 },
                                 label = { Text(title, fontSize = 12.sp, fontWeight = FontWeight.Bold) },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = PrimaryGreen.copy(alpha = 0.15f),
-                                    selectedLabelColor = PrimaryGreen
+                                    selectedContainerColor = medai.brand.copy(alpha = 0.15f),
+                                    selectedLabelColor = medai.brand
                                 )
                             )
                         }
@@ -1576,7 +1588,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
                     shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                    colors = ButtonDefaults.buttonColors(containerColor = medai.brand),
                     enabled = canAnalyze && !isLoading
                 ) {
                     if (isLoading) {
@@ -1599,11 +1611,11 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = PrimaryGreen.copy(alpha = 0.12f), spotColor = PrimaryGreen.copy(alpha = 0.12f)),
+                            .shadow(6.dp, RoundedCornerShape(18.dp), ambientColor = medai.brand.copy(alpha = 0.12f), spotColor = medai.brand.copy(alpha = 0.12f)),
                         shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        colors = CardDefaults.cardColors(containerColor = medai.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                        border = BorderStroke(1.dp, MedicalBorder)
+                        border = BorderStroke(1.dp, medai.border)
                     ) {
                         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(
@@ -1613,10 +1625,10 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Box(
-                                        modifier = Modifier.size(32.dp).background(PrimaryGreen.copy(alpha = 0.12f), CircleShape),
+                                        modifier = Modifier.size(32.dp).background(medai.brand.copy(alpha = 0.12f), CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(imageVector = Icons.Default.Science, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(16.dp))
+                                        Icon(imageVector = Icons.Default.Science, contentDescription = null, tint = medai.brand, modifier = Modifier.size(16.dp))
                                     }
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
@@ -1626,33 +1638,33 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             else -> "Analysis Results"
                                         },
                                         fontWeight = FontWeight.Bold,
-                                        color = TextPrimary
+                                        color = medai.textPrimary
                                     )
                                 }
                                 IconButton(
                                     onClick = { viewModel.clearLabAnalysisResult() }
                                 ) {
-                                    Icon(imageVector = Icons.Default.Close, contentDescription = "Clear result", tint = TextSecondary)
+                                    Icon(imageVector = Icons.Default.Close, contentDescription = "Clear result", tint = medai.textSecondary)
                                 }
                             }
-                            Divider(color = MedicalBorder)
+                            Divider(color = medai.border)
 
                             // Normal/Borderline/Abnormal Indicators
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = SuccessGreen, modifier = Modifier.size(16.dp))
+                                    Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = medai.success, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(Translations.getString("lab_normal", lang), fontSize = 11.sp, color = TextSecondary)
+                                    Text(Translations.getString("lab_normal", lang), fontSize = 11.sp, color = medai.textSecondary)
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = WarningOrange, modifier = Modifier.size(16.dp))
+                                    Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = medai.warning, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(Translations.getString("lab_borderline", lang), fontSize = 11.sp, color = TextSecondary)
+                                    Text(Translations.getString("lab_borderline", lang), fontSize = 11.sp, color = medai.textSecondary)
                                 }
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.Cancel, contentDescription = null, tint = ErrorRed, modifier = Modifier.size(16.dp))
+                                    Icon(imageVector = Icons.Default.Cancel, contentDescription = null, tint = medai.danger, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(Translations.getString("lab_abnormal", lang), fontSize = 11.sp, color = TextSecondary)
+                                    Text(Translations.getString("lab_abnormal", lang), fontSize = 11.sp, color = medai.textSecondary)
                                 }
                             }
 
@@ -1679,7 +1691,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                         }.uppercase(),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = PrimaryGreen,
+                        color = medai.brand,
                         letterSpacing = 1.sp,
                         modifier = Modifier.padding(top = 8.dp)
                     )
@@ -1691,8 +1703,8 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             .fillMaxWidth()
                             .clickable { showFullHistoryDialogText = record.analysisText },
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        border = BorderStroke(1.dp, MedicalBorder)
+                        colors = CardDefaults.cardColors(containerColor = medai.surface),
+                        border = BorderStroke(1.dp, medai.border)
                     ) {
                         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Row(
@@ -1704,10 +1716,10 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     Box(
                                         modifier = Modifier
                                             .size(36.dp)
-                                            .background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                                            .background(medai.brand.copy(alpha = 0.1f), CircleShape),
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(imageVector = Icons.Default.History, contentDescription = null, tint = PrimaryGreen, modifier = Modifier.size(18.dp))
+                                        Icon(imageVector = Icons.Default.History, contentDescription = null, tint = medai.brand, modifier = Modifier.size(18.dp))
                                     }
                                     Column {
                                         Text(
@@ -1718,14 +1730,14 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                             },
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 14.sp,
-                                            color = TextPrimary
+                                            color = medai.textPrimary
                                         )
                                         Text(
                                             text = record.timestamp?.let {
                                                 SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(it))
                                             } ?: "Yaqinda",
                                             fontSize = 11.sp,
-                                            color = TextSecondary
+                                            color = medai.textSecondary
                                         )
                                     }
                                 }
@@ -1733,7 +1745,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     onClick = { viewModel.deleteLabResult(record.id) },
                                     modifier = Modifier.size(36.dp)
                                 ) {
-                                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = ErrorRed, modifier = Modifier.size(16.dp))
+                                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = medai.danger, modifier = Modifier.size(16.dp))
                                 }
                             }
                             
@@ -1745,7 +1757,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                             Text(
                                 text = previewText,
                                 fontSize = 12.sp,
-                                color = TextSecondary,
+                                color = medai.textSecondary,
                                 maxLines = 2,
                                 lineHeight = 16.sp
                             )
@@ -1762,7 +1774,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                                     },
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = PrimaryGreen
+                                    color = medai.brand
                                 )
                             }
                         }
@@ -1778,7 +1790,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
             onDismissRequest = { showFullHistoryDialogText = null },
             confirmButton = {
                 TextButton(onClick = { showFullHistoryDialogText = null }) {
-                    Text(text = "OK", fontWeight = FontWeight.Bold, color = PrimaryGreen)
+                    Text(text = "OK", fontWeight = FontWeight.Bold, color = medai.brand)
                 }
             },
             title = {
@@ -1801,7 +1813,7 @@ fun LabAnalysisScreen(viewModel: AppViewModel, onBack: () -> Unit) {
                 }
             },
             shape = RoundedCornerShape(16.dp),
-            containerColor = Color.White
+            containerColor = medai.surface
         )
     }
 }

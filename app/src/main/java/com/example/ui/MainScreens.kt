@@ -483,6 +483,8 @@ fun FamilyQrDialog(
     viewModel: AppViewModel,
     onDismiss: () -> Unit
 ) {
+    val medai = MedAITheme.colors
+
     val lang by viewModel.currentLanguage.collectAsState()
     var selectedTab by remember { mutableStateOf(0) } // 0: Scan, 1: My QR
     
@@ -538,7 +540,7 @@ fun FamilyQrDialog(
                         Icon(
                             imageVector = Icons.Default.QrCodeScanner,
                             contentDescription = null,
-                            tint = PrimaryGreen,
+                            tint = medai.brand,
                             modifier = Modifier.size(24.dp)
                         )
                         Text(
@@ -566,7 +568,7 @@ fun FamilyQrDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedTab == 0) PrimaryGreen else Color.Transparent,
+                            containerColor = if (selectedTab == 0) medai.brand else Color.Transparent,
                             contentColor = if (selectedTab == 0) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         elevation = if (selectedTab == 0) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
@@ -579,7 +581,7 @@ fun FamilyQrDialog(
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedTab == 1) PrimaryGreen else Color.Transparent,
+                            containerColor = if (selectedTab == 1) medai.brand else Color.Transparent,
                             contentColor = if (selectedTab == 1) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         elevation = if (selectedTab == 1) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
@@ -600,20 +602,20 @@ fun FamilyQrDialog(
                             Box(
                                 modifier = Modifier
                                     .size(72.dp)
-                                    .background(PrimaryGreen.copy(alpha = 0.15f), CircleShape),
+                                    .background(medai.brand.copy(alpha = 0.15f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
-                                    tint = PrimaryGreen,
+                                    tint = medai.brand,
                                     modifier = Modifier.size(40.dp)
                                 )
                             }
                             Text(
                                 text = getLangText("Muvaffaqiyatli bog'landi!", "Успешно подключено!", "Successfully Linked!"),
                                 fontWeight = FontWeight.Bold,
-                                color = PrimaryGreen,
+                                color = medai.brand,
                                 fontSize = 18.sp
                             )
                             Card(
@@ -661,7 +663,7 @@ fun FamilyQrDialog(
                                 onClick = onDismiss,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                                colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                             ) {
                                 Text(text = getLangText("Yopish", "Закрыть", "Close"))
                             }
@@ -702,17 +704,17 @@ fun FamilyQrDialog(
                                         val w = size.width
                                         val h = size.height
 
-                                        drawLine(SuccessGreen, Offset(0f, 0f), Offset(bracketLength, 0f), strokeWidth)
-                                        drawLine(SuccessGreen, Offset(0f, 0f), Offset(0f, bracketLength), strokeWidth)
+                                        drawLine(medai.success, Offset(0f, 0f), Offset(bracketLength, 0f), strokeWidth)
+                                        drawLine(medai.success, Offset(0f, 0f), Offset(0f, bracketLength), strokeWidth)
 
-                                        drawLine(SuccessGreen, Offset(w, 0f), Offset(w - bracketLength, 0f), strokeWidth)
-                                        drawLine(SuccessGreen, Offset(w, 0f), Offset(w, bracketLength), strokeWidth)
+                                        drawLine(medai.success, Offset(w, 0f), Offset(w - bracketLength, 0f), strokeWidth)
+                                        drawLine(medai.success, Offset(w, 0f), Offset(w, bracketLength), strokeWidth)
 
-                                        drawLine(SuccessGreen, Offset(0f, h), Offset(bracketLength, h), strokeWidth)
-                                        drawLine(SuccessGreen, Offset(0f, h), Offset(0f, h - bracketLength), strokeWidth)
+                                        drawLine(medai.success, Offset(0f, h), Offset(bracketLength, h), strokeWidth)
+                                        drawLine(medai.success, Offset(0f, h), Offset(0f, h - bracketLength), strokeWidth)
 
-                                        drawLine(SuccessGreen, Offset(w, h), Offset(w - bracketLength, h), strokeWidth)
-                                        drawLine(SuccessGreen, Offset(w, h), Offset(w, h - bracketLength), strokeWidth)
+                                        drawLine(medai.success, Offset(w, h), Offset(w - bracketLength, h), strokeWidth)
+                                        drawLine(medai.success, Offset(w, h), Offset(w, h - bracketLength), strokeWidth)
                                     }
 
                                     Box(
@@ -722,14 +724,14 @@ fun FamilyQrDialog(
                                             .offset(y = (laserOffset * 190).dp)
                                             .background(
                                                 Brush.horizontalGradient(
-                                                    colors = listOf(Color.Transparent, SuccessGreen, Color.Transparent)
+                                                    colors = listOf(Color.Transparent, medai.success, Color.Transparent)
                                                 )
                                             )
                                     )
                                 }
 
                                 if (isScanning) {
-                                    CircularProgressIndicator(color = SuccessGreen)
+                                    CircularProgressIndicator(color = medai.success)
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.QrCodeScanner,
@@ -763,7 +765,7 @@ fun FamilyQrDialog(
                                         text = if (showCustomInputs) getLangText("Shablonlar", "Шаблоны", "Templates") else getLangText("Boshqa ism", "Другое имя", "Custom Name"),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = PrimaryGreen
+                                        color = medai.brand
                                     )
                                 }
                             }
@@ -883,7 +885,7 @@ fun FamilyQrDialog(
                                         },
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                                        colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                                     ) {
                                         Text(text = getLangText("QR skanerlashni simulyatsiya qilish", "Имитировать сканирование QR", "Simulate QR Scan"))
                                     }
@@ -952,7 +954,7 @@ fun FamilyQrDialog(
                                                         )
                                                     }
                                                 }
-                                                Icon(imageVector = Icons.Default.QrCode, contentDescription = null, tint = PrimaryGreen)
+                                                Icon(imageVector = Icons.Default.QrCode, contentDescription = null, tint = medai.brand)
                                             }
                                         }
                                     }
@@ -979,7 +981,7 @@ fun FamilyQrDialog(
                             modifier = Modifier
                                 .size(220.dp)
                                 .border(1.dp, Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            colors = CardDefaults.cardColors(containerColor = medai.surface),
                             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                         ) {
                             Box(
@@ -1028,7 +1030,7 @@ fun FamilyQrDialog(
                             },
                             modifier = Modifier.fillMaxWidth(0.9f),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                            colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                         ) {
                             Text(text = getLangText("Ulashing / Saqlash", "Поделиться / Сохранить", "Share / Save"))
                         }

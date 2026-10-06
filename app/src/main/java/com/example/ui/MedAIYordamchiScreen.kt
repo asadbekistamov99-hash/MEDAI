@@ -51,6 +51,8 @@ fun MedAIYordamchiScreen(
     onBack: () -> Unit,
     initialTab: Int = 0
 ) {
+    val medai = MedAITheme.colors
+
     var selectedTab by remember { mutableStateOf(initialTab) }
     val lang by viewModel.currentLanguage.collectAsState()
 
@@ -61,7 +63,7 @@ fun MedAIYordamchiScreen(
         "Reminder" to Icons.Default.Alarm
     )
     // Distinct brand-consistent accent per tab (PrimaryGreen stays the anchor for the core feature)
-    val tabAccentColors = listOf(PrimaryGreen, AccentCyan, TabStatsAccent, WarningOrange)
+    val tabAccentColors = listOf(medai.brand, medai.info, TabStatsAccent, medai.warning)
 
     Scaffold(
         topBar = {
@@ -81,12 +83,12 @@ fun MedAIYordamchiScreen(
                             onClick = onBack,
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(PrimaryGreen.copy(alpha = 0.1f), CircleShape)
+                                .background(medai.brand.copy(alpha = 0.1f), CircleShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Orqaga",
-                                tint = PrimaryGreen
+                                tint = medai.brand
                             )
                         }
 
@@ -95,18 +97,18 @@ fun MedAIYordamchiScreen(
                                 text = "MedAI",
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = PrimaryGreen
+                                color = medai.brand
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Surface(
-                                color = DarkGreen.copy(alpha = 0.12f),
+                                color = medai.brandStrong.copy(alpha = 0.12f),
                                 shape = RoundedCornerShape(6.dp)
                             ) {
                                 Text(
                                     text = "YORDAMCHI",
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = DarkGreen,
+                                    color = medai.brandStrong,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
@@ -115,13 +117,13 @@ fun MedAIYordamchiScreen(
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(PrimaryGreen.copy(alpha = 0.1f), CircleShape),
+                                .background(medai.brand.copy(alpha = 0.1f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.SmartToy,
                                 contentDescription = null,
-                                tint = PrimaryGreen,
+                                tint = medai.brand,
                                 modifier = Modifier.size(22.dp)
                             )
                         }
@@ -134,7 +136,7 @@ fun MedAIYordamchiScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .horizontalScroll(rememberScrollState())
-                            .background(MedicalBackground, RoundedCornerShape(18.dp))
+                            .background(medai.canvas, RoundedCornerShape(18.dp))
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
@@ -146,7 +148,7 @@ fun MedAIYordamchiScreen(
                                 shape = RoundedCornerShape(20.dp),
                                 color = if (isSelected) accent else Color.Transparent,
                                 shadowElevation = if (isSelected) 3.dp else 0.dp,
-                                border = if (isSelected) null else BorderStroke(1.dp, MedicalBorder)
+                                border = if (isSelected) null else BorderStroke(1.dp, medai.border)
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
@@ -156,14 +158,14 @@ fun MedAIYordamchiScreen(
                                     Icon(
                                         imageVector = icon,
                                         contentDescription = null,
-                                        tint = if (isSelected) Color.White else TextSecondary,
+                                        tint = if (isSelected) Color.White else medai.textSecondary,
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Text(
                                         text = title,
                                         fontSize = 13.sp,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) Color.White else TextSecondary
+                                        color = if (isSelected) Color.White else medai.textSecondary
                                     )
                                 }
                             }
@@ -178,7 +180,7 @@ fun MedAIYordamchiScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MedicalBackground)
+                .background(medai.canvas)
         ) {
             when (selectedTab) {
                 0 -> DoriAniqlashTab(viewModel)
@@ -195,6 +197,8 @@ fun MedAIYordamchiScreen(
    ============================================================ */
 @Composable
 fun DoriAniqlashTab(viewModel: AppViewModel) {
+    val medai = MedAITheme.colors
+
     val isIdentifying by viewModel.isIdentifyingPill.collectAsState()
     val pillResult by viewModel.pillIdentifyResult.collectAsState()
     var drugInput by remember { mutableStateOf("") }
@@ -215,7 +219,7 @@ fun DoriAniqlashTab(viewModel: AppViewModel) {
                     .shadow(4.dp, RoundedCornerShape(20.dp)),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MedicalBorder)
+                border = BorderStroke(1.dp, medai.border)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -225,13 +229,13 @@ fun DoriAniqlashTab(viewModel: AppViewModel) {
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
-                                .background(PrimaryGreen.copy(alpha = 0.12f), CircleShape),
+                                .background(medai.brand.copy(alpha = 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Medication,
                                 contentDescription = null,
-                                tint = PrimaryGreen,
+                                tint = medai.brand,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -240,12 +244,12 @@ fun DoriAniqlashTab(viewModel: AppViewModel) {
                                 text = "Dori vositasini aniqlash",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                color = medai.textPrimary
                             )
                             Text(
                                 text = "Dori nomi bo'yicha to'liq tibbiy yo'riqnomani oling",
                                 fontSize = 12.sp,
-                                color = TextSecondary
+                                color = medai.textSecondary
                             )
                         }
                     }
@@ -311,7 +315,7 @@ fun DoriAniqlashTab(viewModel: AppViewModel) {
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                        colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                     ) {
                         if (isIdentifying) {
                             CircularProgressIndicator(
@@ -357,6 +361,8 @@ fun DoriAniqlashTab(viewModel: AppViewModel) {
    ============================================================ */
 @Composable
 fun SimptomAniqlashTab(viewModel: AppViewModel) {
+    val medai = MedAITheme.colors
+
     var complaintInput by remember { mutableStateOf("") }
     val isLoadingQuestions by viewModel.isLoadingSymptomQuestions.collectAsState()
     val questionsData by viewModel.symptomQuestionsData.collectAsState()
@@ -394,7 +400,7 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                     .shadow(4.dp, RoundedCornerShape(20.dp)),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MedicalBorder)
+                border = BorderStroke(1.dp, medai.border)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -404,13 +410,13 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
-                                .background(AccentCyan.copy(alpha = 0.12f), CircleShape),
+                                .background(medai.info.copy(alpha = 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.HealthAndSafety,
                                 contentDescription = null,
-                                tint = AccentCyan,
+                                tint = medai.info,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -419,12 +425,12 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                                 text = "1-Qadam: Shikoyatingizni yozing",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                color = medai.textPrimary
                             )
                             Text(
                                 text = "AI sizga mos shifokorlik savollarini tayyorlaydi",
                                 fontSize = 12.sp,
-                                color = TextSecondary
+                                color = medai.textSecondary
                             )
                         }
                     }
@@ -445,7 +451,7 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                     Spacer(modifier = Modifier.height(12.dp))
 
                     // Quick complaints chips
-                    Text(text = "Tezkor misollar:", fontSize = 11.sp, color = TextSecondary, fontWeight = FontWeight.SemiBold)
+                    Text(text = "Tezkor misollar:", fontSize = 11.sp, color = medai.textSecondary, fontWeight = FontWeight.SemiBold)
                     Spacer(modifier = Modifier.height(4.dp))
                     Row(
                         modifier = Modifier
@@ -476,7 +482,7 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
+                        colors = ButtonDefaults.buttonColors(containerColor = medai.info)
                     ) {
                         if (isLoadingQuestions) {
                             CircularProgressIndicator(
@@ -506,7 +512,7 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                         .shadow(4.dp, RoundedCornerShape(20.dp)),
                     shape = RoundedCornerShape(20.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, MedicalBorder)
+                    border = BorderStroke(1.dp, medai.border)
                 ) {
                     Column(modifier = Modifier.padding(20.dp)) {
                         Row(
@@ -518,19 +524,19 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                                 text = "2-Qadam: Qo'shimcha savollar",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                color = medai.textPrimary
                             )
 
                             // Title / Medical Name badge
                             Surface(
-                                color = AccentCyan.copy(alpha = 0.12f),
+                                color = medai.info.copy(alpha = 0.12f),
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
                                     text = if (qData.medicalName.isNotBlank()) "${qData.title} • ${qData.medicalName}" else qData.title,
                                     fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = AccentCyan,
+                                    color = medai.info,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
                             }
@@ -542,22 +548,22 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                             qData.questions.forEachIndexed { index, question ->
                                 Surface(
                                     shape = RoundedCornerShape(14.dp),
-                                    color = MedicalBackground,
-                                    border = BorderStroke(1.dp, MedicalBorder)
+                                    color = medai.canvas,
+                                    border = BorderStroke(1.dp, medai.border)
                                 ) {
                                     Column(modifier = Modifier.padding(12.dp)) {
                                         Row(verticalAlignment = Alignment.Top) {
                                             Box(
                                                 modifier = Modifier
                                                     .size(20.dp)
-                                                    .background(AccentCyan.copy(alpha = 0.15f), CircleShape),
+                                                    .background(medai.info.copy(alpha = 0.15f), CircleShape),
                                                 contentAlignment = Alignment.Center
                                             ) {
                                                 Text(
                                                     text = "${index + 1}",
                                                     fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold,
-                                                    color = AccentCyan
+                                                    color = medai.info
                                                 )
                                             }
                                             Spacer(modifier = Modifier.width(8.dp))
@@ -565,7 +571,7 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                                                 text = question,
                                                 fontSize = 13.sp,
                                                 fontWeight = FontWeight.SemiBold,
-                                                color = TextPrimary,
+                                                color = medai.textPrimary,
                                                 modifier = Modifier.weight(1f)
                                             )
                                         }
@@ -611,7 +617,7 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
                                 .fillMaxWidth()
                                 .height(50.dp),
                             shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
+                            colors = ButtonDefaults.buttonColors(containerColor = medai.info)
                         ) {
                             if (isAnalyzingAnswers) {
                                 CircularProgressIndicator(
@@ -649,6 +655,8 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
    ============================================================ */
 @Composable
 fun StatistikaTab(viewModel: AppViewModel) {
+    val medai = MedAITheme.colors
+
     val reminders by viewModel.reminders.collectAsState()
     val dailyMetrics by viewModel.allDailyMetrics.collectAsState()
     val symptomChecks by viewModel.symptomChecks.collectAsState()
@@ -680,7 +688,7 @@ fun StatistikaTab(viewModel: AppViewModel) {
                     .shadow(4.dp, RoundedCornerShape(20.dp)),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MedicalBorder)
+                border = BorderStroke(1.dp, medai.border)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -705,12 +713,12 @@ fun StatistikaTab(viewModel: AppViewModel) {
                                 text = "Dori va salomatlik statistikasi",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                color = medai.textPrimary
                             )
                             Text(
                                 text = "Foydalanish va intizomga qarab oshib boruvchi statistika",
                                 fontSize = 12.sp,
-                                color = TextSecondary
+                                color = medai.textSecondary
                             )
                         }
                     }
@@ -725,14 +733,14 @@ fun StatistikaTab(viewModel: AppViewModel) {
                         StatBox(
                             value = "$tookCount",
                             label = "Qabul qilindi",
-                            color = PrimaryGreen,
+                            color = medai.brand,
                             icon = Icons.Default.CheckCircle,
                             modifier = Modifier.weight(1f)
                         )
                         StatBox(
                             value = "$lateTookCount",
                             label = "Kechikib qabul",
-                            color = WarningOrange,
+                            color = medai.warning,
                             icon = Icons.Default.Schedule,
                             modifier = Modifier.weight(1f)
                         )
@@ -747,7 +755,7 @@ fun StatistikaTab(viewModel: AppViewModel) {
                         StatBox(
                             value = "$missedCount",
                             label = "O'tkazib yuborildi",
-                            color = ErrorRed,
+                            color = medai.danger,
                             icon = Icons.Default.Cancel,
                             modifier = Modifier.weight(1f)
                         )
@@ -771,19 +779,19 @@ fun StatistikaTab(viewModel: AppViewModel) {
                     .shadow(2.dp, RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MedicalBorder)
+                border = BorderStroke(1.dp, medai.border)
             ) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
                         text = "Statistikani boshqarish",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        color = medai.textPrimary
                     )
                     Text(
                         text = "Agar barcha hisoblagichlarni 0 ga tushirmoqchi bo'lsangiz, quyidagi tugmani bosing.",
                         fontSize = 12.sp,
-                        color = TextSecondary
+                        color = medai.textSecondary
                     )
 
                     OutlinedButton(
@@ -795,8 +803,8 @@ fun StatistikaTab(viewModel: AppViewModel) {
                         },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, ErrorRed),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = ErrorRed)
+                        border = BorderStroke(1.dp, medai.danger),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = medai.danger)
                     ) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(8.dp))
@@ -814,7 +822,7 @@ fun StatistikaTab(viewModel: AppViewModel) {
                     .shadow(2.dp, RoundedCornerShape(16.dp)),
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MedicalBorder)
+                border = BorderStroke(1.dp, medai.border)
             ) {
                 Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
@@ -829,23 +837,23 @@ fun StatistikaTab(viewModel: AppViewModel) {
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = "Rejalashtirilgan eslatmalar soni:", fontSize = 13.sp, color = TextSecondary)
-                        Text(text = "$totalRemindersCount ta", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text(text = "Rejalashtirilgan eslatmalar soni:", fontSize = 13.sp, color = medai.textSecondary)
+                        Text(text = "$totalRemindersCount ta", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = medai.textPrimary)
                     }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = "Tekshirilgan simptomlar:", fontSize = 13.sp, color = TextSecondary)
-                        Text(text = "${symptomChecks.size} ta", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = TextPrimary)
+                        Text(text = "Tekshirilgan simptomlar:", fontSize = 13.sp, color = medai.textSecondary)
+                        Text(text = "${symptomChecks.size} ta", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = medai.textPrimary)
                     }
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(text = "Davolanish intizomi bahosi:", fontSize = 13.sp, color = TextSecondary)
+                        Text(text = "Davolanish intizomi bahosi:", fontSize = 13.sp, color = medai.textSecondary)
                         Text(
                             text = when {
                                 adherencePercent >= 80.0 -> "A'lo darajada"
@@ -854,7 +862,7 @@ fun StatistikaTab(viewModel: AppViewModel) {
                             },
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (adherencePercent > 0) PrimaryGreen else TextSecondary
+                            color = if (adherencePercent > 0) medai.brand else medai.textSecondary
                         )
                     }
                 }
@@ -871,6 +879,8 @@ fun StatBox(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     modifier: Modifier = Modifier
 ) {
+    val medai = MedAITheme.colors
+
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(16.dp),
@@ -900,7 +910,7 @@ fun StatBox(
                 text = label,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
-                color = TextPrimary,
+                color = medai.textPrimary,
                 textAlign = TextAlign.Center
             )
         }
@@ -912,6 +922,8 @@ fun StatBox(
    ============================================================ */
 @Composable
 fun ReminderTab(viewModel: AppViewModel) {
+    val medai = MedAITheme.colors
+
     val reminders by viewModel.reminders.collectAsState()
     val todayMetrics by viewModel.todayMetrics.collectAsState(initial = null)
     val completedReminderIds = remember(todayMetrics) {
@@ -944,7 +956,7 @@ fun ReminderTab(viewModel: AppViewModel) {
                     .shadow(4.dp, RoundedCornerShape(20.dp)),
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MedicalBorder)
+                border = BorderStroke(1.dp, medai.border)
             ) {
                 Column(modifier = Modifier.padding(20.dp)) {
                     Row(
@@ -954,13 +966,13 @@ fun ReminderTab(viewModel: AppViewModel) {
                         Box(
                             modifier = Modifier
                                 .size(44.dp)
-                                .background(WarningOrange.copy(alpha = 0.12f), CircleShape),
+                                .background(medai.warning.copy(alpha = 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Alarm,
                                 contentDescription = null,
-                                tint = WarningOrange,
+                                tint = medai.warning,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -969,19 +981,19 @@ fun ReminderTab(viewModel: AppViewModel) {
                                 text = "Yangi eslatma qo'shish",
                                 fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = TextPrimary
+                                color = medai.textPrimary
                             )
                             Text(
                                 text = "Dorilarni o'z vaqtida ichish uchun eslatma o'rnating",
                                 fontSize = 12.sp,
-                                color = TextSecondary
+                                color = medai.textSecondary
                             )
                         }
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    Text(text = "Dori nomi", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    Text(text = "Dori nomi", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = medai.textPrimary)
                     Spacer(modifier = Modifier.height(4.dp))
                     OutlinedTextField(
                         value = medNameInput,
@@ -994,7 +1006,7 @@ fun ReminderTab(viewModel: AppViewModel) {
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    Text(text = "Qabul qilish vaqti (HH:mm)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary)
+                    Text(text = "Qabul qilish vaqti (HH:mm)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = medai.textPrimary)
                     Spacer(modifier = Modifier.height(4.dp))
                     OutlinedTextField(
                         value = timeInput,
@@ -1004,7 +1016,7 @@ fun ReminderTab(viewModel: AppViewModel) {
                         shape = RoundedCornerShape(12.dp),
                         singleLine = true,
                         leadingIcon = {
-                            Icon(imageVector = Icons.Default.AccessTime, contentDescription = null, tint = WarningOrange)
+                            Icon(imageVector = Icons.Default.AccessTime, contentDescription = null, tint = medai.warning)
                         }
                     )
 
@@ -1021,7 +1033,7 @@ fun ReminderTab(viewModel: AppViewModel) {
                                 onClick = { timeInput = t },
                                 label = { Text(t, fontSize = 12.sp) },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = WarningOrange,
+                                    selectedContainerColor = medai.warning,
                                     selectedLabelColor = Color.White
                                 )
                             )
@@ -1054,7 +1066,7 @@ fun ReminderTab(viewModel: AppViewModel) {
                             .fillMaxWidth()
                             .height(50.dp),
                         shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = WarningOrange)
+                        colors = ButtonDefaults.buttonColors(containerColor = medai.warning)
                     ) {
                         if (isSaving) {
                             CircularProgressIndicator(color = Color.White, modifier = Modifier.size(22.dp))
@@ -1074,9 +1086,9 @@ fun ReminderTab(viewModel: AppViewModel) {
         if (savedSuccessMsg.isNotEmpty()) {
             item {
                 Surface(
-                    color = SuccessGreen.copy(alpha = 0.12f),
+                    color = medai.success.copy(alpha = 0.12f),
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, SuccessGreen.copy(alpha = 0.4f)),
+                    border = BorderStroke(1.dp, medai.success.copy(alpha = 0.4f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -1084,7 +1096,7 @@ fun ReminderTab(viewModel: AppViewModel) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
-                            modifier = Modifier.size(22.dp).background(SuccessGreen, CircleShape),
+                            modifier = Modifier.size(22.dp).background(medai.success, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -1095,7 +1107,7 @@ fun ReminderTab(viewModel: AppViewModel) {
                             )
                         }
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text(text = savedSuccessMsg, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = SuccessGreen)
+                        Text(text = savedSuccessMsg, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = medai.success)
                     }
                 }
             }
@@ -1114,17 +1126,17 @@ fun ReminderTab(viewModel: AppViewModel) {
                     text = "Rejalashtirilgan eslatmalar",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TextPrimary
+                    color = medai.textPrimary
                 )
                 Surface(
-                    color = WarningOrange.copy(alpha = 0.12f),
+                    color = medai.warning.copy(alpha = 0.12f),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Text(
                         text = "${reminders.size} ta",
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = WarningOrange,
+                        color = medai.warning,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
@@ -1137,7 +1149,7 @@ fun ReminderTab(viewModel: AppViewModel) {
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
                     color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, MedicalBorder)
+                    border = BorderStroke(1.dp, medai.border)
                 ) {
                     Column(
                         modifier = Modifier
@@ -1148,13 +1160,13 @@ fun ReminderTab(viewModel: AppViewModel) {
                         Box(
                             modifier = Modifier
                                 .size(56.dp)
-                                .background(WarningOrange.copy(alpha = 0.1f), CircleShape),
+                                .background(medai.warning.copy(alpha = 0.1f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.NotificationsNone,
                                 contentDescription = null,
-                                tint = WarningOrange.copy(alpha = 0.7f),
+                                tint = medai.warning.copy(alpha = 0.7f),
                                 modifier = Modifier.size(28.dp)
                             )
                         }
@@ -1163,7 +1175,7 @@ fun ReminderTab(viewModel: AppViewModel) {
                             text = "Hali eslatmalar yo'q",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TextPrimary
+                            color = medai.textPrimary
                         )
                     }
                 }
@@ -1190,6 +1202,8 @@ fun ReminderItemCard(
     onToggle: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val medai = MedAITheme.colors
+
     val contentAlpha = if (reminder.isActive) 1f else 0.5f
 
     Card(
@@ -1198,7 +1212,7 @@ fun ReminderItemCard(
             .shadow(2.dp, RoundedCornerShape(16.dp)),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, if (isCompleted) PrimaryGreen.copy(alpha = 0.5f) else MedicalBorder)
+        border = BorderStroke(1.dp, if (isCompleted) medai.brand.copy(alpha = 0.5f) else medai.border)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -1215,21 +1229,21 @@ fun ReminderItemCard(
                     Box(
                         modifier = Modifier
                             .size(48.dp)
-                            .background(WarningOrange.copy(alpha = 0.12f), CircleShape),
+                            .background(medai.warning.copy(alpha = 0.12f), CircleShape),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(
                                 imageVector = Icons.Default.Alarm,
                                 contentDescription = null,
-                                tint = WarningOrange,
+                                tint = medai.warning,
                                 modifier = Modifier.size(14.dp)
                             )
                             Text(
                                 text = reminder.time,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.ExtraBold,
-                                color = WarningOrange
+                                color = medai.warning
                             )
                         }
                     }
@@ -1239,12 +1253,12 @@ fun ReminderItemCard(
                             text = reminder.medicineName,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            color = TextPrimary
+                            color = medai.textPrimary
                         )
                         Text(
                             text = reminder.frequency,
                             fontSize = 12.sp,
-                            color = TextSecondary
+                            color = medai.textSecondary
                         )
                     }
                 }
@@ -1255,14 +1269,14 @@ fun ReminderItemCard(
                         onCheckedChange = { onToggle() },
                         colors = SwitchDefaults.colors(
                             checkedThumbColor = Color.White,
-                            checkedTrackColor = PrimaryGreen
+                            checkedTrackColor = medai.brand
                         )
                     )
                     IconButton(onClick = onDelete) {
                         Icon(
                             imageVector = Icons.Default.DeleteOutline,
                             contentDescription = "O'chirish",
-                            tint = ErrorRed
+                            tint = medai.danger
                         )
                     }
                 }
@@ -1278,7 +1292,7 @@ fun ReminderItemCard(
             ) {
                 if (isCompleted) {
                     Surface(
-                        color = PrimaryGreen.copy(alpha = 0.12f),
+                        color = medai.brand.copy(alpha = 0.12f),
                         shape = RoundedCornerShape(8.dp)
                     ) {
                         Row(
@@ -1288,7 +1302,7 @@ fun ReminderItemCard(
                             Icon(
                                 imageVector = Icons.Default.CheckCircle,
                                 contentDescription = null,
-                                tint = PrimaryGreen,
+                                tint = medai.brand,
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
@@ -1296,7 +1310,7 @@ fun ReminderItemCard(
                                 text = "Bugun qabul qilindi (+10 ball)",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = PrimaryGreen
+                                color = medai.brand
                             )
                         }
                     }
@@ -1305,7 +1319,7 @@ fun ReminderItemCard(
                         onClick = onComplete,
                         modifier = Modifier.height(36.dp),
                         shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                        colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Check,
@@ -1334,13 +1348,15 @@ fun ResultCard(
     title: String,
     text: String
 ) {
+    val medai = MedAITheme.colors
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .shadow(4.dp, RoundedCornerShape(20.dp)),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.5.dp, PrimaryGreen.copy(alpha = 0.35f))
+        border = BorderStroke(1.5.dp, medai.brand.copy(alpha = 0.35f))
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Row(
@@ -1350,18 +1366,18 @@ fun ResultCard(
                 Box(
                     modifier = Modifier
                         .size(10.dp)
-                        .background(PrimaryGreen, CircleShape)
+                        .background(medai.brand, CircleShape)
                 )
                 Text(
                     text = title,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
-                    color = PrimaryGreen
+                    color = medai.brand
                 )
             }
 
             Spacer(modifier = Modifier.height(14.dp))
-            Divider(color = MedicalBorder)
+            Divider(color = medai.border)
             Spacer(modifier = Modifier.height(14.dp))
 
             RichMarkdownText(text = text)

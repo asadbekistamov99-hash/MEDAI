@@ -39,6 +39,8 @@ fun AdminScreen(
     viewModel: AppViewModel,
     onBack: () -> Unit
 ) {
+    val medai = MedAITheme.colors
+
     val currentUser by viewModel.currentUser.collectAsState()
     val isSuperAdmin = viewModel.isSuperAdmin
 
@@ -61,7 +63,7 @@ fun AdminScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .background(MedicalBackground)
+                    .background(medai.canvas)
                     .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -71,12 +73,12 @@ fun AdminScreen(
                         .shadow(
                             elevation = 10.dp,
                             shape = RoundedCornerShape(24.dp),
-                            ambientColor = ErrorRed.copy(alpha = 0.18f),
-                            spotColor = ErrorRed.copy(alpha = 0.18f)
+                            ambientColor = medai.danger.copy(alpha = 0.18f),
+                            spotColor = medai.danger.copy(alpha = 0.18f)
                         ),
                     shape = RoundedCornerShape(24.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, ErrorRed.copy(alpha = 0.25f))
+                    border = BorderStroke(1.dp, medai.danger.copy(alpha = 0.25f))
                 ) {
                     Column(
                         modifier = Modifier.padding(28.dp),
@@ -85,13 +87,13 @@ fun AdminScreen(
                         Box(
                             modifier = Modifier
                                 .size(76.dp)
-                                .background(ErrorRed.copy(alpha = 0.12f), CircleShape),
+                                .background(medai.danger.copy(alpha = 0.12f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.GppBad,
                                 contentDescription = null,
-                                tint = ErrorRed,
+                                tint = medai.danger,
                                 modifier = Modifier.size(40.dp)
                             )
                         }
@@ -100,20 +102,20 @@ fun AdminScreen(
                             text = "Ruxsat Berilmagan",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.ExtraBold,
-                            color = TextPrimary
+                            color = medai.textPrimary
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
                             text = "Admin panel faqat $SUPER_ADMIN_EMAIL hisobi orqali kirgan foydalanuvchi uchun ochiq. Joriy hisobingiz: ${currentUser?.email ?: "Noma'lum"}",
                             fontSize = 13.sp,
-                            color = TextSecondary,
+                            color = medai.textSecondary,
                             textAlign = TextAlign.Center,
                             lineHeight = 18.sp
                         )
                         Spacer(modifier = Modifier.height(22.dp))
                         Button(
                             onClick = onBack,
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                            colors = ButtonDefaults.buttonColors(containerColor = medai.brand),
                             shape = RoundedCornerShape(14.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -145,14 +147,14 @@ fun AdminScreen(
     var selectedTab by remember { mutableStateOf(0) }
     val tabTitles = listOf("Foydalanuvchilar", "To'lovlar", "Tizim", "Tibbiy CMS", "Jurnallar")
     val tabIcons = listOf(Icons.Default.Group, Icons.Default.ReceiptLong, Icons.Default.AdminPanelSettings, Icons.Default.MedicalServices, Icons.Default.History)
-    val tabColors = listOf(PrimaryGreen, AccentCyan, AdminIndigo, SecondaryGreen, AdminSlate)
+    val tabColors = listOf(medai.brand, medai.info, AdminIndigo, medai.brand, AdminSlate)
 
     Scaffold(
         topBar = {
             Surface(
                 color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 4.dp,
-                modifier = Modifier.border(1.dp, MedicalBorder, RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
+                modifier = Modifier.border(1.dp, medai.border, RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp))
             ) {
                 Column(modifier = Modifier.statusBarsPadding()) {
                     Row(
@@ -165,12 +167,12 @@ fun AdminScreen(
                             onClick = onBack,
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(PrimaryGreen.copy(alpha = 0.1f), CircleShape)
+                                .background(medai.brand.copy(alpha = 0.1f), CircleShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = "Back",
-                                tint = PrimaryGreen
+                                tint = medai.brand
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
@@ -180,12 +182,12 @@ fun AdminScreen(
                                     text = "Admin Boshqaruv Paneli",
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = TextPrimary
+                                    color = medai.textPrimary
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Box(
                                     modifier = Modifier
-                                        .background(WarningOrange, RoundedCornerShape(6.dp))
+                                        .background(medai.warning, RoundedCornerShape(6.dp))
                                         .padding(horizontal = 7.dp, vertical = 2.dp)
                                 ) {
                                     Text(
@@ -200,7 +202,7 @@ fun AdminScreen(
                             Text(
                                 text = "${currentUser?.email ?: SUPER_ADMIN_EMAIL} • Online",
                                 fontSize = 11.sp,
-                                color = PrimaryGreen,
+                                color = medai.brand,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -214,16 +216,16 @@ fun AdminScreen(
                             .padding(horizontal = 16.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        MetricBadge(label = "Foydalanuvchilar", count = systemUsers.size.toString(), color = PrimaryGreen)
-                        MetricBadge(label = "Premium VIP", count = systemUsers.count { it.isPremium }.toString(), color = PremiumPurple)
+                        MetricBadge(label = "Foydalanuvchilar", count = systemUsers.size.toString(), color = medai.brand)
+                        MetricBadge(label = "Premium VIP", count = systemUsers.count { it.isPremium }.toString(), color = medai.premium)
                         val pendingCount = paymentRequests.count { it.status == "pending" }
-                        MetricBadge(label = "Kutilayotgan Cheklar", count = pendingCount.toString(), color = if (pendingCount > 0) WarningOrange else Color.Gray)
+                        MetricBadge(label = "Kutilayotgan Cheklar", count = pendingCount.toString(), color = if (pendingCount > 0) medai.warning else Color.Gray)
                         val unresolvedErrors = errorLogs.count { !it.isResolved }
-                        MetricBadge(label = "Xatolar", count = unresolvedErrors.toString(), color = if (unresolvedErrors > 0) ErrorRed else SuccessGreen)
+                        MetricBadge(label = "Xatolar", count = unresolvedErrors.toString(), color = if (unresolvedErrors > 0) medai.danger else medai.success)
                     }
 
                     // Navigation Tabs — polished segmented pill switcher
-                    Divider(color = MedicalBorder.copy(alpha = 0.5f))
+                    Divider(color = medai.border.copy(alpha = 0.5f))
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -249,7 +251,7 @@ fun AdminScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MedicalBackground)
+                .background(medai.canvas)
         ) {
             when (selectedTab) {
                 0 -> UsersManagementTab(viewModel = viewModel, users = systemUsers)
@@ -280,6 +282,8 @@ fun AdminScreen(
 
 @Composable
 private fun MetricBadge(label: String, count: String, color: Color) {
+    val medai = MedAITheme.colors
+
     Surface(
         color = color.copy(alpha = 0.1f),
         shape = RoundedCornerShape(12.dp),
@@ -290,7 +294,7 @@ private fun MetricBadge(label: String, count: String, color: Color) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(7.dp)
         ) {
-            Text(text = label, fontSize = 11.sp, color = TextSecondary)
+            Text(text = label, fontSize = 11.sp, color = medai.textSecondary)
             Text(text = count, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, color = color)
         }
     }
@@ -305,6 +309,8 @@ private fun AdminTabPill(
     accent: Color,
     onClick: () -> Unit
 ) {
+    val medai = MedAITheme.colors
+
     Row(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
@@ -321,14 +327,14 @@ private fun AdminTabPill(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (selected) accent else TextSecondary,
+            tint = if (selected) accent else medai.textSecondary,
             modifier = Modifier.size(15.dp)
         )
         Text(
             text = title,
             fontSize = 11.sp,
             fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-            color = if (selected) accent else TextSecondary,
+            color = if (selected) accent else medai.textSecondary,
             maxLines = 1
         )
     }
@@ -341,6 +347,8 @@ private fun AdminEmptyState(
     text: String,
     accent: Color = TextSecondary
 ) {
+    val medai = MedAITheme.colors
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -356,7 +364,7 @@ private fun AdminEmptyState(
             Icon(imageVector = icon, contentDescription = null, tint = accent, modifier = Modifier.size(28.dp))
         }
         Spacer(modifier = Modifier.height(12.dp))
-        Text(text = text, fontSize = 13.sp, color = TextSecondary, textAlign = TextAlign.Center)
+        Text(text = text, fontSize = 13.sp, color = medai.textSecondary, textAlign = TextAlign.Center)
     }
 }
 
@@ -366,6 +374,8 @@ private fun AdminEmptyState(
 
 @Composable
 fun UsersManagementTab(viewModel: AppViewModel, users: List<UserSystem>) {
+    val medai = MedAITheme.colors
+
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("Barchasi") }
     var blockDialogUser by remember { mutableStateOf<UserSystem?>(null) }
@@ -402,7 +412,7 @@ fun UsersManagementTab(viewModel: AppViewModel, users: List<UserSystem>) {
                 text = "FOYDALANUVCHILARNI BOSHQARISH".uppercase(),
                 fontWeight = FontWeight.Bold,
                 fontSize = 11.sp,
-                color = PrimaryGreen,
+                color = medai.brand,
                 letterSpacing = 1.2.sp,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
@@ -416,25 +426,25 @@ fun UsersManagementTab(viewModel: AppViewModel, users: List<UserSystem>) {
                     .shadow(
                         elevation = 6.dp,
                         shape = RoundedCornerShape(18.dp),
-                        ambientColor = PrimaryGreen.copy(alpha = 0.1f),
-                        spotColor = PrimaryGreen.copy(alpha = 0.1f)
+                        ambientColor = medai.brand.copy(alpha = 0.1f),
+                        spotColor = medai.brand.copy(alpha = 0.1f)
                     ),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MedicalBorder)
+                border = BorderStroke(1.dp, medai.border)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         placeholder = { Text("Ism, email yoki telefon orqali qidirish...", fontSize = 13.sp) },
-                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PrimaryGreen) },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = medai.brand) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(14.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PrimaryGreen,
-                            unfocusedBorderColor = MedicalBorder
+                            focusedBorderColor = medai.brand,
+                            unfocusedBorderColor = medai.border
                         )
                     )
 
@@ -451,8 +461,8 @@ fun UsersManagementTab(viewModel: AppViewModel, users: List<UserSystem>) {
                                 label = { Text(f, fontSize = 11.sp) },
                                 shape = RoundedCornerShape(10.dp),
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = PrimaryGreen.copy(alpha = 0.15f),
-                                    selectedLabelColor = PrimaryGreen
+                                    selectedContainerColor = medai.brand.copy(alpha = 0.15f),
+                                    selectedLabelColor = medai.brand
                                 )
                             )
                         }
@@ -460,7 +470,7 @@ fun UsersManagementTab(viewModel: AppViewModel, users: List<UserSystem>) {
 
                     Button(
                         onClick = { viewModel.sendNotificationToColdUsers() },
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan),
+                        colors = ButtonDefaults.buttonColors(containerColor = medai.info),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -479,7 +489,7 @@ fun UsersManagementTab(viewModel: AppViewModel, users: List<UserSystem>) {
                 AdminEmptyState(
                     icon = Icons.Default.Search,
                     text = "Mos foydalanuvchilar topilmadi.",
-                    accent = PrimaryGreen
+                    accent = medai.brand
                 )
             }
         } else {
@@ -524,7 +534,7 @@ fun UsersManagementTab(viewModel: AppViewModel, users: List<UserSystem>) {
                         }
                         blockDialogUser = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = medai.danger)
                 ) {
                     Text("Bloklash")
                 }
@@ -545,6 +555,8 @@ fun UserSystemCard(
     onSendReminder: () -> Unit,
     onToggleBlock: () -> Unit
 ) {
+    val medai = MedAITheme.colors
+
     val sdf = remember { SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()) }
     val lastActiveStr = remember(user.lastActive) { sdf.format(Date(user.lastActive)) }
 
@@ -554,16 +566,16 @@ fun UserSystemCard(
             .shadow(
                 elevation = 4.dp,
                 shape = RoundedCornerShape(18.dp),
-                ambientColor = PrimaryGreen.copy(alpha = 0.08f),
-                spotColor = PrimaryGreen.copy(alpha = 0.08f)
+                ambientColor = medai.brand.copy(alpha = 0.08f),
+                spotColor = medai.brand.copy(alpha = 0.08f)
             ),
         shape = RoundedCornerShape(18.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = BorderStroke(
             1.dp,
-            if (user.isBanned) ErrorRed.copy(alpha = 0.4f)
-            else if (user.isPremium) PremiumPurple.copy(alpha = 0.3f)
-            else MedicalBorder
+            if (user.isBanned) medai.danger.copy(alpha = 0.4f)
+            else if (user.isPremium) medai.premium.copy(alpha = 0.3f)
+            else medai.border
         )
     ) {
         Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -573,9 +585,9 @@ fun UserSystemCard(
                         .size(46.dp)
                         .clip(CircleShape)
                         .background(
-                            if (user.isBanned) ErrorRed.copy(alpha = 0.2f)
-                            else if (user.isPremium) PremiumPurple.copy(alpha = 0.15f)
-                            else PrimaryGreen.copy(alpha = 0.15f)
+                            if (user.isBanned) medai.danger.copy(alpha = 0.2f)
+                            else if (user.isPremium) medai.premium.copy(alpha = 0.15f)
+                            else medai.brand.copy(alpha = 0.15f)
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -583,7 +595,7 @@ fun UserSystemCard(
                         text = user.name.take(1).uppercase(),
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
-                        color = if (user.isBanned) ErrorRed else if (user.isPremium) PremiumPurple else PrimaryGreen
+                        color = if (user.isBanned) medai.danger else if (user.isPremium) medai.premium else medai.brand
                     )
                 }
 
@@ -595,7 +607,7 @@ fun UserSystemCard(
                             text = user.name,
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
-                            color = TextPrimary,
+                            color = medai.textPrimary,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -603,7 +615,7 @@ fun UserSystemCard(
                             Spacer(modifier = Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
-                                    .background(PremiumPurple, RoundedCornerShape(6.dp))
+                                    .background(medai.premium, RoundedCornerShape(6.dp))
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text("VIP", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
@@ -613,7 +625,7 @@ fun UserSystemCard(
                             Spacer(modifier = Modifier.width(6.dp))
                             Box(
                                 modifier = Modifier
-                                    .background(ErrorRed, RoundedCornerShape(6.dp))
+                                    .background(medai.danger, RoundedCornerShape(6.dp))
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text("BLOK", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
@@ -623,7 +635,7 @@ fun UserSystemCard(
                     Text(
                         text = "${user.email} • ${user.phone}",
                         fontSize = 11.sp,
-                        color = TextSecondary,
+                        color = medai.textSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -634,7 +646,7 @@ fun UserSystemCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MedicalBackground, RoundedCornerShape(12.dp))
+                    .background(medai.canvas, RoundedCornerShape(12.dp))
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -642,13 +654,13 @@ fun UserSystemCard(
                 Text(
                     text = "Oxirgi faollik: $lastActiveStr",
                     fontSize = 10.sp,
-                    color = TextSecondary
+                    color = medai.textSecondary
                 )
                 Text(
                     text = "Ekran: ${user.currentScreen}",
                     fontSize = 10.sp,
                     fontWeight = FontWeight.Medium,
-                    color = PrimaryGreen
+                    color = medai.brand
                 )
             }
 
@@ -662,9 +674,9 @@ fun UserSystemCard(
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                    border = BorderStroke(1.dp, PremiumPurple)
+                    border = BorderStroke(1.dp, medai.premium)
                 ) {
-                    Text("+30 kun VIP", fontSize = 11.sp, color = PremiumPurple, fontWeight = FontWeight.Bold)
+                    Text("+30 kun VIP", fontSize = 11.sp, color = medai.premium, fontWeight = FontWeight.Bold)
                 }
 
                 OutlinedButton(
@@ -672,16 +684,16 @@ fun UserSystemCard(
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.weight(1f),
                     contentPadding = PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                    border = BorderStroke(1.dp, AccentCyan)
+                    border = BorderStroke(1.dp, medai.info)
                 ) {
-                    Text("Eslatma", fontSize = 11.sp, color = AccentCyan, fontWeight = FontWeight.Bold)
+                    Text("Eslatma", fontSize = 11.sp, color = medai.info, fontWeight = FontWeight.Bold)
                 }
 
                 Button(
                     onClick = onToggleBlock,
                     shape = RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (user.isBanned) SuccessGreen else ErrorRed
+                        containerColor = if (user.isBanned) medai.success else medai.danger
                     ),
                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                 ) {
@@ -702,6 +714,8 @@ fun UserSystemCard(
 
 @Composable
 fun PaymentsManagementTab(viewModel: AppViewModel, payments: List<PaymentRequestLocal>) {
+    val medai = MedAITheme.colors
+
     var filterStatus by remember { mutableStateOf("Barchasi") }
     var rejectDialogReq by remember { mutableStateOf<PaymentRequestLocal?>(null) }
     var rejectReason by remember { mutableStateOf("Chek tasdiqlanmadi / Rasm tushunarsiz") }
@@ -726,7 +740,7 @@ fun PaymentsManagementTab(viewModel: AppViewModel, payments: List<PaymentRequest
                 text = "TO'LOV SO'ROVLARI".uppercase(),
                 fontWeight = FontWeight.Bold,
                 fontSize = 11.sp,
-                color = AccentCyan,
+                color = medai.info,
                 letterSpacing = 1.2.sp,
                 modifier = Modifier.padding(horizontal = 4.dp)
             )
@@ -740,22 +754,22 @@ fun PaymentsManagementTab(viewModel: AppViewModel, payments: List<PaymentRequest
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(WarningOrange.copy(alpha = 0.1f), RoundedCornerShape(14.dp))
-                    .border(1.dp, WarningOrange.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
+                    .background(medai.warning.copy(alpha = 0.1f), RoundedCornerShape(14.dp))
+                    .border(1.dp, medai.warning.copy(alpha = 0.25f), RoundedCornerShape(14.dp))
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     imageVector = Icons.Default.Info,
                     contentDescription = null,
-                    tint = WarningOrange,
+                    tint = medai.warning,
                     modifier = Modifier.size(16.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Tasdiqlash so'rov egasining qurilmasiga Firestore orqali yetadi — buning uchun loyiha haqiqiy Firebase'ga deploy qilingan bo'lishi kerak.",
                     fontSize = 11.sp,
-                    color = TextSecondary
+                    color = medai.textSecondary
                 )
             }
         }
@@ -774,8 +788,8 @@ fun PaymentsManagementTab(viewModel: AppViewModel, payments: List<PaymentRequest
                         label = { Text(st, fontSize = 11.sp) },
                         shape = RoundedCornerShape(10.dp),
                         colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = AccentCyan.copy(alpha = 0.15f),
-                            selectedLabelColor = AccentCyan
+                            selectedContainerColor = medai.info.copy(alpha = 0.15f),
+                            selectedLabelColor = medai.info
                         )
                     )
                 }
@@ -787,7 +801,7 @@ fun PaymentsManagementTab(viewModel: AppViewModel, payments: List<PaymentRequest
                 AdminEmptyState(
                     icon = Icons.Default.ReceiptLong,
                     text = "To'lov so'rovlari mavjud emas.",
-                    accent = AccentCyan
+                    accent = medai.info
                 )
             }
         } else {
@@ -824,7 +838,7 @@ fun PaymentsManagementTab(viewModel: AppViewModel, payments: List<PaymentRequest
                         }
                         rejectDialogReq = null
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = ErrorRed)
+                    colors = ButtonDefaults.buttonColors(containerColor = medai.danger)
                 ) {
                     Text("Rad etish")
                 }
@@ -844,13 +858,15 @@ fun PaymentItemCard(
     onApprove: () -> Unit,
     onReject: () -> Unit
 ) {
+    val medai = MedAITheme.colors
+
     val sdf = remember { SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()) }
     val dateStr = remember(req.submittedAt) { sdf.format(Date(req.submittedAt)) }
 
     val statusColor = when (req.status) {
-        "approved" -> SuccessGreen
-        "rejected" -> ErrorRed
-        else -> WarningOrange
+        "approved" -> medai.success
+        "rejected" -> medai.danger
+        else -> medai.warning
     }
 
     val statusText = when (req.status) {
@@ -883,12 +899,12 @@ fun PaymentItemCard(
                         text = "To'lov so'rovi (VIP 49,000 UZS)",
                         fontWeight = FontWeight.Bold,
                         fontSize = 15.sp,
-                        color = TextPrimary
+                        color = medai.textPrimary
                     )
                     Text(
                         text = "${req.userName} • ${req.userPhone} • $dateStr",
                         fontSize = 11.sp,
-                        color = TextSecondary
+                        color = medai.textSecondary
                     )
                 }
 
@@ -910,17 +926,17 @@ fun PaymentItemCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(MedicalBackground, RoundedCornerShape(12.dp))
+                    .background(medai.canvas, RoundedCornerShape(12.dp))
                     .padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
                         .size(40.dp)
-                        .background(AccentCyan.copy(alpha = 0.15f), CircleShape),
+                        .background(medai.info.copy(alpha = 0.15f), CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, tint = AccentCyan)
+                    Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, tint = medai.info)
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
@@ -929,7 +945,7 @@ fun PaymentItemCard(
                         text = if (req.status == "rejected") "Sabab: ${req.rejectionReason ?: "Noma'lum"}"
                         else "Admin tekshiruvi: ${req.reviewedBy ?: "Kutilmoqda"}",
                         fontSize = 11.sp,
-                        color = TextSecondary
+                        color = medai.textSecondary
                     )
                 }
             }
@@ -942,7 +958,7 @@ fun PaymentItemCard(
                     Button(
                         onClick = onApprove,
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                        colors = ButtonDefaults.buttonColors(containerColor = medai.success),
                         modifier = Modifier
                             .weight(1f)
                             .height(42.dp)
@@ -955,7 +971,7 @@ fun PaymentItemCard(
                     Button(
                         onClick = onReject,
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = ErrorRed),
+                        colors = ButtonDefaults.buttonColors(containerColor = medai.danger),
                         modifier = Modifier
                             .weight(1f)
                             .height(42.dp)
@@ -983,6 +999,8 @@ fun SystemControlTab(
     banner: PopupBannerConfig?,
     announcement: AnnouncementConfig?
 ) {
+    val medai = MedAITheme.colors
+
     val context = LocalContext.current
 
     var symptomChecked by remember(flags) { mutableStateOf(flags?.symptomChecker ?: true) }
@@ -1026,12 +1044,12 @@ fun SystemControlTab(
                     .shadow(
                         elevation = 4.dp,
                         shape = RoundedCornerShape(18.dp),
-                        ambientColor = WarningOrange.copy(alpha = 0.1f),
-                        spotColor = WarningOrange.copy(alpha = 0.1f)
+                        ambientColor = medai.warning.copy(alpha = 0.1f),
+                        spotColor = medai.warning.copy(alpha = 0.1f)
                     ),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, if (config?.maintenanceMode == true) ErrorRed.copy(alpha = 0.5f) else MedicalBorder)
+                border = BorderStroke(1.dp, if (config?.maintenanceMode == true) medai.danger.copy(alpha = 0.5f) else medai.border)
             ) {
                 Row(
                     modifier = Modifier
@@ -1044,18 +1062,18 @@ fun SystemControlTab(
                         Box(
                             modifier = Modifier
                                 .size(42.dp)
-                                .background(WarningOrange.copy(alpha = 0.15f), CircleShape),
+                                .background(medai.warning.copy(alpha = 0.15f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(imageVector = Icons.Default.Construction, contentDescription = null, tint = WarningOrange, modifier = Modifier.size(22.dp))
+                            Icon(imageVector = Icons.Default.Construction, contentDescription = null, tint = medai.warning, modifier = Modifier.size(22.dp))
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text("Texnik xizmat rejimi (Maintenance)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                            Text("Texnik xizmat rejimi (Maintenance)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = medai.textPrimary)
                             Text(
                                 text = "Yoqilganda oddiy foydalanuvchilar kirishi to'xtatiladi, faqat admin ishlay oladi.",
                                 fontSize = 11.sp,
-                                color = TextSecondary,
+                                color = medai.textSecondary,
                                 modifier = Modifier.padding(top = 4.dp)
                             )
                         }
@@ -1064,7 +1082,7 @@ fun SystemControlTab(
                     Switch(
                         checked = config?.maintenanceMode ?: false,
                         onCheckedChange = { viewModel.toggleMaintenanceMode(it) },
-                        colors = SwitchDefaults.colors(checkedThumbColor = ErrorRed, checkedTrackColor = ErrorRed.copy(alpha = 0.5f))
+                        colors = SwitchDefaults.colors(checkedThumbColor = medai.danger, checkedTrackColor = medai.danger.copy(alpha = 0.5f))
                     )
                 }
             }
@@ -1083,7 +1101,7 @@ fun SystemControlTab(
                     ),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MedicalBorder)
+                border = BorderStroke(1.dp, medai.border)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1096,7 +1114,7 @@ fun SystemControlTab(
                             Icon(imageVector = Icons.Default.Assessment, contentDescription = null, tint = AdminIndigo, modifier = Modifier.size(18.dp))
                         }
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text("Funksiyalar Boshqaruvi (Feature Flags)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                        Text("Funksiyalar Boshqaruvi (Feature Flags)", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = medai.textPrimary)
                     }
 
                     FeatureSwitchRow("Symptom Checker (Alomatlar)", symptomChecked) { symptomChecked = it }
@@ -1120,7 +1138,7 @@ fun SystemControlTab(
                             .fillMaxWidth()
                             .height(46.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                        colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                     ) {
                         Text("Funksiyalarni Saqlash", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
@@ -1136,25 +1154,25 @@ fun SystemControlTab(
                     .shadow(
                         elevation = 4.dp,
                         shape = RoundedCornerShape(18.dp),
-                        ambientColor = AccentCyan.copy(alpha = 0.08f),
-                        spotColor = AccentCyan.copy(alpha = 0.08f)
+                        ambientColor = medai.info.copy(alpha = 0.08f),
+                        spotColor = medai.info.copy(alpha = 0.08f)
                     ),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MedicalBorder)
+                border = BorderStroke(1.dp, medai.border)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
-                                .background(AccentCyan.copy(alpha = 0.15f), CircleShape),
+                                .background(medai.info.copy(alpha = 0.15f), CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = AccentCyan, modifier = Modifier.size(18.dp))
+                            Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = medai.info, modifier = Modifier.size(18.dp))
                         }
                         Spacer(modifier = Modifier.width(10.dp))
-                        Text("Ilova Versiyasi & Majburiy Yangilanish", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                        Text("Ilova Versiyasi & Majburiy Yangilanish", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = medai.textPrimary)
                     }
 
                     OutlinedTextField(
@@ -1165,8 +1183,8 @@ fun SystemControlTab(
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = AccentCyan,
-                            unfocusedBorderColor = MedicalBorder
+                            focusedBorderColor = medai.info,
+                            unfocusedBorderColor = medai.border
                         )
                     )
 
@@ -1175,7 +1193,7 @@ fun SystemControlTab(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Majburiy yangilash (Force Update)", fontSize = 12.sp, color = TextPrimary)
+                        Text("Majburiy yangilash (Force Update)", fontSize = 12.sp, color = medai.textPrimary)
                         Switch(
                             checked = forceUpdateChecked,
                             onCheckedChange = { forceUpdateChecked = it }
@@ -1197,7 +1215,7 @@ fun SystemControlTab(
                             .fillMaxWidth()
                             .height(46.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = AccentCyan)
+                        colors = ButtonDefaults.buttonColors(containerColor = medai.info)
                     ) {
                         Text("Versiyani Saqlash", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
@@ -1213,12 +1231,12 @@ fun SystemControlTab(
                     .shadow(
                         elevation = 4.dp,
                         shape = RoundedCornerShape(18.dp),
-                        ambientColor = PremiumPurple.copy(alpha = 0.08f),
-                        spotColor = PremiumPurple.copy(alpha = 0.08f)
+                        ambientColor = medai.premium.copy(alpha = 0.08f),
+                        spotColor = medai.premium.copy(alpha = 0.08f)
                     ),
                 shape = RoundedCornerShape(18.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, MedicalBorder)
+                border = BorderStroke(1.dp, medai.border)
             ) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(
@@ -1230,13 +1248,13 @@ fun SystemControlTab(
                             Box(
                                 modifier = Modifier
                                     .size(36.dp)
-                                    .background(PremiumPurple.copy(alpha = 0.15f), CircleShape),
+                                    .background(medai.premium.copy(alpha = 0.15f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.Default.Campaign, contentDescription = null, tint = PremiumPurple, modifier = Modifier.size(18.dp))
+                                Icon(imageVector = Icons.Default.Campaign, contentDescription = null, tint = medai.premium, modifier = Modifier.size(18.dp))
                             }
                             Spacer(modifier = Modifier.width(10.dp))
-                            Text("Global Banner & E'lon", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
+                            Text("Global Banner & E'lon", fontWeight = FontWeight.Bold, fontSize = 14.sp, color = medai.textPrimary)
                         }
                         Switch(
                             checked = announceActive,
@@ -1251,8 +1269,8 @@ fun SystemControlTab(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PremiumPurple,
-                            unfocusedBorderColor = MedicalBorder
+                            focusedBorderColor = medai.premium,
+                            unfocusedBorderColor = medai.border
                         )
                     )
 
@@ -1270,7 +1288,7 @@ fun SystemControlTab(
                             .fillMaxWidth()
                             .height(46.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = PremiumPurple)
+                        colors = ButtonDefaults.buttonColors(containerColor = medai.premium)
                     ) {
                         Text("E'lonni Saqlash", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
@@ -1282,6 +1300,8 @@ fun SystemControlTab(
 
 @Composable
 private fun FeatureSwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    val medai = MedAITheme.colors
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1289,11 +1309,11 @@ private fun FeatureSwitchRow(label: String, checked: Boolean, onCheckedChange: (
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, fontSize = 12.sp, color = TextPrimary)
+        Text(text = label, fontSize = 12.sp, color = medai.textPrimary)
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(checkedThumbColor = PrimaryGreen, checkedTrackColor = PrimaryGreen.copy(alpha = 0.5f))
+            colors = SwitchDefaults.colors(checkedThumbColor = medai.brand, checkedTrackColor = medai.brand.copy(alpha = 0.5f))
         )
     }
 }
@@ -1309,6 +1329,8 @@ fun MedicalCmsTab(
     medicines: List<MedicineEntry>,
     tips: List<HealthTipLocal>
 ) {
+    val medai = MedAITheme.colors
+
     var cmsSubTab by remember { mutableStateOf(0) }
     var showAddDiseaseDialog by remember { mutableStateOf(false) }
     var showAddMedicineDialog by remember { mutableStateOf(false) }
@@ -1328,25 +1350,25 @@ fun MedicalCmsTab(
                         title = "Kasalliklar (${diseases.size})",
                         icon = Icons.Default.HealthAndSafety,
                         selected = cmsSubTab == 0,
-                        accent = SecondaryGreen,
+                        accent = medai.brand,
                         onClick = { cmsSubTab = 0 }
                     )
                     AdminTabPill(
                         title = "Dorilar (${medicines.size})",
                         icon = Icons.Default.Medication,
                         selected = cmsSubTab == 1,
-                        accent = SecondaryGreen,
+                        accent = medai.brand,
                         onClick = { cmsSubTab = 1 }
                     )
                     AdminTabPill(
                         title = "Maslahatlar (${tips.size})",
                         icon = Icons.Default.TipsAndUpdates,
                         selected = cmsSubTab == 2,
-                        accent = SecondaryGreen,
+                        accent = medai.brand,
                         onClick = { cmsSubTab = 2 }
                     )
                 }
-                Divider(color = MedicalBorder.copy(alpha = 0.5f))
+                Divider(color = medai.border.copy(alpha = 0.5f))
             }
         }
 
@@ -1365,7 +1387,7 @@ fun MedicalCmsTab(
                                 .fillMaxWidth()
                                 .height(46.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SecondaryGreen)
+                            colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
@@ -1378,7 +1400,7 @@ fun MedicalCmsTab(
                             AdminEmptyState(
                                 icon = Icons.Default.HealthAndSafety,
                                 text = "Kasalliklar ro'yxati bo'sh.",
-                                accent = SecondaryGreen
+                                accent = medai.brand
                             )
                         }
                     }
@@ -1390,12 +1412,12 @@ fun MedicalCmsTab(
                                 .shadow(
                                     elevation = 3.dp,
                                     shape = RoundedCornerShape(16.dp),
-                                    ambientColor = SecondaryGreen.copy(alpha = 0.06f),
-                                    spotColor = SecondaryGreen.copy(alpha = 0.06f)
+                                    ambientColor = medai.brand.copy(alpha = 0.06f),
+                                    spotColor = medai.brand.copy(alpha = 0.06f)
                                 ),
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            border = BorderStroke(1.dp, MedicalBorder)
+                            border = BorderStroke(1.dp, medai.border)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -1406,19 +1428,19 @@ fun MedicalCmsTab(
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
-                                        .background(SecondaryGreen.copy(alpha = 0.15f), CircleShape),
+                                        .background(medai.brand.copy(alpha = 0.15f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.HealthAndSafety, contentDescription = null, tint = SecondaryGreen, modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.HealthAndSafety, contentDescription = null, tint = medai.brand, modifier = Modifier.size(20.dp))
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = d.nameUz, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
-                                    Text(text = "Alomatlar: ${d.symptomsUz}", fontSize = 11.sp, color = TextSecondary)
-                                    Text(text = "Mutaxassis: ${d.specialistType} • Daraja: ${d.severity}", fontSize = 10.sp, color = SecondaryGreen)
+                                    Text(text = d.nameUz, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = medai.textPrimary)
+                                    Text(text = "Alomatlar: ${d.symptomsUz}", fontSize = 11.sp, color = medai.textSecondary)
+                                    Text(text = "Mutaxassis: ${d.specialistType} • Daraja: ${d.severity}", fontSize = 10.sp, color = medai.brand)
                                 }
                                 IconButton(onClick = { viewModel.deleteDisease(d.id) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = ErrorRed, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = medai.danger, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }
@@ -1439,7 +1461,7 @@ fun MedicalCmsTab(
                                 .fillMaxWidth()
                                 .height(46.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SecondaryGreen)
+                            colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
@@ -1452,7 +1474,7 @@ fun MedicalCmsTab(
                             AdminEmptyState(
                                 icon = Icons.Default.Medication,
                                 text = "Dorilar ro'yxati bo'sh.",
-                                accent = SecondaryGreen
+                                accent = medai.brand
                             )
                         }
                     }
@@ -1464,12 +1486,12 @@ fun MedicalCmsTab(
                                 .shadow(
                                     elevation = 3.dp,
                                     shape = RoundedCornerShape(16.dp),
-                                    ambientColor = SecondaryGreen.copy(alpha = 0.06f),
-                                    spotColor = SecondaryGreen.copy(alpha = 0.06f)
+                                    ambientColor = medai.brand.copy(alpha = 0.06f),
+                                    spotColor = medai.brand.copy(alpha = 0.06f)
                                 ),
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            border = BorderStroke(1.dp, MedicalBorder)
+                            border = BorderStroke(1.dp, medai.border)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -1480,19 +1502,19 @@ fun MedicalCmsTab(
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
-                                        .background(SecondaryGreen.copy(alpha = 0.15f), CircleShape),
+                                        .background(medai.brand.copy(alpha = 0.15f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.Medication, contentDescription = null, tint = SecondaryGreen, modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.Medication, contentDescription = null, tint = medai.brand, modifier = Modifier.size(20.dp))
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = m.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = TextPrimary)
-                                    Text(text = "Dozasi: ${m.dosage} • Toifasi: ${m.category}", fontSize = 11.sp, color = TextSecondary)
-                                    Text(text = m.description, fontSize = 10.sp, color = TextSecondary, maxLines = 2)
+                                    Text(text = m.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = medai.textPrimary)
+                                    Text(text = "Dozasi: ${m.dosage} • Toifasi: ${m.category}", fontSize = 11.sp, color = medai.textSecondary)
+                                    Text(text = m.description, fontSize = 10.sp, color = medai.textSecondary, maxLines = 2)
                                 }
                                 IconButton(onClick = { viewModel.deleteMedicine(m.id) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = ErrorRed, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = medai.danger, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }
@@ -1513,7 +1535,7 @@ fun MedicalCmsTab(
                                 .fillMaxWidth()
                                 .height(46.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = SecondaryGreen)
+                            colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                         ) {
                             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
@@ -1526,7 +1548,7 @@ fun MedicalCmsTab(
                             AdminEmptyState(
                                 icon = Icons.Default.TipsAndUpdates,
                                 text = "Maslahatlar ro'yxati bo'sh.",
-                                accent = SecondaryGreen
+                                accent = medai.brand
                             )
                         }
                     }
@@ -1538,12 +1560,12 @@ fun MedicalCmsTab(
                                 .shadow(
                                     elevation = 3.dp,
                                     shape = RoundedCornerShape(16.dp),
-                                    ambientColor = SecondaryGreen.copy(alpha = 0.06f),
-                                    spotColor = SecondaryGreen.copy(alpha = 0.06f)
+                                    ambientColor = medai.brand.copy(alpha = 0.06f),
+                                    spotColor = medai.brand.copy(alpha = 0.06f)
                                 ),
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                            border = BorderStroke(1.dp, MedicalBorder)
+                            border = BorderStroke(1.dp, medai.border)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -1554,18 +1576,18 @@ fun MedicalCmsTab(
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
-                                        .background(SecondaryGreen.copy(alpha = 0.15f), CircleShape),
+                                        .background(medai.brand.copy(alpha = 0.15f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(Icons.Default.TipsAndUpdates, contentDescription = null, tint = SecondaryGreen, modifier = Modifier.size(20.dp))
+                                    Icon(Icons.Default.TipsAndUpdates, contentDescription = null, tint = medai.brand, modifier = Modifier.size(20.dp))
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(text = t.uz, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = TextPrimary)
-                                    Text(text = t.ru, fontSize = 11.sp, color = TextSecondary)
+                                    Text(text = t.uz, fontSize = 13.sp, fontWeight = FontWeight.Medium, color = medai.textPrimary)
+                                    Text(text = t.ru, fontSize = 11.sp, color = medai.textSecondary)
                                 }
                                 IconButton(onClick = { viewModel.deleteHealthTip(t.id) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = ErrorRed, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Delete, contentDescription = "Delete", tint = medai.danger, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }
@@ -1605,7 +1627,7 @@ fun MedicalCmsTab(
                             showAddDiseaseDialog = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                    colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                 ) {
                     Text("Saqlash")
                 }
@@ -1645,7 +1667,7 @@ fun MedicalCmsTab(
                             showAddMedicineDialog = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                    colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                 ) {
                     Text("Saqlash")
                 }
@@ -1678,7 +1700,7 @@ fun MedicalCmsTab(
                             showAddTipDialog = false
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                    colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                 ) {
                     Text("Saqlash")
                 }
@@ -1700,6 +1722,8 @@ fun LogsAuditTab(
     adminLogs: List<AdminLog>,
     errorLogs: List<ErrorLog>
 ) {
+    val medai = MedAITheme.colors
+
     val sdf = remember { SimpleDateFormat("dd.MM.yyyy HH:mm:ss", Locale.getDefault()) }
     var logsSubTab by remember { mutableStateOf(0) }
 
@@ -1724,11 +1748,11 @@ fun LogsAuditTab(
                         title = "Xatolar (${errorLogs.size})",
                         icon = Icons.Default.Warning,
                         selected = logsSubTab == 1,
-                        accent = ErrorRed,
+                        accent = medai.danger,
                         onClick = { logsSubTab = 1 }
                     )
                 }
-                Divider(color = MedicalBorder.copy(alpha = 0.5f))
+                Divider(color = medai.border.copy(alpha = 0.5f))
             }
         }
 
@@ -1761,7 +1785,7 @@ fun LogsAuditTab(
                                     ),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                border = BorderStroke(1.dp, MedicalBorder)
+                                border = BorderStroke(1.dp, medai.border)
                             ) {
                                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
                                     Box(
@@ -1779,11 +1803,11 @@ fun LogsAuditTab(
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(text = log.action, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = PrimaryGreen)
-                                            Text(text = sdf.format(Date(log.timestamp)), fontSize = 10.sp, color = TextSecondary)
+                                            Text(text = log.action, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = medai.brand)
+                                            Text(text = sdf.format(Date(log.timestamp)), fontSize = 10.sp, color = medai.textSecondary)
                                         }
-                                        Text(text = "Kimga: ${log.targetUser} • Admin: ${log.adminEmail}", fontSize = 11.sp, color = TextSecondary)
-                                        Text(text = log.details, fontSize = 12.sp, color = TextPrimary)
+                                        Text(text = "Kimga: ${log.targetUser} • Admin: ${log.adminEmail}", fontSize = 11.sp, color = medai.textSecondary)
+                                        Text(text = log.details, fontSize = 12.sp, color = medai.textPrimary)
                                     }
                                 }
                             }
@@ -1803,7 +1827,7 @@ fun LogsAuditTab(
                             AdminEmptyState(
                                 icon = Icons.Default.CheckCircle,
                                 text = "Xatolar aniqlanmagan. Tizim barqaror!",
-                                accent = SuccessGreen
+                                accent = medai.success
                             )
                         }
                     } else {
@@ -1814,19 +1838,19 @@ fun LogsAuditTab(
                                     .shadow(
                                         elevation = 3.dp,
                                         shape = RoundedCornerShape(16.dp),
-                                        ambientColor = ErrorRed.copy(alpha = 0.06f),
-                                        spotColor = ErrorRed.copy(alpha = 0.06f)
+                                        ambientColor = medai.danger.copy(alpha = 0.06f),
+                                        spotColor = medai.danger.copy(alpha = 0.06f)
                                     ),
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                                border = BorderStroke(1.dp, if (err.isResolved) SuccessGreen.copy(alpha = 0.3f) else ErrorRed.copy(alpha = 0.4f))
+                                border = BorderStroke(1.dp, if (err.isResolved) medai.success.copy(alpha = 0.3f) else medai.danger.copy(alpha = 0.4f))
                             ) {
                                 Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.Top) {
                                     Box(
                                         modifier = Modifier
                                             .size(36.dp)
                                             .background(
-                                                (if (err.isResolved) SuccessGreen else ErrorRed).copy(alpha = 0.12f),
+                                                (if (err.isResolved) medai.success else medai.danger).copy(alpha = 0.12f),
                                                 CircleShape
                                             ),
                                         contentAlignment = Alignment.Center
@@ -1834,7 +1858,7 @@ fun LogsAuditTab(
                                         Icon(
                                             imageVector = if (err.isResolved) Icons.Default.CheckCircle else Icons.Default.Warning,
                                             contentDescription = null,
-                                            tint = if (err.isResolved) SuccessGreen else ErrorRed,
+                                            tint = if (err.isResolved) medai.success else medai.danger,
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -1845,16 +1869,16 @@ fun LogsAuditTab(
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text(text = "Ekran: ${err.screen}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = ErrorRed)
-                                            Text(text = sdf.format(Date(err.timestamp)), fontSize = 10.sp, color = TextSecondary)
+                                            Text(text = "Ekran: ${err.screen}", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = medai.danger)
+                                            Text(text = sdf.format(Date(err.timestamp)), fontSize = 10.sp, color = medai.textSecondary)
                                         }
-                                        Text(text = err.errorMessage, fontSize = 12.sp, color = TextPrimary)
-                                        Text(text = "Qurilma: ${err.deviceInfo} • Versiya: ${err.appVersion}", fontSize = 10.sp, color = TextSecondary)
+                                        Text(text = err.errorMessage, fontSize = 12.sp, color = medai.textPrimary)
+                                        Text(text = "Qurilma: ${err.deviceInfo} • Versiya: ${err.appVersion}", fontSize = 10.sp, color = medai.textSecondary)
 
                                         if (!err.isResolved) {
                                             Button(
                                                 onClick = { viewModel.resolveErrorLog(err.id) },
-                                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen),
+                                                colors = ButtonDefaults.buttonColors(containerColor = medai.brand),
                                                 shape = RoundedCornerShape(10.dp),
                                                 modifier = Modifier.align(Alignment.End)
                                             ) {

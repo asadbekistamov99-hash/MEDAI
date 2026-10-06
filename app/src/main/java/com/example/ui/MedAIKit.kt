@@ -467,6 +467,9 @@ fun MedAITextField(
     showPasswordDescription: String = "Show password",
     hidePasswordDescription: String = "Hide password",
     testTag: String = "",
+    visualTransformation: VisualTransformation? = null,
+    trailingContent: (@Composable () -> Unit)? = null,
+    keyboardOptions: KeyboardOptions? = null,
 ) {
     val c = MedAITheme.colors
     var focused by remember { mutableStateOf(false) }
@@ -490,8 +493,9 @@ fun MedAITextField(
             singleLine = singleLine,
             textStyle = MaterialTheme.typography.bodyLarge.copy(color = c.textPrimary),
             cursorBrush = SolidColor(c.brand),
-            keyboardOptions = KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else keyboardType),
-            visualTransformation = if (isPassword && !revealed) PasswordVisualTransformation() else VisualTransformation.None,
+            keyboardOptions = keyboardOptions ?: KeyboardOptions(keyboardType = if (isPassword) KeyboardType.Password else keyboardType),
+            visualTransformation = visualTransformation
+                ?: if (isPassword && !revealed) PasswordVisualTransformation() else VisualTransformation.None,
             modifier = Modifier
                 .fillMaxWidth()
                 .onFocusChanged { focused = it.isFocused }
@@ -504,7 +508,7 @@ fun MedAITextField(
                         .clip(shape)
                         .background(if (enabled) c.surface else c.surfaceSunken)
                         .border(if (focused || error != null) 2.dp else 1.dp, borderColor, shape)
-                        .padding(start = 14.dp, end = if (isPassword) 2.dp else 14.dp),
+                        .padding(start = 14.dp, end = if (isPassword || trailingContent != null) 2.dp else 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     if (leadingIcon != null) {
@@ -517,6 +521,7 @@ fun MedAITextField(
                         }
                         inner()
                     }
+                    if (trailingContent != null) trailingContent()
                     if (isPassword) {
                         Box(
                             Modifier.size(MinTouch).clip(CircleShape).clickable(role = Role.Button) { revealed = !revealed },
