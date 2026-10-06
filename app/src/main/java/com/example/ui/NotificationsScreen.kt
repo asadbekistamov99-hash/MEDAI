@@ -47,77 +47,68 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.text.SimpleDateFormat
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.vector.ImageVector
 
-// --- SCREEN: NOTIFICATIONS TIMELINE ---
+// --- SCREEN: NOTIFICATIONS ---
 
 @Composable
 fun NotificationsScreen(viewModel: AppViewModel, onBack: () -> Unit) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
     val lang by viewModel.currentLanguage.collectAsState()
     val list by viewModel.notifications.collectAsState()
+    fun tr(uz: String, ru: String, en: String) = when (lang) { "uz" -> uz; "ru" -> ru; else -> en }
 
     LaunchedEffect(key1 = true) {
         viewModel.markAllNotificationsAsRead()
     }
 
+    val timeFormat = remember { SimpleDateFormat("dd.MM  HH:mm", Locale.getDefault()) }
+
     Scaffold(
+        containerColor = c.canvas,
         topBar = { AppHeader(title = Translations.getString("feat_notifications", lang), onBack = onBack) }
     ) { innerPadding ->
         if (list.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.background),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(Modifier.fillMaxSize().padding(innerPadding), contentAlignment = Alignment.Center) {
                 MedAIEmptyState(
-                    title = "Hozircha hech qanday bildirishnoma yo'q.",
-                    message = "Yangi bildirishnomalar shu yerda paydo bo'ladi",
+                    title = tr("Hozircha bildirishnomalar yo'q", "Пока нет уведомлений", "No notifications yet"),
+                    message = tr("Yangi bildirishnomalar shu yerda paydo bo'ladi", "Новые уведомления появятся здесь", "New notifications will appear here"),
                     icon = Icons.Default.NotificationsNone
                 )
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(16.dp),
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+                contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(list) { item ->
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(2.dp, RoundedCornerShape(16.dp)),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        border = BorderStroke(1.dp, medai.border)
-                    ) {
-                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.Top) {
+                items(list, key = { it.id }) { item ->
+                    // Type decides the icon disc; SOS is the only red one.
+                    val (icon, tint) = when (item.type) {
+                        "sos" -> Icons.Default.Warning to MedAITint(c.dangerSoft, c.onDangerSoft)
+                        "reminder" -> Icons.Default.Alarm to c.tintSky
+                        "premium" -> Icons.Default.WorkspacePremium to c.tintViolet
+                        "invite" -> Icons.Default.PersonAdd to c.tintPeach
+                        else -> Icons.Default.Notifications to c.tintTeal
+                    }
+                    MedAICard(Modifier.fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.Top) {
                             Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .background(
-                                        (if (item.type == "sos") medai.danger else medai.brand).copy(alpha = 0.12f),
-                                        CircleShape
-                                    ),
+                                modifier = Modifier.size(44.dp).clip(CircleShape).background(tint.bg),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = if (item.type == "sos") Icons.Default.Warning else Icons.Default.Notifications,
-                                    contentDescription = null,
-                                    tint = if (item.type == "sos") medai.danger else medai.brand,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                Icon(icon, contentDescription = null, tint = tint.fg, modifier = Modifier.size(22.dp))
                             }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(text = item.title, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = medai.textPrimary)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(text = item.message, fontSize = 12.sp, color = medai.textSecondary, lineHeight = 16.sp)
+                            Spacer(Modifier.width(14.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(item.title, style = MaterialTheme.typography.titleSmall, color = c.textPrimary)
+                                Spacer(Modifier.height(2.dp))
+                                Text(item.message, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+                                Spacer(Modifier.height(6.dp))
+                                Text(timeFormat.format(Date(item.timestamp)), style = MaterialTheme.typography.labelMedium, color = c.textSecondary)
                             }
                         }
                     }

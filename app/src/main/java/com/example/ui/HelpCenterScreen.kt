@@ -47,111 +47,113 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.text.SimpleDateFormat
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.vector.ImageVector
 
 // --- SCREEN: HELP & SUPPORT CENTER ---
 
 @Composable
 fun HelpCenterScreen(viewModel: AppViewModel, onBack: () -> Unit) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
     val lang by viewModel.currentLanguage.collectAsState()
+    val config by viewModel.appConfig.collectAsState()
+    val context = LocalContext.current
+    fun tr(uz: String, ru: String, en: String) = when (lang) { "uz" -> uz; "ru" -> ru; else -> en }
+
+    val faq = listOf(
+        Triple(
+            tr("MedAI nima?", "Что такое MedAI?", "What is MedAI?"),
+            tr(
+                "MedAI - bu sun'iy intellektga asoslangan shaxsiy tibbiy maslahatchi va salomatlik tahlilchisidir.",
+                "MedAI — персональный медицинский помощник и анализатор здоровья на основе ИИ.",
+                "MedAI is a personal AI health assistant and analyser."
+            ),
+            c.tintTeal
+        ),
+        Triple(
+            tr("Premium reja nima beradi?", "Что даёт тариф Premium?", "What does Premium include?"),
+            tr(
+                "Premium reja barcha shifokor chatlari, laboratoriya tahlili va oilaviy kuzatuvni faollashtiradi.",
+                "Premium открывает все чаты с врачом, анализ лабораторных данных и семейный мониторинг.",
+                "Premium unlocks every doctor chat, lab analysis and family monitoring."
+            ),
+            c.tintViolet
+        ),
+    )
 
     Scaffold(
+        containerColor = c.canvas,
         topBar = { AppHeader(title = Translations.getString("feat_help", lang), onBack = onBack) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
-                .padding(20.dp),
+                .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Hero header card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, medai.border)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
+            MedAICard(Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(medai.brand.copy(alpha = 0.1f), CircleShape),
+                        modifier = Modifier.size(48.dp).clip(CircleShape).background(c.brandSoft),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(imageVector = Icons.Default.HelpCenter, contentDescription = null, tint = medai.brand, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Default.HelpCenter, contentDescription = null, tint = c.onBrandSoft, modifier = Modifier.size(26.dp))
                     }
-                    Column {
-                        Text(text = "Tez-tez so'raladigan savollar", fontWeight = FontWeight.ExtraBold, fontSize = 17.sp, color = medai.textPrimary)
-                        Text(text = "Savolingizga javob toping yoki qo'llab-quvvatlash xizmatiga yozing", fontSize = 12.sp, color = medai.textSecondary)
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(tr("Tez-tez so'raladigan savollar", "Часто задаваемые вопросы", "Frequently asked questions"), style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                        Text(
+                            tr(
+                                "Javob toping yoki qo'llab-quvvatlash xizmatiga yozing",
+                                "Найдите ответ или напишите в поддержку",
+                                "Find an answer or message support"
+                            ),
+                            style = MaterialTheme.typography.bodySmall, color = c.textSecondary
+                        )
                     }
                 }
             }
 
-            Text(
-                text = "FAQ".uppercase(),
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.sp,
-                color = medai.brand,
-                letterSpacing = 1.2.sp
-            )
+            Text("FAQ", style = MedAIText.Eyebrow, color = c.brand)
 
-            listOf(
-                "MedAI nima?" to "MedAI - bu sun'iy intellektga asoslangan shaxsiy tibbiy maslahatchi va salomatlik tahlilchisidir.",
-                "Premium plan nima bera oladi?" to "Premium plan barcha shifokor chatlari, vision laborator tahlil va oilaviy kuzatuvni faollashtiradi."
-            ).forEach { (q, a) ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(2.dp, RoundedCornerShape(16.dp)),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, medai.border)
-                ) {
-                    Row(modifier = Modifier.padding(16.dp)) {
+            MedAICard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                faq.forEachIndexed { index, (q, a, tint) ->
+                    Row(Modifier.fillMaxWidth().padding(16.dp)) {
                         Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(medai.info.copy(alpha = 0.12f), CircleShape),
+                            modifier = Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(tint.bg),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(imageVector = Icons.Default.HelpOutline, contentDescription = null, tint = medai.info, modifier = Modifier.size(18.dp))
+                            Icon(Icons.Default.HelpOutline, contentDescription = null, tint = tint.fg, modifier = Modifier.size(20.dp))
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(text = q, fontWeight = FontWeight.Bold, fontSize = 14.sp, color = medai.textPrimary)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(text = a, fontSize = 13.sp, color = medai.textSecondary, lineHeight = 18.sp)
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(q, style = MaterialTheme.typography.titleSmall, color = c.textPrimary)
+                            Spacer(Modifier.height(4.dp))
+                            Text(a, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
                         }
                     }
+                    if (index != faq.lastIndex) Box(Modifier.padding(start = 66.dp).fillMaxWidth().height(1.dp).background(c.divider))
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = { /* Simulated Telegram Support */ },
-                colors = ButtonDefaults.buttonColors(containerColor = medai.brand),
-                shape = RoundedCornerShape(14.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-            ) {
-                Icon(imageVector = Icons.Default.Chat, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(text = "Telegram Support orqali bog'lanish", fontWeight = FontWeight.Bold)
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
+            // Opens the support Telegram account from app config (it was a no-op placeholder before).
+            MedAIPrimaryButton(
+                text = tr("Telegram orqali bog'lanish", "Связаться через Telegram", "Contact us on Telegram"),
+                icon = Icons.Default.Chat,
+                onClick = {
+                    val handle = (config?.supportTelegram ?: "Medai_support").trim().trimStart('@')
+                    try {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://t.me/$handle")))
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "@$handle", Toast.LENGTH_SHORT).show()
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

@@ -47,39 +47,39 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.text.SimpleDateFormat
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.vector.ImageVector
 
 // --- SCREEN: BANNED OVERLAY SCREEN ---
 
 @Composable
 fun BannedScreen(viewModel: AppViewModel) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
     val lang by viewModel.currentLanguage.collectAsState()
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(c.canvas)
+            .statusBarsPadding()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(imageVector = Icons.Default.Block, contentDescription = null, tint = medai.danger, modifier = Modifier.size(80.dp))
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(text = Translations.getString("banned_title", lang), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = medai.danger)
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = Translations.getString("banned_desc", lang),
-            textAlign = TextAlign.Center,
-            color = Color.LightGray,
-            fontSize = 14.sp
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
-            onClick = { viewModel.logout() },
-            colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
-        ) {
-            Text(text = Translations.getString("sign_out", lang), color = Color.White)
+        Box(Modifier.size(96.dp).clip(CircleShape).background(c.dangerSoft), contentAlignment = Alignment.Center) {
+            Icon(Icons.Default.Block, contentDescription = null, tint = c.onDangerSoft, modifier = Modifier.size(48.dp))
         }
+        Spacer(Modifier.height(24.dp))
+        Text(Translations.getString("banned_title", lang), style = MaterialTheme.typography.headlineMedium, color = c.textPrimary, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(12.dp))
+        Text(Translations.getString("banned_desc", lang), style = MaterialTheme.typography.bodyLarge, color = c.textSecondary, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(32.dp))
+        MedAIPrimaryButton(
+            text = Translations.getString("sign_out", lang),
+            onClick = { viewModel.logout() },
+            modifier = Modifier.widthIn(min = 220.dp)
+        )
     }
 }
 
@@ -87,25 +87,36 @@ fun BannedScreen(viewModel: AppViewModel) {
 
 @Composable
 fun MaintenanceScreen() {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
+    // This overlay has no language source of its own; follow the device language.
+    val lang = Locale.getDefault().language
+    fun tr(uz: String, ru: String, en: String) = when (lang) { "uz" -> uz; "ru" -> ru; else -> en }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
+            .background(c.canvas)
+            .statusBarsPadding()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Icon(imageVector = Icons.Default.Construction, contentDescription = null, tint = medai.warning, modifier = Modifier.size(80.dp))
-        Spacer(modifier = Modifier.height(24.dp))
-        Text(text = "Texnik ishlar olib borilmoqda", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = medai.warning)
-        Spacer(modifier = Modifier.height(12.dp))
+        Box(Modifier.size(96.dp).clip(CircleShape).background(c.warningSoft), contentAlignment = Alignment.Center) {
+            Icon(Icons.Default.Construction, contentDescription = null, tint = c.onWarningSoft, modifier = Modifier.size(48.dp))
+        }
+        Spacer(Modifier.height(24.dp))
         Text(
-            text = "MedAI tizimi yangilanmoqda. Iltimos birozdan so'ng qayta urinib ko'ring.",
-            textAlign = TextAlign.Center,
-            color = Color.LightGray,
-            fontSize = 14.sp
+            tr("Texnik ishlar olib borilmoqda", "Ведутся технические работы", "Scheduled maintenance"),
+            style = MaterialTheme.typography.headlineMedium, color = c.textPrimary, textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            tr(
+                "MedAI tizimi yangilanmoqda. Iltimos, birozdan so'ng qayta urinib ko'ring.",
+                "MedAI обновляется. Пожалуйста, попробуйте позже.",
+                "MedAI is being updated. Please try again shortly."
+            ),
+            style = MaterialTheme.typography.bodyLarge, color = c.textSecondary, textAlign = TextAlign.Center
         )
     }
 }

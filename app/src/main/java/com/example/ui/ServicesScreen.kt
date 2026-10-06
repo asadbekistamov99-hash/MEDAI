@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package com.example.ui
 
 import android.widget.Toast
@@ -47,229 +47,171 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.text.SimpleDateFormat
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.vector.ImageVector
 
-// --- SCREEN: MEDICAL SERVICES & CLINICS FILTER ---
+// --- SCREEN: MEDICAL SERVICES & CLINICS ---
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ServicesScreen(viewModel: AppViewModel, onBack: () -> Unit, onNavigateToUpgrade: () -> Unit) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
     val lang by viewModel.currentLanguage.collectAsState()
     val user by viewModel.currentUser.collectAsState()
     val isPremium = user?.hasPremiumAccess ?: false
 
     val context = LocalContext.current
+    fun tr(uz: String, ru: String, en: String) = when (lang) { "uz" -> uz; "ru" -> ru; else -> en }
 
+    // The stored values stay Uzbek (the clinic list below is matched against them); only labels change.
     var selectedCity by remember { mutableStateOf("Toshkent") }
     var selectedSpecialty by remember { mutableStateOf("Terapevt") }
 
+    val cities = listOf(
+        "Toshkent" to tr("Toshkent", "Ташкент", "Tashkent"),
+        "Samarqand" to tr("Samarqand", "Самарканд", "Samarkand"),
+        "Buxoro" to tr("Buxoro", "Бухара", "Bukhara"),
+        "Namangan" to tr("Namangan", "Наманган", "Namangan"),
+    )
+    val specialties = listOf(
+        "Terapevt" to tr("Terapevt", "Терапевт", "General practitioner"),
+        "Kardiolog" to tr("Kardiolog", "Кардиолог", "Cardiologist"),
+        "Pediatr" to tr("Pediatr", "Педиатр", "Paediatrician"),
+        "Stomatolog" to tr("Stomatolog", "Стоматолог", "Dentist"),
+        "Klinika" to tr("Klinika", "Клиника", "Clinic"),
+    )
+
+    val clinicsList = remember(selectedCity) {
+        listOf(
+            Triple("Akfa Medline", "Toshkent, Olmazor tumani, Kichik halqa yo'li", "+998 71 203 30 03"),
+            Triple("Shox Med Center", "Toshkent, Yakkasaroy tumani, Shota Rustaveli", "+998 71 202 02 03"),
+            Triple("Sog'lom Avlod", "Samarqand, Dahbed ko'chasi, 14", "+998 66 233 00 55"),
+            Triple("Buxoro Shifo", "Buxoro, Ibn Sino ko'chasi, 23", "+998 65 224 11 22"),
+            Triple("Namangan Shifo Nuri", "Namangan, Nodira ko'chasi, 45", "+998 69 227 88 99")
+        ).filter { it.second.contains(selectedCity) }
+    }
+
     Scaffold(
+        containerColor = c.canvas,
         topBar = { AppHeader(title = Translations.getString("feat_services", lang), onBack = onBack) }
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .background(medai.canvas)
-                .padding(horizontal = 20.dp),
+            modifier = Modifier.fillMaxSize().padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(top = 16.dp, bottom = 32.dp)
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 32.dp)
         ) {
-            // 1. City Chips
-            item {
-                Text(
-                    text = "Shahar tanlang:".uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = medai.textSecondary
-                )
-                Spacer(modifier = Modifier.height(6.dp))
+            // Emergency call first: it is the one thing that must never be hard to find.
+            item(key = "emergency") {
+                val shape = RoundedCornerShape(MedAICorners.card)
                 Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf("Toshkent", "Samarqand", "Buxoro", "Namangan").forEach { city ->
-                        MedAIChip(
-                            text = city,
-                            selected = selectedCity == city,
-                            onClick = { selectedCity = city }
-                        )
-                    }
-                }
-            }
-
-            // 3. Specialty Chips
-            item {
-                Text(
-                    text = "Yo'nalish tanlang:".uppercase(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = medai.textSecondary
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    modifier = Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf("Terapevt", "Kardiolog", "Pediatr", "Stomatolog", "Klinika").forEach { spec ->
-                        MedAIChip(
-                            text = spec,
-                            selected = selectedSpecialty == spec,
-                            onClick = { selectedSpecialty = spec }
-                        )
-                    }
-                }
-            }
-
-            // 4. Emergency Call Banner
-            item {
-                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .shadow(8.dp, RoundedCornerShape(20.dp), ambientColor = medai.brand, spotColor = medai.brand)
-                        .clickable {
-                            val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:103"))
-                            context.startActivity(dialIntent)
-                        },
-                    shape = RoundedCornerShape(20.dp)
+                        .heightIn(min = 72.dp)
+                        .clip(shape)
+                        .background(c.danger)
+                        .clickable(role = Role.Button) {
+                            context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:103")))
+                        }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .background(
-                                androidx.compose.ui.graphics.Brush.horizontalGradient(
-                                    colors = listOf(Color(0xFFD32F2F), Color(0xFFC2185B))
-                                )
-                            )
-                            .padding(18.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                    Box(
+                        modifier = Modifier.size(48.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.2f)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(Color.White.copy(alpha = 0.2f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PhoneInTalk,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "103 - Tezkor Tibbiy Yordam",
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                fontSize = 15.sp
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Shoshilinch hollarda 103 xizmati bilan darhol bog'laning",
-                                fontSize = 11.sp,
-                                color = Color.White.copy(alpha = 0.85f)
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(24.dp)
+                        Icon(Icons.Default.PhoneInTalk, contentDescription = null, tint = c.onDanger, modifier = Modifier.size(26.dp))
+                    }
+                    Spacer(Modifier.width(14.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            tr("103 - Tez tibbiy yordam", "103 — скорая помощь", "103 - Emergency medical help"),
+                            style = MaterialTheme.typography.titleSmall, color = c.onDanger
                         )
+                        Text(
+                            tr(
+                                "Shoshilinch holatda darhol qo'ng'iroq qiling",
+                                "В экстренной ситуации звоните сразу",
+                                "In an emergency, call right away"
+                            ),
+                            style = MaterialTheme.typography.bodySmall, color = c.onDanger
+                        )
+                    }
+                    Icon(Icons.Default.ChevronRight, contentDescription = null, tint = c.onDanger)
+                }
+            }
+
+            item(key = "city") {
+                Column {
+                    Text(tr("Shahar", "Город", "City"), style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                    Spacer(Modifier.height(4.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        cities.forEach { (value, label) ->
+                            MedAIFilterChip(label, selectedCity == value, { selectedCity = value })
+                        }
                     }
                 }
             }
 
-            // 5. Featured clinics header
-            item {
-                Text(
-                    text = "Tavsiya etiladigan shifoxonalar".uppercase(),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 11.sp,
-                    color = medai.brand,
-                    letterSpacing = 1.2.sp
-                )
+            item(key = "specialty") {
+                Column {
+                    Text(tr("Yo'nalish", "Специальность", "Specialty"), style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                    Spacer(Modifier.height(4.dp))
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        specialties.forEach { (value, label) ->
+                            MedAIFilterChip(label, selectedSpecialty == value, { selectedSpecialty = value })
+                        }
+                    }
+                }
             }
 
-            // 6. Featured clinic cards
-            val clinicsList = listOf(
-                Triple("Akfa Medline", "Toshkent, Olmazor tumani, Kichik halqa yo'li", "+998 71 203 30 03"),
-                Triple("Shox Med Center", "Toshkent, Yakkasaroy tumani, Shota Rustaveli", "+998 71 202 02 03"),
-                Triple("Sog'lom Avlod", "Samarqand, Dahbed ko'chasi, 14", "+998 66 233 00 55"),
-                Triple("Buxoro Shifo", "Buxoro, Ibn Sino ko'chasi, 23", "+998 65 224 11 22"),
-                Triple("Namangan Shifo Nuri", "Namangan, Nodira ko'chasi, 45", "+998 69 227 88 99")
-            ).filter { it.second.contains(selectedCity) }
+            item(key = "clinics-title") {
+                Text(tr("Tavsiya etiladigan shifoxonalar", "Рекомендуемые клиники", "Recommended clinics"), style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+            }
 
             if (clinicsList.isEmpty()) {
-                item {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, medai.border)
-                    ) {
-                        Box(modifier = Modifier.padding(24.dp), contentAlignment = Alignment.Center) {
-                            Text(
-                                text = "Ushbu shahar bo'yicha shifoxona ma'lumotlari topilmadi.",
-                                fontSize = 13.sp,
-                                color = medai.textSecondary,
-                                textAlign = TextAlign.Center
-                            )
-                        }
+                item(key = "empty") {
+                    MedAICard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                        MedAIEmptyState(
+                            title = tr(
+                                "Bu shahar bo'yicha ma'lumot topilmadi",
+                                "По этому городу данных нет",
+                                "No clinics found for this city"
+                            ),
+                            icon = Icons.Default.LocalHospital
+                        )
                     }
                 }
             } else {
-                items(clinicsList) { (name, address, phone) ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, medai.border)
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                items(clinicsList, key = { it.first }) { (name, address, phone) ->
+                    MedAICard(Modifier.fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier.size(46.dp).clip(CircleShape).background(c.tintTeal.bg),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.LocalHospital, contentDescription = null, tint = c.tintTeal.fg, modifier = Modifier.size(24.dp))
+                            }
+                            Spacer(Modifier.width(14.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(name, style = MaterialTheme.typography.titleSmall, color = c.textPrimary)
+                                Text(address, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                                Text(phone, style = MaterialTheme.typography.labelMedium, color = c.textSecondary)
+                            }
                             Box(
                                 modifier = Modifier
-                                    .size(46.dp)
-                                    .background(medai.brandSoft, CircleShape),
+                                    .size(MinTouch)
+                                    .clip(CircleShape)
+                                    .background(c.brandSoft)
+                                    .clickable(role = Role.Button) {
+                                        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${phone.replace(" ", "")}")))
+                                    },
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.LocalHospital,
-                                    contentDescription = null,
-                                    tint = medai.brand,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = name,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp,
-                                    color = medai.textPrimary
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = address,
-                                    fontSize = 12.sp,
-                                    color = medai.textSecondary
-                                )
-                            }
-                            IconButton(
-                                onClick = {
-                                    val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${phone.replace(" ", "")}"))
-                                    context.startActivity(dialIntent)
-                                }
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Phone,
-                                    contentDescription = "Qo'ng'iroq qilish",
-                                    tint = medai.brand,
-                                    modifier = Modifier.size(22.dp)
+                                    Icons.Default.Phone,
+                                    contentDescription = "${tr("Qo'ng'iroq qilish", "Позвонить", "Call")}: $name",
+                                    tint = c.onBrandSoft
                                 )
                             }
                         }
