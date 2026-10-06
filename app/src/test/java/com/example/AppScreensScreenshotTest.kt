@@ -74,6 +74,13 @@ class AppScreensScreenshotTest {
   @Test fun login() = shot("1_login") { LoginScreen(onNavigateToRegister = {}, onLoginSuccess = {}, viewModel = vm) }
 
   private fun main(name: String, tab: String?) {
+    // MainContainer redirects to onboarding while the user row is still loading, so wait for it.
+    repeat(100) {
+      if (vm.currentUser.value != null) return@repeat
+      org.robolectric.shadows.ShadowLooper.idleMainLooper()
+      Thread.sleep(50)
+    }
+    check(vm.currentUser.value != null) { "demo user was not loaded" }
     composeTestRule.setContent {
       MyApplicationTheme {
         val nav = rememberNavController()
