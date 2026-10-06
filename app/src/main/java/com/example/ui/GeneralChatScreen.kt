@@ -1,46 +1,61 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 package com.example.ui
 
-import android.content.Intent
-import android.net.Uri
-import android.widget.Toast
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
-import com.example.data.*
+import com.example.data.ChatMessageLocal
 import com.example.i18n.Translations
-import com.example.ui.theme.*
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import java.text.SimpleDateFormat
+import com.example.ui.theme.MedAITheme
+import com.example.ui.theme.MinTouch
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 // --- SCREEN: GENERAL CHAT ---
 
@@ -49,7 +64,7 @@ fun GeneralChatScreen(
     viewModel: AppViewModel,
     onNavigateToUpgrade: () -> Unit = {}
 ) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
     val lang by viewModel.currentLanguage.collectAsState()
     val chatMessages by viewModel.generalChatMessages().collectAsState(initial = emptyList())
@@ -60,219 +75,310 @@ fun GeneralChatScreen(
     // knows the limit exists and has the upgrade path in view before they hit it.
     val freeQuota by viewModel.freeChatQuota.collectAsState()
 
+    // Suggestions only FILL the input; the user reviews and sends.
+    val suggestions = remember(lang) {
+        listOf(
+            supportText(lang, "Qaysi dorilarni birga ichish xavfli?", "Какие лекарства опасно принимать вместе?", "Which medicines are unsafe to take together?"),
+            supportText(lang, "Kuniga qancha suv ichish tavsiya qilinadi?", "Сколько воды рекомендуется пить в день?", "How much water should I drink per day?"),
+            supportText(lang, "Bosh og'rig'i va charchoq sabablari nima?", "Каковы причины головной боли и усталости?", "What causes headaches and fatigue?"),
+        )
+    }
+
+    // The reply arrives a moment after the user message, so "last message is mine" means the model
+    // is still answering. The indicator gives up after a minute so an offline device never spins forever.
+    val lastMsg = chatMessages.lastOrNull()
+    val waitingReply by produceState(false, lastMsg?.id, lastMsg?.role) {
+        if (lastMsg != null && lastMsg.role == "user") {
+            val left = 60_000L - (System.currentTimeMillis() - lastMsg.timestamp)
+            if (left > 0) {
+                value = true
+                delay(left)
+            }
+        }
+        value = false
+    }
+
+    val listState = rememberLazyListState()
+    val itemCount = chatMessages.size + if (waitingReply) 1 else 0
+    LaunchedEffect(itemCount) {
+        if (itemCount > 0) listState.animateScrollToItem(itemCount - 1)
+    }
+
+    val sendDescription = supportText(lang, "Yuborish", "Отправить", "Send")
+    val canSend = messageText.isNotEmpty()
+
     Scaffold(
+        containerColor = c.canvas,
         topBar = { AppHeader(title = Translations.getString("tab_chat", lang)) },
         bottomBar = {
-            Surface(color = Color.White, shadowElevation = 8.dp) {
+            Column(Modifier.background(c.surface)) {
+                Box(Modifier.fillMaxWidth().height(1.dp).background(c.border))
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(12.dp)
+                        .padding(horizontal = 12.dp, vertical = 10.dp)
                         .navigationBarsPadding(),
-                    verticalAlignment = Alignment.CenterVertically,
+                    verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    OutlinedTextField(
+                    ChatInputField(
                         value = messageText,
                         onValueChange = { messageText = it },
-                        placeholder = { Text("AI Sog'liq maslahatchisidan so'rang...", color = medai.textSecondary.copy(alpha = 0.6f)) },
+                        placeholder = supportText(
+                            lang,
+                            "AI sog'liq maslahatchisidan so'rang...",
+                            "Спросите AI-консультанта...",
+                            "Ask the AI health advisor...",
+                        ),
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(24.dp),
-                        textStyle = androidx.compose.ui.text.TextStyle(color = medai.textPrimary, fontSize = 14.sp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFF8FFFE),
-                            unfocusedContainerColor = Color(0xFFF8FFFE),
-                            focusedBorderColor = medai.brand,
-                            unfocusedBorderColor = medai.border
-                        )
                     )
-
-                    IconButton(
-                        onClick = {
-                            if (messageText.isNotEmpty()) {
-                                // Only clear the field once the message is actually accepted;
-                                // when the quota is spent sendChatMessage routes to the paywall
-                                // and the typed text should survive so nothing is lost.
-                                val accepted = viewModel.sendChatMessage(
-                                    message = messageText,
-                                    chatType = "general",
-                                    onUpgradeRequired = onNavigateToUpgrade
-                                )
-                                if (accepted) messageText = ""
-                            }
-                        },
+                    Box(
                         modifier = Modifier
-                            .background(Brush.horizontalGradient(listOf(medai.brand, medai.brandStrong)), CircleShape)
-                            .size(48.dp)
+                            .size(MinTouch)
+                            .clip(CircleShape)
+                            .background(if (canSend) c.brand else c.surfaceSunken)
+                            .clickable(enabled = canSend, role = Role.Button) {
+                                if (messageText.isNotEmpty()) {
+                                    // Only clear the field once the message is actually accepted;
+                                    // when the quota is spent sendChatMessage routes to the paywall
+                                    // and the typed text should survive so nothing is lost.
+                                    val accepted = viewModel.sendChatMessage(
+                                        message = messageText,
+                                        chatType = "general",
+                                        onUpgradeRequired = onNavigateToUpgrade
+                                    )
+                                    if (accepted) messageText = ""
+                                }
+                            },
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Icon(imageVector = Icons.Default.Send, contentDescription = "Send", tint = Color.White)
+                        Icon(
+                            Icons.AutoMirrored.Filled.Send,
+                            contentDescription = sendDescription,
+                            tint = if (canSend) c.onBrand else c.textSecondary,
+                            modifier = Modifier.size(22.dp),
+                        )
                     }
                 }
             }
         }
     ) { innerPadding ->
-        if (chatMessages.isEmpty()) {
-            val quickQuestions = listOf(
-                "💊" to "Qaysi dorilarni birga ichish xavfli?",
-                "💧" to "Kuniga qancha suv ichish tavsiya qilinadi?",
-                "🩸" to "Qon bosimini tabiiy tushirish yo'llari",
-                "🤕" to "Bosh og'rig'i va charchoq sabablari nima?",
-                "🍅" to "Immunitetni oshirish uchun qanday taomlar kerak?"
-            )
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(medai.canvas)
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
+        Column(Modifier.fillMaxSize().padding(innerPadding)) {
+            Column(
+                Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(6.dp, RoundedCornerShape(22.dp))
-                            .clip(RoundedCornerShape(22.dp))
-                            .background(Brush.linearGradient(listOf(medai.brandSoft, Color(0xFFE6F6F4))))
-                            .border(1.dp, medai.brand.copy(alpha = 0.18f), RoundedCornerShape(22.dp))
-                            .padding(22.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Box(
-                                modifier = Modifier
-                                    .size(60.dp)
-                                    .shadow(4.dp, CircleShape)
-                                    .background(Brush.linearGradient(listOf(medai.brand, medai.brandStrong)), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(imageVector = Icons.Default.SmartToy, contentDescription = null, tint = Color.White, modifier = Modifier.size(30.dp))
-                            }
-                            Spacer(modifier = Modifier.height(10.dp))
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(modifier = Modifier.size(6.dp).background(medai.success, CircleShape))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = when (lang) {
-                                        "uz" -> "AI Tibbiy Maslahatchi • 24/7 Onlayn"
-                                        "ru" -> "AI консультант • 24/7 онлайн"
-                                        else -> "AI Health Advisor • 24/7 Online"
-                                    },
-                                    fontSize = 11.5.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = medai.brandStrong
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = when (lang) {
-                                    "uz" -> "Salom! Sizga qanday yordam bera olaman?"
-                                    "ru" -> "Привет! Чем я могу вам помочь?"
-                                    else -> "Hi! How can I help you today?"
-                                },
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 17.sp,
-                                color = medai.textPrimary,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = when (lang) {
-                                    "uz" -> "Sog'liq, alomatlar, to'g'ri ovqatlanish yoki tahlil natijalari bo'yicha savollaringizni bering."
-                                    "ru" -> "Задайте вопрос о здоровье, симптомах, питании или результатах анализов."
-                                    else -> "Ask about symptoms, nutrition, or your lab results."
-                                },
-                                fontSize = 12.5.sp,
-                                color = medai.textSecondary,
-                                textAlign = TextAlign.Center,
-                                lineHeight = 17.sp
-                            )
-                        }
-                    }
-                }
-
-                item {
-                    // horizontalPadding = 0: this list already pads its own content by 16dp, and
-                    // the header's default 20dp would leave this row hanging out of alignment.
-                    MedAISectionHeader(
-                        title = "Tezkor savollar",
-                        subtitle = "Bir bosishda so'rang",
-                        horizontalPadding = 0.dp,
-                    )
-                }
-
-                items(quickQuestions) { (emoji, question) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .shadow(2.dp, RoundedCornerShape(14.dp))
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(medai.surface)
-                            .border(1.dp, medai.divider, RoundedCornerShape(14.dp))
-                            .clickable {
-                                viewModel.sendChatMessage(
-                                    message = question,
-                                    chatType = "general",
-                                    onUpgradeRequired = onNavigateToUpgrade
-                                )
-                            }
-                            .padding(horizontal = 14.dp, vertical = 13.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(text = emoji, fontSize = 18.sp)
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = question,
-                            fontSize = 13.5.sp,
-                            color = medai.textPrimary,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f)
+                MedAIInfoBanner(
+                    text = supportText(
+                        lang,
+                        "AI maslahati shifokor o'rnini bosmaydi. Jiddiy alomatlarda shifokorga murojaat qiling.",
+                        "Советы ИИ не заменяют врача. При серьёзных симптомах обратитесь к врачу.",
+                        "AI advice does not replace a doctor. For serious symptoms, see a doctor.",
+                    ),
+                )
+                if (!hasPremium) {
+                    if (freeQuota.remaining > 0) {
+                        QuotaStrip(
+                            text = supportText(
+                                lang,
+                                "Bugungi bepul xabarlar: ${freeQuota.remaining} / ${freeQuota.limit}",
+                                "Бесплатных сообщений сегодня: ${freeQuota.remaining} из ${freeQuota.limit}",
+                                "Free messages today: ${freeQuota.remaining} of ${freeQuota.limit}",
+                            ),
                         )
-                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = medai.textSecondary, modifier = Modifier.size(18.dp))
+                    } else {
+                        MedAIInfoBanner(
+                            text = supportText(
+                                lang,
+                                "Bugungi bepul xabarlar tugadi.",
+                                "Бесплатные сообщения на сегодня закончились.",
+                                "You have used all free messages for today.",
+                            ),
+                            tone = MedAITone.Warning,
+                            actionLabel = supportText(lang, "Premium", "Premium", "Upgrade"),
+                            onAction = onNavigateToUpgrade,
+                        )
                     }
                 }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .background(medai.canvas)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(vertical = 12.dp)
-            ) {
-                items(chatMessages) { msg ->
-                    val isUser = msg.role == "user"
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
-                    ) {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isUser) medai.brand else Color.White
-                            ),
-                            shape = RoundedCornerShape(
-                                topStart = 16.dp,
-                                topEnd = 16.dp,
-                                bottomStart = if (isUser) 16.dp else 4.dp,
-                                bottomEnd = if (isUser) 4.dp else 16.dp
-                            ),
-                            border = if (isUser) null else BorderStroke(1.dp, medai.border),
-                            elevation = CardDefaults.cardElevation(defaultElevation = if (isUser) 0.dp else 1.dp),
-                            modifier = Modifier.widthIn(max = 280.dp)
+
+            if (chatMessages.isEmpty()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    item(key = "intro") {
+                        Column(
+                            Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
+                            AiAvatar(size = 64.dp)
+                            Spacer(Modifier.height(16.dp))
                             Text(
-                                text = msg.content,
-                                color = if (isUser) Color.White else medai.textPrimary,
-                                modifier = Modifier.padding(12.dp),
-                                fontSize = 14.sp,
-                                lineHeight = 19.sp
+                                supportText(lang, "Salom! Sizga qanday yordam bera olaman?", "Здравствуйте! Чем могу помочь?", "Hi! How can I help you today?"),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = c.textPrimary,
+                                textAlign = TextAlign.Center,
                             )
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                supportText(
+                                    lang,
+                                    "Sog'liq, alomatlar, ovqatlanish yoki tahlil natijalari haqida so'rang.",
+                                    "Задайте вопрос о здоровье, симптомах, питании или результатах анализов.",
+                                    "Ask about symptoms, nutrition, or your lab results.",
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = c.textSecondary,
+                                textAlign = TextAlign.Center,
+                            )
+                        }
+                    }
+                    items(suggestions, key = { it }) { question ->
+                        SuggestionChip(text = question, onClick = { messageText = question })
+                    }
+                }
+            } else {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+                ) {
+                    items(chatMessages, key = { it.id }) { msg -> ChatBubble(msg) }
+                    if (waitingReply) {
+                        item(key = "typing") {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                AiAvatar(size = 28.dp)
+                                Spacer(Modifier.width(8.dp))
+                                MedAISpinner(size = 20.dp)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    supportText(lang, "AI javob yozmoqda...", "ИИ печатает...", "AI is typing..."),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = c.textSecondary,
+                                )
+                            }
                         }
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun AiAvatar(size: androidx.compose.ui.unit.Dp) {
+    val c = MedAITheme.colors
+    Box(Modifier.size(size).clip(CircleShape).background(c.brandSoft), contentAlignment = Alignment.Center) {
+        Icon(Icons.Default.SmartToy, contentDescription = null, tint = c.onBrandSoft, modifier = Modifier.size(size * 0.55f))
+    }
+}
+
+@Composable
+private fun ChatBubble(msg: ChatMessageLocal) {
+    val c = MedAITheme.colors
+    val isUser = msg.role == "user"
+    val shape = RoundedCornerShape(
+        topStart = 18.dp, topEnd = 18.dp,
+        bottomStart = if (isUser) 18.dp else 4.dp,
+        bottomEnd = if (isUser) 4.dp else 18.dp,
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.Top,
+    ) {
+        if (!isUser) {
+            AiAvatar(size = 28.dp)
+            Spacer(Modifier.width(8.dp))
+        }
+        Text(
+            text = msg.content,
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (isUser) c.onBrand else c.textPrimary,
+            modifier = Modifier
+                .widthIn(max = 280.dp)
+                .clip(shape)
+                .background(if (isUser) c.brand else c.surface)
+                .then(if (isUser) Modifier else Modifier.border(BorderStroke(1.dp, c.border), shape))
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+        )
+    }
+}
+
+@Composable
+private fun QuotaStrip(text: String) {
+    val c = MedAITheme.colors
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(c.surfaceSunken)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Default.AutoAwesome, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(8.dp))
+        Text(text, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+    }
+}
+
+@Composable
+private fun SuggestionChip(text: String, onClick: () -> Unit) {
+    val c = MedAITheme.colors
+    val shape = RoundedCornerShape(16.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = MinTouch)
+            .clip(shape)
+            .background(c.surface)
+            .border(1.dp, c.borderStrong, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary)
+    }
+}
+
+/** Rounded multi-line input in the style of MedAITextField, without the label above it. */
+@Composable
+private fun ChatInputField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+) {
+    val c = MedAITheme.colors
+    var focused by remember { mutableStateOf(false) }
+    val shape = RoundedCornerShape(24.dp)
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = c.textPrimary),
+        cursorBrush = SolidColor(c.brand),
+        maxLines = 4,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+        modifier = modifier.onFocusChanged { focused = it.isFocused },
+        decorationBox = { inner ->
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = MinTouch)
+                    .clip(shape)
+                    .background(c.surface)
+                    .border(if (focused) 2.dp else 1.dp, if (focused) c.brand else c.borderStrong, shape)
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                if (value.isEmpty()) {
+                    Text(placeholder, style = MaterialTheme.typography.bodyLarge, color = c.textSecondary)
+                }
+                inner()
+            }
+        },
+    )
 }
