@@ -34,7 +34,7 @@ import androidx.compose.ui.unit.sp
 /** Sample copy for the direction mock-ups. Numbers are sample data, not the user's. */
 data class S(
   val hello: String, val sub: String, val trial: String, val upgrade: String,
-  val score: String, val good: String, val steps: String, val water: String, val sleep: String,
+  val score: String, val scoreShort: String, val good: String, val steps: String, val water: String, val sleep: String,
   val aiTitle: String, val aiSub: String, val quick: String,
   val symptoms: String, val meds: String, val reminders: String, val sos: String,
   val all: String, val family: String, val familySub: String, val lab: String, val labSub: String,
@@ -43,21 +43,21 @@ data class S(
 )
 
 val UZ = S("Salom, Aziz", "Bugun o'zingizni qanday his qilyapsiz?", "Premium sinov · 7 kun qoldi", "Davom ettirish",
-  "Sog'liq darajasi", "Yaxshi", "Qadamlar", "Suv", "Uyqu",
+  "Sog'liq darajasi", "Sog'liq", "Yaxshi", "Qadamlar", "Suv", "Uyqu",
   "AI shifokor bilan maslahat", "Simptomlarni yozing — javob soniyalarda", "Tezkor harakatlar",
   "Simptomlar", "Dorilar", "Eslatmalar", "SOS",
   "Barcha xizmatlar", "Oila a'zolari", "Yaqinlaringiz salomatligi", "Tahlillar", "Natijalarni AI bilan o'qing",
   "Maslahatlar", "Kunlik sog'liq tavsiyalari", "Statistika", "Ko'rsatkichlar dinamikasi",
   "Asosiy", "Tarix", "AI Chat", "Profil")
-val RU = S("Привет, Азиз", "Как вы себя сегодня чувствуете?", "Пробный Premium · осталось 7 дней", "Продлить",
-  "Показатель здоровья", "Хорошо", "Шаги", "Вода", "Сон",
+val RU = S("Привет, Азиз", "Как вы себя сегодня чувствуете?", "Пробный Premium · 7 дн.", "Продлить",
+  "Показатель здоровья", "Здоровье", "Хорошо", "Шаги", "Вода", "Сон",
   "Консультация с AI-врачом", "Опишите симптомы — ответ за секунды", "Быстрые действия",
-  "Симптомы", "Лекарства", "Напоминания", "SOS",
+  "Симптомы", "Лекарства", "Напоми\u00ADнания", "SOS",
   "Все сервисы", "Члены семьи", "Здоровье ваших близких", "Анализы", "Расшифровка результатов с AI",
-  "Советы", "Ежедневные рекомендации", "Статистика", "Динамика показателей",
+  "Советы", "Ежедневные рекомендации", "Ста\u00ADтистика", "Динамика показателей",
   "Главная", "История", "AI Чат", "Профиль")
 val EN = S("Hello, Aziz", "How are you feeling today?", "Premium trial · 7 days left", "Upgrade",
-  "Health score", "Good", "Steps", "Water", "Sleep",
+  "Health score", "Health", "Good", "Steps", "Water", "Sleep",
   "Consult the AI doctor", "Describe symptoms — answers in seconds", "Quick actions",
   "Symptoms", "Medicines", "Reminders", "SOS",
   "All services", "Family members", "Your loved ones' health", "Lab results", "Understand results with AI",
@@ -156,7 +156,7 @@ fun HomeDirectionA(s: S) {
       Spacer(Modifier.height(24.dp))
       Text(s.quick, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Ink900)
       Spacer(Modifier.height(12.dp))
-      Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+      Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         AQuick(Modifier.weight(1f), Icons.Rounded.MonitorHeart, s.symptoms, false)
         AQuick(Modifier.weight(1f), Icons.Rounded.Medication, s.meds, false)
         AQuick(Modifier.weight(1f), Icons.Rounded.Alarm, s.reminders, false)
@@ -193,13 +193,13 @@ fun HomeDirectionA(s: S) {
   val fg = if (danger) Color(0xFFB91C1C) else ATealDeep
   Column(
     m.heightIn(min = 96.dp).clip(RoundedCornerShape(16.dp)).background(bg)
-      .border(1.dp, if (danger) Color(0xFFFAC9C9) else ABorder, RoundedCornerShape(16.dp)).clickable { }.padding(vertical = 14.dp, horizontal = 4.dp),
+      .border(1.dp, if (danger) Color(0xFFFAC9C9) else ABorder, RoundedCornerShape(16.dp)).clickable { }.padding(vertical = 14.dp, horizontal = 2.dp),
     horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
   ) {
     Icon(icon, null, tint = fg, modifier = Modifier.size(28.dp))
     Spacer(Modifier.height(8.dp))
     Text(label, fontSize = 12.sp, lineHeight = 15.sp, fontWeight = FontWeight.Medium, color = if (danger) fg else Ink900,
-      textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+      textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
   }
 }
 
@@ -270,7 +270,7 @@ fun HomeDirectionB(s: S) {
               fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
           }
           Spacer(Modifier.width(12.dp))
-          Box(Modifier.size(104.dp), contentAlignment = Alignment.Center) {
+          Box(Modifier.size(112.dp), contentAlignment = Alignment.Center) {
             Canvas(Modifier.fillMaxSize()) {
               val st = 10.dp.toPx()
               drawArc(Color.White.copy(alpha = 0.22f), -90f, 360f, false, topLeft = Offset(st / 2, st / 2), size = Size(size.width - st, size.height - st), style = Stroke(st, cap = StrokeCap.Round))
@@ -278,8 +278,7 @@ fun HomeDirectionB(s: S) {
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
               Text("82", fontSize = 30.sp, lineHeight = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
-              Text(s.score, fontSize = 10.sp, lineHeight = 12.sp, color = Color.White.copy(alpha = 0.9f), maxLines = 2, textAlign = TextAlign.Center,
-                modifier = Modifier.width(64.dp))
+              Text(s.scoreShort, fontSize = 12.sp, lineHeight = 16.sp, color = Color.White.copy(alpha = 0.95f), maxLines = 1, textAlign = TextAlign.Center)
             }
           }
         }
@@ -327,22 +326,21 @@ fun HomeDirectionB(s: S) {
       }
       Spacer(Modifier.height(110.dp))
     }
-    // floating pill nav
+    // floating pill nav: every tab keeps its label; the selected one gets the filled pill
     Row(
       Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = 16.dp).fillMaxWidth()
         .shadow(16.dp, RoundedCornerShape(32.dp), ambientColor = Color(0x333730A3), spotColor = Color(0x333730A3))
-        .clip(RoundedCornerShape(32.dp)).background(Color.White).padding(6.dp),
-      horizontalArrangement = Arrangement.SpaceBetween
+        .clip(RoundedCornerShape(32.dp)).background(Color.White).padding(horizontal = 6.dp, vertical = 8.dp)
     ) {
       listOf(Icons.Rounded.Home to s.nHome, Icons.Rounded.History to s.nHist, Icons.Rounded.Chat to s.nChat, Icons.Rounded.Person to s.nProf)
         .forEachIndexed { i, (ic, label) ->
           val sel = i == 0
-          Row(
-            Modifier.heightIn(min = 52.dp).clip(RoundedCornerShape(26.dp)).background(if (sel) BIndigo else Color.Transparent)
-              .clickable { }.padding(horizontal = if (sel) 16.dp else 14.dp), verticalAlignment = Alignment.CenterVertically
-          ) {
-            Icon(ic, null, tint = if (sel) Color.White else Ink500, modifier = Modifier.size(24.dp))
-            if (sel) { Spacer(Modifier.width(6.dp)); Text(label, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = Color.White, maxLines = 1) }
+          Column(Modifier.weight(1f).heightIn(min = 56.dp).clickable { }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Box(Modifier.height(32.dp).width(60.dp).clip(CircleShape).background(if (sel) BIndigo else Color.Transparent), contentAlignment = Alignment.Center) {
+              Icon(ic, null, tint = if (sel) Color.White else Ink500, modifier = Modifier.size(24.dp))
+            }
+            Text(label, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+              color = if (sel) BIndigo else Ink500, maxLines = 1, overflow = TextOverflow.Ellipsis)
           }
         }
     }
@@ -372,7 +370,7 @@ fun HomeDirectionB(s: S) {
 }
 
 @Composable private fun BRound(icon: ImageVector, label: String, bg: Color, fg: Color) {
-  Column(Modifier.width(78.dp).clickable { }, horizontalAlignment = Alignment.CenterHorizontally) {
+  Column(Modifier.width(88.dp).clickable { }, horizontalAlignment = Alignment.CenterHorizontally) {
     Box(Modifier.size(60.dp).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) { Icon(icon, null, tint = fg, modifier = Modifier.size(26.dp)) }
     Spacer(Modifier.height(6.dp))
     Text(label, fontSize = 12.sp, lineHeight = 15.sp, fontWeight = FontWeight.Medium, color = Ink900, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
