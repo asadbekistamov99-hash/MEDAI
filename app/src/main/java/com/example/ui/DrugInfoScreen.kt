@@ -1,46 +1,53 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package com.example.ui
 
-import android.widget.Toast
-import androidx.compose.animation.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CompareArrows
+import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.i18n.Translations
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import android.net.Uri
-import android.util.Base64
-import androidx.compose.ui.platform.LocalContext
-import coil.compose.AsyncImage
-import com.example.ui.theme.*
-import java.util.Calendar
-import java.util.Date
-import java.util.Locale
-import java.text.SimpleDateFormat
+import com.example.ui.theme.MedAITheme
 
 // --- SCREEN: DRUG INFORMATION ---
 
+/** Which result sections are cautions, so they get a badge. Keys come from the ViewModel. */
+private fun sectionBadge(key: String): MedAIBadgeTone? = when (key) {
+    "SideEffects", "Interactions", "PregnancySafety" -> MedAIBadgeTone.Warning
+    "Contraindications" -> MedAIBadgeTone.Danger
+    else -> null
+}
+
 @Composable
 fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
     val lang by viewModel.currentLanguage.collectAsState()
     val drugResult by viewModel.drugInfoResult.collectAsState()
@@ -62,187 +69,141 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
     // Tiny valid 1x1 base64 JPEG image to make actual multi-modal API calls
     val mockPrescriptionBase64 = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA="
 
+    val sectionTitles = remember(lang) {
+        mapOf(
+            "Dosage" to medText(lang, "Dozalash", "Дозировка", "Dosage"),
+            "SideEffects" to medText(lang, "Yon ta'sirlari", "Побочные эффекты", "Side effects"),
+            "Interactions" to medText(lang, "O'zaro ta'sir", "Взаимодействия", "Interactions"),
+            "Contraindications" to medText(lang, "Qarshi ko'rsatmalar", "Противопоказания", "Contraindications"),
+            "Alternatives" to medText(lang, "Muqobillar", "Аналоги", "Alternatives"),
+            "PregnancySafety" to medText(lang, "Homiladorlikda xavfsizligi", "Безопасность при беременности", "Pregnancy safety"),
+            "Storage" to medText(lang, "Saqlash", "Хранение", "Storage"),
+            "Description" to medText(lang, "Tavsif", "Описание", "Description"),
+        )
+    }
+
     Scaffold(
-        topBar = { AppHeader(title = Translations.getString("feat_med_info", lang), onBack = onBack) }
+        containerColor = c.canvas,
+        topBar = { AppHeader(title = Translations.getString("feat_med_info", lang), onBack = onBack) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(medai.canvas)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            // Search Input
-            OutlinedTextField(
+            // Search
+            MedAITextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
-                placeholder = { Text(Translations.getString("drug_search_placeholder", lang), color = medai.textSecondary.copy(alpha = 0.6f)) },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                textStyle = androidx.compose.ui.text.TextStyle(color = medai.textPrimary, fontSize = 15.sp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color(0xFFF8FFFE),
-                    unfocusedContainerColor = Color(0xFFF8FFFE),
-                    focusedBorderColor = medai.info,
-                    unfocusedBorderColor = medai.border,
-                    focusedTextColor = medai.textPrimary,
-                    unfocusedTextColor = medai.textPrimary
-                ),
-                trailingIcon = {
-                    IconButton(onClick = { viewModel.searchDrugInfo(searchQuery) }) {
-                        Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = medai.info)
-                    }
-                }
+                label = medText(lang, "Dori nomi", "Название лекарства", "Medicine name"),
+                placeholder = Translations.getString("drug_search_placeholder", lang),
+                leadingIcon = Icons.Default.Search,
+                trailingContent = {
+                    MedAITextButton(
+                        text = medText(lang, "Qidirish", "Найти", "Search"),
+                        onClick = { viewModel.searchDrugInfo(searchQuery) },
+                    )
+                },
             )
 
-            // Search History & Quick Tools
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Qidiruv tarixi".uppercase(),
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = medai.textSecondary,
-                    letterSpacing = 1.sp
-                )
-                
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Prescription Scanner Trigger
-                    IconButton(
-                        onClick = { showScannerDialog = true },
-                        modifier = Modifier
-                            .background(medai.brand.copy(alpha = 0.15f), CircleShape)
-                            .size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.PhotoCamera,
-                            contentDescription = "Scan Prescription",
-                            tint = medai.brand,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Interaction Checker Trigger
-                    IconButton(
-                        onClick = { showInteractionDialog = true },
-                        modifier = Modifier
-                            .background(medai.premium.copy(alpha = 0.15f), CircleShape)
-                            .size(36.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CompareArrows,
-                            contentDescription = "Check Interactions",
-                            tint = medai.premium,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-            }
-
-            Row(
-                modifier = Modifier.horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            // Recent / common searches
+            MedSectionTitle(medText(lang, "Qidiruv tarixi", "История поиска", "Recent searches"))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf("Paracetamol", "Ibuprofen", "Aspirin").forEach { item ->
-                    FilterChip(
+                    MedAIFilterChip(
+                        text = item,
                         selected = searchQuery == item,
                         onClick = {
                             searchQuery = item
                             viewModel.searchDrugInfo(item)
                         },
-                        label = { Text(item) }
                     )
                 }
             }
 
-            // Allergy Filter Card for Search Result
+            // Tools: prescription scanner, interaction checker
+            MedAICard(contentPadding = 0.dp, modifier = Modifier.fillMaxWidth()) {
+                MedAIListRow(
+                    icon = Icons.Default.PhotoCamera,
+                    title = medText(lang, "Retseptni skanerlash", "Сканирование рецепта", "Scan prescription"),
+                    subtitle = medText(lang, "Retseptdagi dorilar tahlili", "Разбор лекарств из рецепта", "Understand the medicines on a prescription"),
+                    tint = c.tintTeal,
+                    onClick = { showScannerDialog = true },
+                )
+                MedAIListRow(
+                    icon = Icons.Default.CompareArrows,
+                    title = medText(lang, "Dori o'zaro ta'siri", "Взаимодействие лекарств", "Drug interactions"),
+                    subtitle = medText(lang, "2-5 ta dorini birga tekshirish", "Проверка 2-5 лекарств вместе", "Check 2-5 medicines together"),
+                    tint = c.tintSky,
+                    showDivider = false,
+                    onClick = { showInteractionDialog = true },
+                )
+            }
+
+            // Allergy check for the search result
             if (drugResult != null) {
                 val matchedAllergies = remember(drugResult) {
                     val allText = searchQuery + " " + (drugResult?.values?.joinToString(" ") ?: "")
                     viewModel.checkMedicinesForAllergies(allText)
                 }
-
                 if (matchedAllergies.isNotEmpty()) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = medai.danger.copy(alpha = 0.1f)),
-                        border = BorderStroke(1.dp, medai.danger.copy(alpha = 0.4f)),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Cancel, contentDescription = null, tint = medai.danger)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (lang == "uz") "❌ Bu dori sizga mos emas — ${matchedAllergies.joinToString(", ")} allergiyangiz bor"
-                                       else if (lang == "ru") "❌ Это лекарство вам не подходит — у вас аллергия на ${matchedAllergies.joinToString(", ")}"
-                                       else "❌ This medicine is not suitable for you — you have allergy to ${matchedAllergies.joinToString(", ")}",
-                                fontSize = 12.sp,
-                                color = medai.danger,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+                    val names = matchedAllergies.joinToString(", ")
+                    MedAIInfoBanner(
+                        text = medText(
+                            lang,
+                            "Bu dori sizga mos emas — $names allergiyangiz bor",
+                            "Это лекарство вам не подходит — у вас аллергия на $names",
+                            "This medicine is not suitable for you — you have an allergy to $names",
+                        ),
+                        tone = MedAITone.Error,
+                    )
                 } else {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = medai.success.copy(alpha = 0.1f)),
-                        border = BorderStroke(1.dp, medai.success.copy(alpha = 0.4f)),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = medai.success)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (lang == "uz") "✅ Bu dori allergiyangiz bilan mos keladi"
-                                       else if (lang == "ru") "✅ Это лекарство совместимо с вашей аллергией"
-                                       else "✅ This medicine is compatible with your allergies",
-                                fontSize = 12.sp,
-                                color = medai.success,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
+                    MedAIInfoBanner(
+                        text = medText(
+                            lang,
+                            "Bu dori allergiyangiz bilan mos keladi",
+                            "Это лекарство совместимо с вашей аллергией",
+                            "This medicine is compatible with your allergies",
+                        ),
+                        tone = MedAITone.Success,
+                    )
                 }
             }
 
             if (isLoading) {
-                Box(modifier = Modifier.fillMaxWidth().height(200.dp), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        CircularProgressIndicator(color = medai.info)
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = when (lang) {
-                                "uz" -> "Ma'lumot izlanmoqda..."
-                                "ru" -> "Идёт поиск..."
-                                else -> "Searching..."
-                            },
-                            fontSize = 12.sp,
-                            color = medai.textSecondary
-                        )
-                    }
+                Row(Modifier.fillMaxWidth().padding(vertical = 24.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                    MedAISpinner(size = 24.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Text(
+                        medText(lang, "Ma'lumot izlanmoqda...", "Идёт поиск...", "Searching..."),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.textSecondary,
+                    )
                 }
             } else if (drugResult != null) {
                 drugResult?.forEach { (key, value) ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = medai.surface),
-                        border = BorderStroke(1.dp, medai.border)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(modifier = Modifier.size(6.dp).background(medai.info, CircleShape))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = key, fontWeight = FontWeight.Bold, color = medai.info, fontSize = 14.sp)
+                    MedAICard(modifier = Modifier.fillMaxWidth()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = sectionTitles[key] ?: key,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = c.textPrimary,
+                                modifier = Modifier.weight(1f),
+                            )
+                            val tone = sectionBadge(key)
+                            if (tone != null) {
+                                Spacer(Modifier.width(8.dp))
+                                MedAIBadge(
+                                    text = medText(lang, "Ehtiyot bo'ling", "Осторожно", "Caution"),
+                                    tone = tone,
+                                )
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(text = value, fontSize = 13.sp, color = medai.textPrimary, lineHeight = 19.sp)
                         }
+                        Spacer(Modifier.height(6.dp))
+                        Text(text = value, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
                     }
                 }
             }
@@ -251,193 +212,121 @@ fun DrugInfoScreen(viewModel: AppViewModel, onBack: () -> Unit) {
 
     // --- DIALOG 1: PRESCRIPTION SCANNER ---
     if (showScannerDialog) {
-        AlertDialog(
-            onDismissRequest = { showScannerDialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = null, tint = medai.brand)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = if (lang == "uz") "Retseptni skanerlash" else if (lang == "ru") "Сканирование рецепта" else "Scan Prescription", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = if (lang == "uz") "Skanerlashni simulyatsiya qilish uchun retsept turlardan birini tanlang va yuboring."
-                               else "Выберите тип рецепта для симуляции сканирования.",
-                        fontSize = 13.sp,
-                        color = medai.textSecondary
-                    )
+        MedContentDialog(
+            title = medText(lang, "Retseptni skanerlash", "Сканирование рецепта", "Scan prescription"),
+            closeText = medText(lang, "Yopish", "Закрыть", "Close"),
+            onDismiss = { showScannerDialog = false },
+            icon = Icons.Default.PhotoCamera,
+        ) {
+            Text(
+                text = medText(
+                    lang,
+                    "Skanerlashni simulyatsiya qilish uchun retsept turlardan birini tanlang va yuboring.",
+                    "Выберите тип рецепта для симуляции сканирования.",
+                    "Pick a prescription type to simulate a scan.",
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+            )
 
-                    val presets = listOf(
-                        "Kardiolog retsepti (Aspirin, Lisinopril)" to "Cardiologist Prescription: Aspirin 75mg daily, Lisinopril 10mg daily morning. Please analyze usage and dosage.",
-                        "Terapevt retsepti (Amoxicillin, Paracetamol)" to "General Physician: Amoxicillin 500mg three times daily, Paracetamol 500mg as needed for pain. Analyze.",
-                        "Nevrolog retsepti (Magniy B6, Glycine)" to "Neurologist: Magnesium B6 two tablets evening, Glycine three times daily under tongue. Analyze."
-                    )
-
-                    presets.forEach { (title, prompt) ->
-                        Button(
-                            onClick = {
-                                viewModel.scanPrescriptionImage(mockPrescriptionBase64)
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = medai.brandSoft, contentColor = medai.brand),
-                            shape = RoundedCornerShape(10.dp)
-                        ) {
-                            Text(text = title, color = medai.brand, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-
-                    if (isScanningPrescription) {
-                        Box(modifier = Modifier.fillMaxWidth().padding(12.dp), contentAlignment = Alignment.Center) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator(color = medai.brand)
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text("Skanerlanmoqda...", fontSize = 12.sp, color = medai.textSecondary)
-                            }
-                        }
-                    } else if (prescriptionScanResult.isNotEmpty()) {
-                        Divider(color = medai.border)
-                        Text(
-                            text = "Natija:",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 14.sp,
-                            color = medai.brand
-                        )
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 180.dp)
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            Text(text = prescriptionScanResult, fontSize = 12.sp, color = medai.textPrimary)
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showScannerDialog = false }) {
-                    Text(text = "Yopish", color = medai.brand)
-                }
+            val presets = listOf(
+                medText(lang, "Kardiolog retsepti (Aspirin, Lisinopril)", "Рецепт кардиолога (аспирин, лизиноприл)", "Cardiologist prescription (Aspirin, Lisinopril)"),
+                medText(lang, "Terapevt retsepti (Amoxicillin, Paracetamol)", "Рецепт терапевта (амоксициллин, парацетамол)", "Physician prescription (Amoxicillin, Paracetamol)"),
+                medText(lang, "Nevrolog retsepti (Magniy B6, Glycine)", "Рецепт невролога (магний B6, глицин)", "Neurologist prescription (Magnesium B6, Glycine)"),
+            )
+            presets.forEach { title ->
+                MedAISecondaryButton(
+                    text = title,
+                    onClick = { viewModel.scanPrescriptionImage(mockPrescriptionBase64) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
-        )
+
+            if (isScanningPrescription) {
+                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                    MedAISpinner(size = 22.dp)
+                    Spacer(Modifier.width(12.dp))
+                    Text(medText(lang, "Skanerlanmoqda...", "Сканирование...", "Scanning..."), style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+                }
+            } else if (prescriptionScanResult.isNotEmpty()) {
+                MedHairline()
+                MedSectionTitle(medText(lang, "Natija", "Результат", "Result"))
+                RichMarkdownText(text = prescriptionScanResult)
+            }
+        }
     }
 
     // --- DIALOG 2: DRUG INTERACTION CHECKER ---
     if (showInteractionDialog) {
-        AlertDialog(
-            onDismissRequest = { showInteractionDialog = false },
-            title = {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.CompareArrows, contentDescription = null, tint = medai.premium)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = if (lang == "uz") "Dori o'zaro ta'siri" else if (lang == "ru") "Взаимодействие лекарств" else "Drug Interactions", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = if (lang == "uz") "Tekshirish uchun 2 dan 5 tagacha dori nomini yozing:"
-                               else "Введите от 2 до 5 лекарств для проверки:",
-                        fontSize = 13.sp,
-                        color = medai.textSecondary
-                    )
+        MedContentDialog(
+            title = medText(lang, "Dori o'zaro ta'siri", "Взаимодействие лекарств", "Drug interactions"),
+            closeText = medText(lang, "Yopish", "Закрыть", "Close"),
+            onDismiss = { showInteractionDialog = false },
+            icon = Icons.Default.CompareArrows,
+        ) {
+            Text(
+                text = medText(
+                    lang,
+                    "Tekshirish uchun 2 dan 5 tagacha dori nomini yozing:",
+                    "Введите от 2 до 5 лекарств для проверки:",
+                    "Enter 2 to 5 medicines to check:",
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = c.textSecondary,
+            )
 
-                    drugInputs.forEachIndexed { idx, value ->
-                        OutlinedTextField(
-                            value = value,
-                            onValueChange = { newVal ->
-                                val list = drugInputs.toMutableList()
-                                list[idx] = newVal
-                                drugInputs = list
-                            },
-                            placeholder = { Text("Dori ${idx + 1}") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                    }
-
-                    if (drugInputs.size < 5) {
-                        TextButton(
-                            onClick = { drugInputs = drugInputs + "" },
-                            colors = ButtonDefaults.textButtonColors(contentColor = medai.premium)
-                        ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = null)
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Dori qo'shish")
-                        }
-                    }
-
-                    Button(
-                        onClick = { viewModel.checkDrugInteractions(drugInputs) },
-                        enabled = drugInputs.count { it.isNotBlank() } >= 2 && !isCheckingInteractions,
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = medai.premium),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        if (isCheckingInteractions) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp))
-                        } else {
-                            Text("O'zaro ta'sirni tekshirish")
-                        }
-                    }
-
-                    if (interactionResult.isNotEmpty()) {
-                        Divider(color = medai.border)
-
-                        // Parse status marker
-                        val isSafe = interactionResult.contains("STATUS: SAFE")
-                        val isCaution = interactionResult.contains("STATUS: CAUTION")
-                        val isDangerous = interactionResult.contains("STATUS: DANGEROUS")
-
-                        val (statusText, statusColor) = when {
-                            isSafe -> "✅ Xavfsiz (Safe)" to medai.brand
-                            isCaution -> "⚠️ Ehtiyot bo'ling (Caution)" to medai.warning
-                            isDangerous -> "❌ Birga ichmang! (Dangerous)" to medai.danger
-                            else -> "Natija" to medai.textPrimary
-                        }
-
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = statusColor.copy(alpha = 0.15f)),
-                            border = BorderStroke(1.dp, statusColor)
-                        ) {
-                            Text(
-                                text = statusText,
-                                modifier = Modifier.padding(12.dp),
-                                fontWeight = FontWeight.Bold,
-                                color = statusColor,
-                                fontSize = 14.sp
-                            )
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .heightIn(max = 150.dp)
-                                .verticalScroll(rememberScrollState())
-                        ) {
-                            Text(
-                                text = interactionResult
-                                    .replace("STATUS: SAFE", "")
-                                    .replace("STATUS: CAUTION", "")
-                                    .replace("STATUS: DANGEROUS", "")
-                                    .trim(),
-                                fontSize = 12.sp,
-                                color = medai.textPrimary
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showInteractionDialog = false }) {
-                    Text(text = "Yopish", color = medai.premium)
-                }
+            drugInputs.forEachIndexed { idx, value ->
+                MedAITextField(
+                    value = value,
+                    onValueChange = { newVal ->
+                        val list = drugInputs.toMutableList()
+                        list[idx] = newVal
+                        drugInputs = list
+                    },
+                    label = medText(lang, "Dori ${idx + 1}", "Лекарство ${idx + 1}", "Medicine ${idx + 1}"),
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
-        )
+
+            if (drugInputs.size < 5) {
+                MedAISecondaryButton(
+                    text = medText(lang, "Dori qo'shish", "Добавить лекарство", "Add medicine"),
+                    onClick = { drugInputs = drugInputs + "" },
+                    modifier = Modifier.fillMaxWidth(),
+                    icon = Icons.Default.Add,
+                )
+            }
+
+            MedAIPrimaryButton(
+                text = medText(lang, "O'zaro ta'sirni tekshirish", "Проверить взаимодействие", "Check interactions"),
+                onClick = { viewModel.checkDrugInteractions(drugInputs) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = drugInputs.count { it.isNotBlank() } >= 2 && !isCheckingInteractions,
+                loading = isCheckingInteractions,
+            )
+
+            if (interactionResult.isNotEmpty()) {
+                MedHairline()
+
+                val isSafe = interactionResult.contains("STATUS: SAFE")
+                val isCaution = interactionResult.contains("STATUS: CAUTION")
+                val isDangerous = interactionResult.contains("STATUS: DANGEROUS")
+
+                when {
+                    isSafe -> MedAIInfoBanner(medText(lang, "Xavfsiz", "Безопасно", "Safe"), tone = MedAITone.Success)
+                    isCaution -> MedAIInfoBanner(medText(lang, "Ehtiyot bo'ling", "Будьте осторожны", "Use caution"), tone = MedAITone.Warning)
+                    isDangerous -> MedAIInfoBanner(medText(lang, "Birga ichmang!", "Не принимайте вместе!", "Do not take together!"), tone = MedAITone.Error)
+                    else -> MedSectionTitle(medText(lang, "Natija", "Результат", "Result"))
+                }
+
+                RichMarkdownText(
+                    text = interactionResult
+                        .replace("STATUS: SAFE", "")
+                        .replace("STATUS: CAUTION", "")
+                        .replace("STATUS: DANGEROUS", "")
+                        .trim(),
+                )
+            }
+        }
     }
 }
