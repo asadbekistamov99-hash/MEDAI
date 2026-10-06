@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.WarningAmber
@@ -119,7 +120,7 @@ fun MedAIScreenCanvas(modifier: Modifier = Modifier, content: @Composable () -> 
         modifier = modifier
             .fillMaxSize()
             .background(CanvasWash),
-        content = content,
+        content = { content() },
     )
 }
 
@@ -205,7 +206,7 @@ fun MedAIGradientHeader(
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    imageVector = androidx.compose.material.icons.automirrored.filled.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
                     tint = Color.White,
                     modifier = Modifier.size(20.dp),

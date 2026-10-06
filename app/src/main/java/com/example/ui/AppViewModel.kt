@@ -548,8 +548,9 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             message = "MedAI'ning barcha imkoniyatlari $days kun davomida to'liq ochiq. " +
                 "Keyin premium obunani davom ettirish uchun to'lov qilishingiz mumkin.",
             type = "premium"
-        ))            loadFamilyFor(uid)
-            refreshFreeChatQuota()
+        ))
+        loadFamilyFor(uid)
+        refreshFreeChatQuota()
     }
 
     fun registerUser(
@@ -617,7 +618,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             }
 
             val shouldBeAdmin = trimmedEmail.equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
-            val existing = dao.getAccountProfile(account.uid)
+            val existing = dao.getCurrentUser()?.takeIf { it.uid == account.uid }
             if (existing != null) {
                 dao.insertUser(existing.copy(
                     lastActive = System.currentTimeMillis(),
@@ -671,7 +672,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             val now = System.currentTimeMillis()
 
             if (account != null) {
-                val existing = dao.getAccountProfile(account.uid)
+                val existing = dao.getCurrentUser()?.takeIf { it.uid == account.uid }
                 if (existing != null) {
                     val shouldBeAdmin = trimmedEmail.equals(SUPER_ADMIN_EMAIL, ignoreCase = true)
                     dao.insertUser(existing.copy(
@@ -1586,7 +1587,8 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun removeFamilyMember(uid: String) {
         viewModelScope.launch {
-            dao.deleteFamilyMember(uid)
+            val ownerUid = currentUser.value?.uid ?: return@launch
+            dao.deleteFamilyMember(uid, ownerUid)
         }
     }
 
