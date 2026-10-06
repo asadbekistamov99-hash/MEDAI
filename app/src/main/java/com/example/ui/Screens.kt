@@ -24,6 +24,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -192,7 +194,7 @@ fun AppHeader(
                 text = title,
                 style = MaterialTheme.typography.titleLarge,
                 color = medai.textPrimary,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
             )
@@ -256,117 +258,18 @@ fun MetricCard(
 // --- SCREEN 1: SPLASH SCREEN ---
 
 @Composable
-fun HeartbeatLineAnimation(modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "heartbeat")
-    val progress by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue = 1f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(2000, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "progress"
-    )
-
-    Canvas(modifier = modifier) {
-        val width = size.width
-        val height = size.height
-        val path = Path()
-
-        // Create heartbeat shape
-        val points = listOf(
-            0.0f to 0.5f,
-            0.3f to 0.5f,
-            0.35f to 0.4f,
-            0.4f to 0.65f,
-            0.45f to 0.15f,
-            0.5f to 0.85f,
-            0.55f to 0.45f,
-            0.6f to 0.5f,
-            1.0f to 0.5f
-        )
-
-        path.moveTo(0f, height * 0.5f)
-        for (i in 1 until points.size) {
-            val toX = points[i].first * width
-            val toY = points[i].second * height
-            path.lineTo(toX, toY)
-        }
-
-        // Animated draw effect
-        drawPath(
-            path = path,
-            color = Color(0xFF80CBC4),
-            style = Stroke(
-                width = 4.dp.toPx(),
-                cap = StrokeCap.Round,
-                join = StrokeJoin.Round,
-                pathEffect = PathEffect.dashPathEffect(
-                    intervals = floatArrayOf(width, width),
-                    phase = (1f - progress) * width
-                )
-            )
-        )
-    }
-}
-
-@Composable
-fun LoadingDotsAnimation(modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "dots")
-    val dotCount = 3
-    val dots = List(dotCount) { index ->
-        infiniteTransition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(
-                animation = keyframes {
-                    durationMillis = 1200
-                    0f at (index * 150) with FastOutSlowInEasing
-                    1f at (index * 150 + 300) with FastOutSlowInEasing
-                    0f at (index * 150 + 600) with FastOutSlowInEasing
-                },
-                repeatMode = RepeatMode.Restart
-            ),
-            label = "dot_$index"
-        )
-    }
-
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        dots.forEach { anim ->
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .graphicsLayer {
-                        scaleX = 0.5f + anim.value * 0.5f
-                        scaleY = 0.5f + anim.value * 0.5f
-                        alpha = 0.3f + anim.value * 0.7f
-                    }
-                    .background(Color(0xFF80CBC4), CircleShape)
-            )
-        }
-    }
-}
-
-@Composable
 fun SplashScreen(onNavigateToOnboarding: () -> Unit, onNavigateToHome: () -> Unit, viewModel: AppViewModel) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
     val user by viewModel.currentUser.collectAsState()
-    val scale = remember { Animatable(0f) }
+    val scale = remember { Animatable(0.8f) }
+    val alpha = remember { Animatable(0f) }
 
     LaunchedEffect(key1 = true) {
-        scale.animateTo(
-            targetValue = 1.0f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        )
-        delay(2000)
+        // One short entrance (no endless loops): logo settles in, text fades up.
+        launch { alpha.animateTo(1f, tween(450)) }
+        scale.animateTo(1f, spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMediumLow))
+        delay(1200)
         if (user != null) {
             onNavigateToHome()
         } else {
@@ -377,67 +280,36 @@ fun SplashScreen(onNavigateToOnboarding: () -> Unit, onNavigateToHome: () -> Uni
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BrandGradientWide),
+            .background(c.heroBrush),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.scale(scale.value)
+            modifier = Modifier.graphicsLayer { this.alpha = alpha.value; scaleX = scale.value; scaleY = scale.value }
         ) {
-            // Animated heartbeat line container with a beautiful medical icon inside
             Box(
-                modifier = Modifier
-                    .size(160.dp),
+                modifier = Modifier.size(104.dp).background(c.surface, CircleShape).padding(6.dp),
                 contentAlignment = Alignment.Center
             ) {
-                // Heartbeat background line drawing itself
-                HeartbeatLineAnimation(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 8.dp)
+                Image(
+                    painter = painterResource(id = R.drawable.img_medai_logo),
+                    contentDescription = "MedAI",
+                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                    contentScale = ContentScale.Crop
                 )
-
-                // White circle with custom MedAI logo inside
-                Box(
-                    modifier = Modifier
-                        .size(68.dp)
-                        .shadow(
-                            elevation = 12.dp,
-                            shape = CircleShape,
-                            ambientColor = Color.White,
-                            spotColor = Color.White,
-                        )
-                        .background(medai.surface, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.img_medai_logo),
-                        contentDescription = "MedAI Logo",
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(CircleShape),
-                        contentScale = ContentScale.Crop
-                    )
-                }
             }
-            
             Spacer(modifier = Modifier.height(24.dp))
-            
+            Text(text = "MedAI", style = MaterialTheme.typography.displayMedium, color = c.onHero)
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "MedAI",
-                style = MaterialTheme.typography.displayLarge,
-                color = Color.White
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Your AI Health Assistant",
+                text = Translations.getString("app_slogan", viewModel.currentLanguage.collectAsState().value),
                 style = MaterialTheme.typography.bodyLarge,
-                color = Color.White.copy(alpha = 0.82f)
+                color = c.onHeroMuted,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 32.dp)
             )
-
-            Spacer(modifier = Modifier.height(64.dp))
-            LoadingDotsAnimation()
         }
+        MedAISpinner(Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(bottom = 48.dp), size = 24.dp)
     }
 }
 
@@ -641,11 +513,12 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit, viewModel: AppViewModel) {
 
 @Composable
 fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit, viewModel: AppViewModel) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
     val lang by viewModel.currentLanguage.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    fun t(key: String) = Translations.getString(key, lang)
 
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -658,323 +531,188 @@ fun RegisterScreen(onNavigateToLogin: () -> Unit, onRegisterSuccess: () -> Unit,
     var height by remember { mutableStateOf("175") }
     var weight by remember { mutableStateOf("70") }
 
-    var passwordVisible by remember { mutableStateOf(false) }
     var isGoogleSigningIn by remember { mutableStateOf(false) }
     var registerError by remember { mutableStateOf<String?>(null) }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(medai.canvas)
+            .background(c.surface)
+            .verticalScroll(rememberScrollState())
+            .imePadding()
     ) {
-        // Curved top header (30% of screen)
+        // Compact brand header: the form is long, so it gets less hero than Login.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.3f)
-                .background(BrandGradientWide),
+                .background(c.heroBrush)
+                .statusBarsPadding()
+                .padding(top = 16.dp, bottom = 48.dp),
             contentAlignment = Alignment.Center
         ) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .background(MaterialTheme.colorScheme.surface, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.img_medai_logo),
-                            contentDescription = "MedAI Logo",
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape),
-                            contentScale = ContentScale.Crop
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(text = "MedAI", fontSize = 28.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(48.dp).background(c.surface, CircleShape).padding(2.dp), contentAlignment = Alignment.Center) {
+                    Image(
+                        painter = painterResource(id = R.drawable.img_medai_logo),
+                        contentDescription = "MedAI",
+                        modifier = Modifier.fillMaxSize().clip(CircleShape),
+                        contentScale = ContentScale.Crop
+                    )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Your Professional AI Health Assistant", fontSize = 12.sp, color = Color.White.copy(alpha = 0.8f))
+                Spacer(Modifier.width(12.dp))
+                Text("MedAI", style = MaterialTheme.typography.headlineLarge, color = c.onHero)
             }
         }
 
-        // Sliding card containing all forms (scrollable)
-        Card(
+        Column(
             modifier = Modifier
+                .offset(y = (-28).dp)
                 .fillMaxWidth()
-                .fillMaxHeight(0.78f)
-                .align(Alignment.BottomCenter),
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
+                .background(c.surface, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .padding(horizontal = 24.dp)
+                .padding(top = 28.dp, bottom = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                item {
-                    Text(text = Translations.getString("register", lang), fontSize = 24.sp, fontWeight = FontWeight.Bold, color = medai.textPrimary)
-                    Text(text = Translations.getString("app_slogan", lang), fontSize = 13.sp, color = medai.textSecondary)
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(t("register"), style = MaterialTheme.typography.headlineMedium, color = c.textPrimary)
+                Text(t("app_slogan"), style = MaterialTheme.typography.bodyMedium, color = c.textSecondary)
+            }
 
-                item {
-                    MedicalTextField(
-                        value = name,
-                        onValueChange = { name = it },
-                        label = Translations.getString("name_placeholder", lang),
-                        leadingIcon = Icons.Default.Person,
-                        placeholder = "Masalan: Asadbek Istamov"
-                    )
-                }
+            MedAITextField(
+                value = name, onValueChange = { name = it }, label = t("name_placeholder"),
+                modifier = Modifier.fillMaxWidth(), leadingIcon = Icons.Default.Person, placeholder = "Asadbek Istamov"
+            )
+            MedAITextField(
+                value = email, onValueChange = { email = it }, label = t("email_placeholder"),
+                modifier = Modifier.fillMaxWidth(), leadingIcon = Icons.Default.Email, placeholder = "example@gmail.com",
+                keyboardType = KeyboardType.Email
+            )
+            MedAITextField(
+                value = phone, onValueChange = { phone = it }, label = t("phone_placeholder"),
+                modifier = Modifier.fillMaxWidth(), leadingIcon = Icons.Default.Phone, placeholder = "+998901234567",
+                keyboardType = KeyboardType.Phone
+            )
+            MedAITextField(
+                value = password, onValueChange = { password = it }, label = t("password_placeholder"),
+                modifier = Modifier.fillMaxWidth(), leadingIcon = Icons.Default.Lock, isPassword = true,
+                showPasswordDescription = t("show_password"), hidePasswordDescription = t("hide_password")
+            )
+            MedAITextField(
+                value = confirmPassword, onValueChange = { confirmPassword = it }, label = t("confirm_password_placeholder"),
+                modifier = Modifier.fillMaxWidth(), leadingIcon = Icons.Default.Lock, isPassword = true,
+                showPasswordDescription = t("show_password"), hidePasswordDescription = t("hide_password")
+            )
 
-                item {
-                    MedicalTextField(
-                        value = email,
-                        onValueChange = { email = it },
-                        label = Translations.getString("email_placeholder", lang),
-                        leadingIcon = Icons.Default.Email,
-                        placeholder = "example@gmail.com"
-                    )
-                }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                MedAITextField(
+                    value = height, onValueChange = { height = it }, label = t("height_placeholder"),
+                    modifier = Modifier.weight(1f), leadingIcon = Icons.Default.Height, placeholder = "175",
+                    keyboardType = KeyboardType.Number
+                )
+                MedAITextField(
+                    value = weight, onValueChange = { weight = it }, label = t("weight_placeholder"),
+                    modifier = Modifier.weight(1f), leadingIcon = Icons.Default.Scale, placeholder = "70",
+                    keyboardType = KeyboardType.Number
+                )
+            }
 
-                item {
-                    MedicalTextField(
-                        value = phone,
-                        onValueChange = { phone = it },
-                        label = Translations.getString("phone_placeholder", lang),
-                        leadingIcon = Icons.Default.Phone,
-                        placeholder = "+998901234567",
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-                    )
-                }
-
-                item {
-                    MedicalTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                        label = Translations.getString("password_placeholder", lang),
-                        leadingIcon = Icons.Default.Lock,
-                        placeholder = "••••••••",
-                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                        trailingIcon = {
-                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                Icon(
-                                    imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                                    contentDescription = null,
-                                    tint = medai.brand
-                                )
-                            }
-                        }
-                    )
-                }
-
-                item {
-                    MedicalTextField(
-                        value = confirmPassword,
-                        onValueChange = { confirmPassword = it },
-                        label = Translations.getString("confirm_password_placeholder", lang),
-                        leadingIcon = Icons.Default.Lock,
-                        placeholder = "••••••••",
-                        visualTransformation = PasswordVisualTransformation()
-                    )
-                }
-
-                item {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            MedicalTextField(
-                                value = height,
-                                onValueChange = { height = it },
-                                label = Translations.getString("height_placeholder", lang),
-                                leadingIcon = Icons.Default.Height,
-                                placeholder = "175",
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                            )
-                        }
-                        Box(modifier = Modifier.weight(1f)) {
-                            MedicalTextField(
-                                value = weight,
-                                onValueChange = { weight = it },
-                                label = Translations.getString("weight_placeholder", lang),
-                                leadingIcon = Icons.Default.Scale,
-                                placeholder = "70",
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                            )
-                        }
-                    }
-                }
-
-                item {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = Translations.getString("gender_label", lang).uppercase(),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = medai.brand,
-                            letterSpacing = 1.2.sp,
-                            modifier = Modifier.padding(bottom = 4.dp, start = 4.dp)
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(
-                                    selected = gender == "male",
-                                    onClick = { gender = "male" },
-                                    colors = RadioButtonDefaults.colors(selectedColor = medai.brand)
-                                )
-                                Text(Translations.getString("gender_male", lang), color = medai.textPrimary)
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                RadioButton(
-                                    selected = gender == "female",
-                                    onClick = { gender = "female" },
-                                    colors = RadioButtonDefaults.colors(selectedColor = medai.brand)
-                                )
-                                Text(Translations.getString("gender_female", lang), color = medai.textPrimary)
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = Translations.getString("blood_type_label", lang).uppercase(),
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = medai.brand,
-                            letterSpacing = 1.2.sp,
-                            modifier = Modifier.padding(bottom = 6.dp, start = 4.dp)
-                        )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.horizontalScroll(rememberScrollState())
-                        ) {
-                            listOf("O+", "A+", "B+", "AB+", "O-", "A-").forEach { bType ->
-                                FilterChip(
-                                    selected = bloodType == bType,
-                                    onClick = { bloodType = bType },
-                                    label = { Text(bType) },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = medai.brand,
-                                        selectedLabelColor = Color.White
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    registerError?.let { message ->
-                        MedAIInfoBanner(text = message, tone = MedAITone.Error)
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    MedicalButton(
-                        text = Translations.getString("register", lang),
-                        onClick = {
-                            registerError = null
-                            // Check the two password fields agree before hitting the ViewModel:
-                            // silently ignoring confirm_password made it decorative.
-                            if (password != confirmPassword) {
-                                registerError = Translations.getString("register_error_weak_password", lang)
-                                return@MedicalButton
-                            }
-                            viewModel.registerUser(
-                                name = name,
-                                email = email,
-                                phone = phone,
-                                dob = dob,
-                                gender = gender,
-                                bloodType = bloodType,
-                                height = height.toDoubleOrNull() ?: 175.0,
-                                weight = weight.toDoubleOrNull() ?: 70.0,
-                                password = password,
-                                onSuccess = { onRegisterSuccess() },
-                                onError = { registerError = it }
-                            )
-                        }
-                    )
-                }
-
-                item {
-                    // Divider
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Box(modifier = Modifier.weight(1f).height(1.dp).background(medai.border))
-                        Text(text = " yoki ", color = medai.textSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp))
-                        Box(modifier = Modifier.weight(1f).height(1.dp).background(medai.border))
-                    }
-                }
-
-                item {
-                    // Google Sign-In white card
-                    OutlinedButton(
-                        onClick = {
-                            if (!isGoogleSigningIn) {
-                                isGoogleSigningIn = true
-                                scope.launch {
-                                    val result = com.example.auth.GoogleAuthHelper.signIn(context)
-                                    isGoogleSigningIn = false
-                                    result.onSuccess { account ->
-                                        viewModel.loginWithGoogle(account.name, account.email, onSuccess = { onRegisterSuccess() })
-                                    }.onFailure { e ->
-                                        Toast.makeText(context, e.localizedMessage ?: "Google orqali ro'yxatdan o'tishda xatolik", Toast.LENGTH_LONG).show()
-                                    }
-                                }
-                            }
-                        },
-                        enabled = !isGoogleSigningIn,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(54.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        border = BorderStroke(1.5.dp, medai.border),
-                        colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface)
-                    ) {
-                        if (isGoogleSigningIn) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = medai.brand)
-                        } else {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center
-                            ) {
-                                Text(text = "G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                Text(text = "o", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                Text(text = "o", color = Color(0xFFFBBC05), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                Text(text = "g", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                Text(text = "l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                Text(text = "e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text(text = Translations.getString("google_sign_in", lang), color = medai.textPrimary, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-
-                item {
-                    TextButton(onClick = onNavigateToLogin) {
-                        Text(text = Translations.getString("already_have_account", lang), color = medai.brand, fontWeight = FontWeight.Bold)
-                    }
-                    Spacer(modifier = Modifier.height(24.dp))
+            Column {
+                Text(t("gender_label"), style = MaterialTheme.typography.labelLarge, color = c.textPrimary)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    MedAIFilterChip(t("gender_male"), gender == "male", { gender = "male" })
+                    MedAIFilterChip(t("gender_female"), gender == "female", { gender = "female" })
                 }
             }
+
+            Column {
+                Text(t("blood_type_label"), style = MaterialTheme.typography.labelLarge, color = c.textPrimary)
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("O+", "A+", "B+", "AB+", "O-", "A-").forEach { bType ->
+                        MedAIFilterChip(bType, bloodType == bType, { bloodType = bType })
+                    }
+                }
+            }
+
+            registerError?.let { message -> MedAIInfoBanner(text = message, tone = MedAITone.Error) }
+
+            MedAIPrimaryButton(
+                text = t("register"),
+                onClick = {
+                    registerError = null
+                    // Check the two password fields agree before hitting the ViewModel:
+                    // silently ignoring confirm_password made it decorative.
+                    if (password != confirmPassword) {
+                        registerError = t("register_error_weak_password")
+                        return@MedAIPrimaryButton
+                    }
+                    viewModel.registerUser(
+                        name = name,
+                        email = email,
+                        phone = phone,
+                        dob = dob,
+                        gender = gender,
+                        bloodType = bloodType,
+                        height = height.toDoubleOrNull() ?: 175.0,
+                        weight = weight.toDoubleOrNull() ?: 70.0,
+                        password = password,
+                        onSuccess = { onRegisterSuccess() },
+                        onError = { registerError = it }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.weight(1f).height(1.dp).background(c.border))
+                Text(t("or_divider"), style = MaterialTheme.typography.bodyMedium, color = c.textSecondary, modifier = Modifier.padding(horizontal = 12.dp))
+                Box(Modifier.weight(1f).height(1.dp).background(c.border))
+            }
+
+            val googleShape = RoundedCornerShape(MedAICorners.control)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 52.dp)
+                    .clip(googleShape)
+                    .background(c.surface)
+                    .border(1.5.dp, c.borderStrong, googleShape)
+                    .clickable(enabled = !isGoogleSigningIn, role = Role.Button) {
+                        isGoogleSigningIn = true
+                        scope.launch {
+                            val result = com.example.auth.GoogleAuthHelper.signIn(context)
+                            isGoogleSigningIn = false
+                            result.onSuccess { account ->
+                                viewModel.loginWithGoogle(account.name, account.email, onSuccess = { onRegisterSuccess() })
+                            }.onFailure { e ->
+                                Toast.makeText(context, e.localizedMessage ?: "Google orqali ro'yxatdan o'tishda xatolik", Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isGoogleSigningIn) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = c.brand)
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                        Text("G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("o", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("o", color = Color(0xFFFBBC05), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("g", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Spacer(Modifier.width(12.dp))
+                        Text(
+                            t("google_sign_in"), style = MaterialTheme.typography.labelLarge, fontSize = 15.sp,
+                            color = c.textPrimary, textAlign = TextAlign.Center, modifier = Modifier.weight(1f, fill = false)
+                        )
+                    }
+                }
+            }
+
+            MedAITextButton(text = t("already_have_account"), onClick = onNavigateToLogin, modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(16.dp))
         }
     }
 }
