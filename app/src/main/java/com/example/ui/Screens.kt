@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -666,6 +667,7 @@ fun SplashScreen(onNavigateToOnboarding: () -> Unit, onNavigateToHome: () -> Uni
 fun OnboardingScreen(onNavigateToLogin: () -> Unit, viewModel: AppViewModel) {
     var currentSlide by remember { mutableStateOf(0) }
     val lang by viewModel.currentLanguage.collectAsState()
+    val c = MedAITheme.colors
 
     val slides = listOf(
         Triple(
@@ -686,7 +688,7 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit, viewModel: AppViewModel) {
     )
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = c.canvas,
         bottomBar = {
             Column(
                 modifier = Modifier
@@ -695,22 +697,27 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit, viewModel: AppViewModel) {
                     .navigationBarsPadding(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Progress dots
+                // Progress dots: the active one stretches into a pill.
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(bottom = 24.dp)
                 ) {
                     slides.forEachIndexed { index, _ ->
+                        val width by animateDpAsState(
+                            targetValue = if (currentSlide == index) 24.dp else 8.dp,
+                            animationSpec = tween(200),
+                            label = "onboardingDot"
+                        )
                         Box(
                             modifier = Modifier
-                                .size(if (currentSlide == index) 16.dp else 8.dp, 8.dp)
+                                .size(width, 8.dp)
                                 .clip(RoundedCornerShape(4.dp))
-                                .background(if (currentSlide == index) PrimaryGreen else Color.LightGray.copy(alpha = 0.5f))
+                                .background(if (currentSlide == index) c.brand else c.borderStrong.copy(alpha = 0.5f))
                         )
                     }
                 }
 
-                MedicalButton(
+                MedAIPrimaryButton(
                     text = if (currentSlide == 2) Translations.getString("get_started", lang) else Translations.getString("next", lang),
                     onClick = {
                         if (currentSlide < 2) {
@@ -719,7 +726,8 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit, viewModel: AppViewModel) {
                             viewModel.setOnboardingCompleted(true)
                             onNavigateToLogin()
                         }
-                    }
+                    },
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
@@ -730,67 +738,67 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit, viewModel: AppViewModel) {
                 .padding(innerPadding),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Illustration Area (45% height) with soft light green background
+            // Top illustration area with a soft brand tint.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight(0.48f)
-                    .background(LightGreen, RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp)),
+                    .background(c.brandSoft, RoundedCornerShape(bottomStart = 40.dp, bottomEnd = 40.dp))
+                    .statusBarsPadding(),
                 contentAlignment = Alignment.Center
             ) {
-                // Skip Button in top right
+                // Skip button in the top right (48dp hit area).
                 if (currentSlide < 2) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(top = 16.dp, end = 16.dp),
+                            .padding(top = 8.dp, end = 8.dp),
                         contentAlignment = Alignment.TopEnd
                     ) {
-                        TextButton(
+                        MedAITextButton(
+                            text = Translations.getString("skip", lang),
                             onClick = {
                                 viewModel.setOnboardingCompleted(true)
                                 onNavigateToLogin()
-                            }
-                        ) {
-                            Text(
-                                text = Translations.getString("skip", lang),
-                                color = PrimaryGreen,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                        }
+                            },
+                        )
                     }
                 }
 
-                // Language Switcher on slide 0
+                // Language switcher on slide 0
                 if (currentSlide == 0) {
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(top = 16.dp),
+                            .padding(top = 8.dp),
                         contentAlignment = Alignment.TopStart
                     ) {
-                        Column(modifier = Modifier.padding(start = 24.dp)) {
+                        Column(modifier = Modifier.padding(start = 24.dp, top = 4.dp)) {
                             Text(
                                 text = Translations.getString("select_language", lang).uppercase(),
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextSecondary,
-                                letterSpacing = 1.2.sp
+                                style = MedAIText.Eyebrow,
+                                color = c.onBrandSoft
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
                                 listOf("uz" to "🇺🇿", "ru" to "🇷🇺", "en" to "🇬🇧").forEach { (code, flag) ->
+                                    // 48dp hit area around a 40dp circle.
                                     Box(
                                         modifier = Modifier
-                                            .size(34.dp)
+                                            .size(MinTouch)
                                             .clip(CircleShape)
-                                            .background(if (lang == code) PrimaryGreen else MaterialTheme.colorScheme.surface)
-                                            .clickable { viewModel.setLanguage(code) }
-                                            .border(1.dp, if (lang == code) Color.Transparent else MedicalBorder, CircleShape),
+                                            .clickable(role = Role.RadioButton) { viewModel.setLanguage(code) },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(text = flag, fontSize = 16.sp)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(if (lang == code) c.brand else c.surface)
+                                                .border(1.dp, if (lang == code) Color.Transparent else c.borderStrong, CircleShape),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(text = flag, fontSize = 18.sp)
+                                        }
                                     }
                                 }
                             }
@@ -798,46 +806,53 @@ fun OnboardingScreen(onNavigateToLogin: () -> Unit, viewModel: AppViewModel) {
                     }
                 }
 
-                // Medical Illustration Vector (Pulse/Icon)
+                // Illustration disc
                 Box(
                     modifier = Modifier
                         .size(180.dp)
-                        .background(MaterialTheme.colorScheme.surface, CircleShape)
-                        .shadow(8.dp, CircleShape, ambientColor = PrimaryGreen.copy(alpha = 0.1f), spotColor = PrimaryGreen.copy(alpha = 0.1f)),
+                        .background(c.surface, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = slides[currentSlide].third,
-                        contentDescription = null,
-                        tint = PrimaryGreen,
-                        modifier = Modifier.size(90.dp)
-                    )
+                    Crossfade(targetState = currentSlide, animationSpec = tween(220), label = "onboardingIcon") { slide ->
+                        Icon(
+                            imageVector = slides[slide].third,
+                            contentDescription = null,
+                            tint = c.brand,
+                            modifier = Modifier.size(90.dp)
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-            // Slide Title & Subtitle with medical typography
-            Text(
-                text = slides[currentSlide].first,
-                fontSize = 26.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = TextPrimary,
-                textAlign = TextAlign.Center,
-                letterSpacing = -0.3.sp,
-                modifier = Modifier.padding(horizontal = 24.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = slides[currentSlide].second,
-                fontSize = 15.sp,
-                color = TextSecondary,
-                lineHeight = 24.sp,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 32.dp)
-            )
+            Crossfade(
+                targetState = currentSlide,
+                animationSpec = tween(220),
+                label = "onboardingText",
+                modifier = Modifier.weight(1f)
+            ) { slide ->
+                Column(
+                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = slides[slide].first,
+                        style = MaterialTheme.typography.displaySmall,
+                        color = c.textPrimary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = slides[slide].second,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = c.textSecondary,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -1189,35 +1204,41 @@ fun LoginScreen(onNavigateToRegister: () -> Unit, onLoginSuccess: () -> Unit, vi
     val lang by viewModel.currentLanguage.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val c = MedAITheme.colors
+    fun t(key: String) = Translations.getString(key, lang)
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var authError by remember { mutableStateOf<String?>(null) }
     var isGoogleSigningIn by remember { mutableStateOf(false) }
+    var isSigningIn by remember { mutableStateOf(false) }
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MedicalBackground)
+            .background(c.surface)
+            .verticalScroll(rememberScrollState())
+            .imePadding()
     ) {
-        // Curved top header (32% of screen)
+        // Brand header. White text on the gradient is >= 5.4:1 at both ends.
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.35f)
-                .background(BrandGradientWide),
+                .background(c.heroBrush)
+                .statusBarsPadding()
+                .padding(top = 24.dp, bottom = 56.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     modifier = Modifier
-                        .size(64.dp)
-                        .background(MaterialTheme.colorScheme.surface, CircleShape),
+                        .size(72.dp)
+                        .background(Color.White, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Image(
                         painter = painterResource(id = R.drawable.img_medai_logo),
-                        contentDescription = "MedAI Logo",
+                        contentDescription = "MedAI",
                         modifier = Modifier
                             .fillMaxSize()
                             .clip(CircleShape),
@@ -1225,156 +1246,161 @@ fun LoginScreen(onNavigateToRegister: () -> Unit, onLoginSuccess: () -> Unit, vi
                     )
                 }
                 Spacer(modifier = Modifier.height(12.dp))
-                Text(text = "MedAI", fontSize = 32.sp, fontWeight = FontWeight.ExtraBold, color = Color.White, letterSpacing = -0.5.sp)
+                Text(text = "MedAI", style = MaterialTheme.typography.displaySmall, color = c.onHero)
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Your Trusted Medical AI Companion", fontSize = 13.sp, color = Color.White.copy(alpha = 0.8f))
+                Text(
+                    text = t("app_slogan"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.onHeroMuted,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 32.dp)
+                )
             }
         }
 
-        // Sliding white card from bottom
-        Card(
+        // Form sheet, overlapping the header with rounded top corners.
+        Column(
             modifier = Modifier
+                .offset(y = (-28).dp)
                 .fillMaxWidth()
-                .fillMaxHeight(0.72f)
-                .align(Alignment.BottomCenter),
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            elevation = CardDefaults.cardElevation(defaultElevation = 16.dp)
+                .background(c.surface, RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp))
+                .padding(horizontal = 24.dp)
+                .padding(top = 28.dp, bottom = 8.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
+            Text(text = t("login"), style = MaterialTheme.typography.headlineMedium, color = c.textPrimary)
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            MedAITextField(
+                value = email,
+                onValueChange = { email = it },
+                label = t("email_placeholder"),
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Email,
+                placeholder = "doctor@gmail.com",
+                keyboardType = KeyboardType.Email,
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            MedAITextField(
+                value = password,
+                onValueChange = { password = it },
+                label = t("password_placeholder"),
+                modifier = Modifier.fillMaxWidth(),
+                leadingIcon = Icons.Default.Lock,
+                isPassword = true,
+                showPasswordDescription = t("show_password"),
+                hidePasswordDescription = t("hide_password"),
+            )
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                MedAITextButton(
+                    text = t("forgot_password"),
+                    onClick = { /* Simulated password reset */ },
+                    color = c.textSecondary,
+                )
+            }
+
+            // Show why the login was refused instead of silently doing nothing.
+            authError?.let { message ->
+                MedAIInfoBanner(text = message, tone = MedAITone.Error)
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
+            MedAIPrimaryButton(
+                text = t("login"),
+                loading = isSigningIn,
+                onClick = {
+                    authError = null
+                    isSigningIn = true
+                    viewModel.loginUser(
+                        email = email,
+                        password = password,
+                        onSuccess = { onLoginSuccess() },
+                        onError = {
+                            isSigningIn = false
+                            authError = it
+                        }
+                    )
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Divider
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Box(modifier = Modifier.weight(1f).height(1.dp).background(c.border))
                 Text(
-                    text = Translations.getString("login", lang),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimary
+                    text = t("or_divider"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = c.textSecondary,
+                    modifier = Modifier.padding(horizontal = 12.dp)
                 )
-                Text(
-                    text = "MedAI - Your Clinical Co-Pilot",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
-                )
-                
-                Spacer(modifier = Modifier.height(24.dp))
+                Box(modifier = Modifier.weight(1f).height(1.dp).background(c.border))
+            }
 
-                MedicalTextField(
-                    value = email,
-                    onValueChange = { email = it },
-                    label = Translations.getString("email_placeholder", lang),
-                    leadingIcon = Icons.Default.MedicalServices,
-                    placeholder = "doctor@gmail.com"
-                )
+            Spacer(modifier = Modifier.height(16.dp))
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                MedicalTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = Translations.getString("password_placeholder", lang),
-                    leadingIcon = Icons.Default.Lock,
-                    placeholder = "••••••••",
-                    visualTransformation = PasswordVisualTransformation()
-                )
-
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton(onClick = { /* Simulated password reset */ }) {
-                        Text(text = Translations.getString("forgot_password", lang), color = TextSecondary, fontSize = 13.sp)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Show why the login was refused instead of silently doing nothing.
-                authError?.let { message ->
-                    MedAIInfoBanner(text = message, tone = MedAITone.Error)
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                MedicalButton(
-                    text = Translations.getString("login", lang),
-                    onClick = {
-                        authError = null
-                        viewModel.loginUser(
-                            email = email,
-                            password = password,
-                            onSuccess = { onLoginSuccess() },
-                            onError = { authError = it }
-                        )
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Divider
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Box(modifier = Modifier.weight(1f).height(1.dp).background(MedicalBorder))
-                    Text(text = " yoki ", color = TextSecondary, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 12.dp))
-                    Box(modifier = Modifier.weight(1f).height(1.dp).background(MedicalBorder))
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Google Sign-In Button with border and light theme colors
-                OutlinedButton(
-                    onClick = {
-                        if (!isGoogleSigningIn) {
-                            isGoogleSigningIn = true
-                            scope.launch {
-                                val result = com.example.auth.GoogleAuthHelper.signIn(context)
-                                isGoogleSigningIn = false
-                                result.onSuccess { account ->
-                                    viewModel.loginWithGoogle(account.name, account.email, onSuccess = { onLoginSuccess() })
-                                }.onFailure { e ->
-                                    Toast.makeText(context, e.localizedMessage ?: "Google orqali kirishda xatolik", Toast.LENGTH_LONG).show()
-                                }
+            // Google Sign-In
+            val googleShape = RoundedCornerShape(MedAICorners.control)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 52.dp)
+                    .clip(googleShape)
+                    .background(c.surface)
+                    .border(1.5.dp, c.borderStrong, googleShape)
+                    .clickable(enabled = !isGoogleSigningIn, role = Role.Button) {
+                        isGoogleSigningIn = true
+                        scope.launch {
+                            val result = com.example.auth.GoogleAuthHelper.signIn(context)
+                            isGoogleSigningIn = false
+                            result.onSuccess { account ->
+                                viewModel.loginWithGoogle(account.name, account.email, onSuccess = { onLoginSuccess() })
+                            }.onFailure { e ->
+                                Toast.makeText(context, e.localizedMessage ?: "Google orqali kirishda xatolik", Toast.LENGTH_LONG).show()
                             }
                         }
-                    },
-                    enabled = !isGoogleSigningIn,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.5.dp, MedicalBorder),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = MaterialTheme.colorScheme.surface)
-                ) {
-                    if (isGoogleSigningIn) {
-                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = PrimaryGreen)
-                    } else {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(text = "G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(text = "o", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(text = "o", color = Color(0xFFFBBC05), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(text = "g", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(text = "l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Text(text = "e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Text(text = Translations.getString("google_sign_in", lang), color = TextPrimary, fontWeight = FontWeight.Bold)
-                        }
+                    }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (isGoogleSigningIn) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = c.brand)
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                        Text(text = "G", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text(text = "o", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text(text = "o", color = Color(0xFFFBBC05), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text(text = "g", color = Color(0xFF4285F4), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text(text = "l", color = Color(0xFF34A853), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text(text = "e", color = Color(0xFFEA4335), fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = t("google_sign_in"),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontSize = 15.sp,
+                            color = c.textPrimary,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
                     }
                 }
-
-                Spacer(modifier = Modifier.weight(1.0f))
-
-                TextButton(onClick = onNavigateToRegister) {
-                    Text(text = Translations.getString("no_account_yet", lang), color = PrimaryGreen, fontWeight = FontWeight.Bold)
-                }
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            MedAITextButton(
+                text = t("no_account_yet"),
+                onClick = onNavigateToRegister,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 }

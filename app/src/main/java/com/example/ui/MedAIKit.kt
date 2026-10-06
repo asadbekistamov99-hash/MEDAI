@@ -289,6 +289,7 @@ fun MedAIMetricPill(icon: ImageVector, value: String, label: String, modifier: M
 @Composable
 fun MedAIQuickTile(
     icon: ImageVector, label: String, tint: MedAITint, onClick: () -> Unit, modifier: Modifier = Modifier,
+    danger: Boolean = false,
 ) {
     val c = MedAITheme.colors
     val source = remember { MutableInteractionSource() }
@@ -299,19 +300,19 @@ fun MedAIQuickTile(
             .scale(scale)
             .heightIn(min = 96.dp)
             .clip(shape)
-            .background(c.surface)
-            .border(1.dp, c.border, shape)
+            .background(if (danger) c.danger else c.surface)
+            .border(1.dp, if (danger) c.danger else c.border, shape)
             .clickable(interactionSource = source, indication = null, role = Role.Button, onClick = onClick)
             .padding(vertical = 12.dp), // no side padding: four tiles must fit a 360dp phone
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Box(Modifier.size(44.dp).clip(CircleShape).background(tint.bg), contentAlignment = Alignment.Center) {
-            Icon(icon, contentDescription = null, tint = tint.fg, modifier = Modifier.size(24.dp))
+        Box(Modifier.size(44.dp).clip(CircleShape).background(if (danger) Color.White.copy(alpha = 0.2f) else tint.bg), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = if (danger) c.onDanger else tint.fg, modifier = Modifier.size(24.dp))
         }
         Spacer(Modifier.height(8.dp))
         Text(
-            label, style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.sp), color = c.textPrimary,
+            label, style = MaterialTheme.typography.labelMedium.copy(letterSpacing = 0.sp), color = if (danger) c.onDanger else c.textPrimary,
             textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis,
         )
     }
@@ -319,6 +320,7 @@ fun MedAIQuickTile(
 
 data class MedAIQuickItem(
     val icon: ImageVector, val label: String, val tint: MedAITint, val onClick: () -> Unit, val tag: String = "",
+    val danger: Boolean = false,
 )
 
 /**
@@ -337,6 +339,7 @@ fun MedAIQuickTileGrid(items: List<MedAIQuickItem>, modifier: Modifier = Modifie
                         MedAIQuickTile(
                             it.icon, it.label, it.tint, it.onClick,
                             Modifier.weight(1f).then(if (it.tag.isNotEmpty()) Modifier.testTag(it.tag) else Modifier),
+                            danger = it.danger,
                         )
                     }
                     repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }

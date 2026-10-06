@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,7 +37,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +45,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.i18n.Translations
 import com.example.ui.theme.MedAICorners
+import com.example.ui.theme.MedAITheme
+import com.example.ui.theme.MinTouch
 import com.example.ui.theme.PremiumGradient
 import com.example.ui.theme.PremiumPurple
 import com.example.ui.theme.PrimaryGreen
@@ -74,109 +78,88 @@ fun TrialBanner(
 ) {
     if (daysRemaining <= 0) return
 
-    // Gentle pulse on the badge so it reads as "live", not a static label.
-    val transition = rememberInfiniteTransition(label = "trialPulse")
-    val pulse by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1100),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "trialPulseScale"
-    )
-
+    val c = MedAITheme.colors
     // A 1-day warning reads differently from a 6-day one: colour shifts to amber so the
-    // urgency is visible without opening anything.
+    // urgency is visible without opening anything. Violet stays reserved for "paid".
     val isUrgent = daysRemaining <= 1
-    val accent = if (isUrgent) WarningOrange else PremiumPurple
+    val accent = if (isUrgent) c.warning else c.premium
+    val soft = if (isUrgent) c.warningSoft else c.premiumSoft
+    val onSoft = if (isUrgent) c.onWarningSoft else c.onPremiumSoft
+    val onAccent = when {
+        !isUrgent -> c.onPremium
+        c.isDark -> c.warningSoft
+        else -> Color.White
+    }
+    val shape = RoundedCornerShape(MedAICorners.card)
 
     AnimatedVisibility(
         visible = true,
-        enter = fadeIn() + slideInVertically { -it },
-        exit = fadeOut() + slideOutVertically { -it },
+        enter = fadeIn(tween(250)) + slideInVertically(tween(250)) { -it / 2 },
+        exit = fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it / 2 },
         modifier = modifier
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(18.dp))
-                .background(
-                    Brush.horizontalGradient(
-                        listOf(
-                            accent.copy(alpha = 0.16f),
-                            PrimaryGreen.copy(alpha = 0.10f)
-                        )
-                    )
-                )
-                .border(1.dp, accent.copy(alpha = 0.45f), RoundedCornerShape(18.dp))
-                .clickable(onClick = onUpgradeClick)
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .clip(shape)
+                .background(soft)
+                .border(1.dp, accent.copy(alpha = 0.35f), shape)
+                .padding(14.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(accent.copy(alpha = 0.18f))
-                        .scale(pulse),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.WorkspacePremium,
-                        contentDescription = null,
-                        tint = accent,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-
-                Spacer(modifier = Modifier.width(12.dp))
-
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(
+                    imageVector = Icons.Default.WorkspacePremium,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(10.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = Translations.getString("trial_banner_title", lang),
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary
+                        style = MaterialTheme.typography.titleSmall,
+                        color = onSoft,
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = Translations.getString("trial_banner_days", lang)
                             .replace("{days}", daysRemaining.toString()),
-                        fontSize = 12.sp,
-                        color = TextSecondary
+                        style = MaterialTheme.typography.bodySmall,
+                        color = onSoft,
                     )
-                    // Seven dots, one per trial day. A number tells you how long is left; a
-                    // depleting row tells you how much of the value is already gone.
-                    Spacer(modifier = Modifier.height(7.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                        repeat(7) { index ->
-                            val used = index >= daysRemaining
-                            Box(
-                                modifier = Modifier
-                                    .size(width = 12.dp, height = 4.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(if (used) accent.copy(alpha = 0.22f) else accent)
-                            )
-                        }
+                }
+            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Seven dots, one per trial day. A number tells you how long is left; a
+                // depleting row tells you how much of the value is already gone.
+                Row(horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                    repeat(7) { index ->
+                        val used = index >= daysRemaining
+                        Box(
+                            modifier = Modifier
+                                .size(width = 12.dp, height = 4.dp)
+                                .clip(RoundedCornerShape(2.dp))
+                                .background(if (used) accent.copy(alpha = 0.25f) else accent)
+                        )
                     }
                 }
-
-                Spacer(modifier = Modifier.width(Spacing.sm))
-
+                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.weight(1f))
                 Box(
                     modifier = Modifier
+                        .heightIn(min = MinTouch)
                         .clip(RoundedCornerShape(MedAICorners.pill))
-                        .background(PremiumGradient)
-                        .clickable(onClick = onUpgradeClick)
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                        .background(accent)
+                        .clickable(role = Role.Button, onClick = onUpgradeClick)
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = Translations.getString("trial_banner_upgrade", lang),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        maxLines = 1
+                        style = MaterialTheme.typography.labelLarge,
+                        color = onAccent,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        maxLines = 2
                     )
                 }
             }

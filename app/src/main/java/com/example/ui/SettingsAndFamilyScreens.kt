@@ -1214,6 +1214,9 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
     var inviteInput by remember { mutableStateOf("") }
     var selectedMemberForReminder by remember { mutableStateOf<FamilyMemberLocal?>(null) }
     var selectedMemberForDetail by remember { mutableStateOf<FamilyMemberLocal?>(null) }
+    // The QR scanner used to be the centre button of the bottom bar; it lives here now, where
+    // it is actually about the family.
+    var showFamilyQr by remember { mutableStateOf(false) }
 
     // Add sub-account state
     var showAddMemberDialog by remember { mutableStateOf(false) }
@@ -1237,8 +1240,26 @@ fun FamilyScreen(viewModel: AppViewModel, onBack: () -> Unit) {
         }
     }
 
+    if (showFamilyQr) {
+        FamilyQrDialog(viewModel = viewModel, onDismiss = { showFamilyQr = false })
+    }
+
     Scaffold(
-        topBar = { AppHeader(title = Translations.getString("family_title", lang), onBack = onBack) }
+        topBar = {
+            AppHeader(
+                title = Translations.getString("family_title", lang),
+                onBack = onBack,
+                actions = {
+                    IconButton(onClick = { showFamilyQr = true }) {
+                        Icon(
+                            imageVector = Icons.Default.QrCodeScanner,
+                            contentDescription = Translations.getString("family_qr", lang),
+                            tint = PrimaryGreen
+                        )
+                    }
+                }
+            )
+        }
     ) { innerPadding ->
         Column(
             modifier = Modifier
