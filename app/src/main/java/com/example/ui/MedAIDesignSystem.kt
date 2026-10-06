@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -506,13 +507,13 @@ fun MedAIEmptyState(
             modifier = Modifier
                 .size(72.dp)
                 .clip(CircleShape)
-                .background(LightGreen),
+                .background(com.example.ui.theme.MedAITheme.colors.brandSoft),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon ?: Icons.Default.Info,
                 contentDescription = null,
-                tint = PrimaryGreen,
+                tint = com.example.ui.theme.MedAITheme.colors.onBrandSoft,
                 modifier = Modifier.size(32.dp),
             )
         }
@@ -520,7 +521,7 @@ fun MedAIEmptyState(
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = TextPrimary,
+            color = com.example.ui.theme.MedAITheme.colors.textPrimary,
             textAlign = TextAlign.Center,
         )
         if (message != null) {
@@ -528,16 +529,16 @@ fun MedAIEmptyState(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary,
+                color = com.example.ui.theme.MedAITheme.colors.textSecondary,
                 textAlign = TextAlign.Center,
             )
         }
         if (actionLabel != null && onAction != null) {
             Spacer(Modifier.height(Spacing.lg))
-            MedAIButton(
+            MedAIPrimaryButton(
                 text = actionLabel,
                 onClick = onAction,
-                modifier = Modifier.width(200.dp),
+                modifier = Modifier.widthIn(min = 200.dp),
             )
         }
     }
@@ -756,7 +757,7 @@ fun MedAIButton(
     val fill = when {
         !enabled -> Brush.horizontalGradient(listOf(MedicalBorder, MedicalBorder))
         brush != null -> brush
-        else -> Brush.horizontalGradient(listOf(Teal500, Teal700))
+        else -> Brush.horizontalGradient(listOf(com.example.ui.theme.MedAITheme.colors.brand, com.example.ui.theme.MedAITheme.colors.brandStrong))
     }
     Box(
         modifier = modifier
