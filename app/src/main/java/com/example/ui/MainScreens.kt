@@ -565,7 +565,7 @@ fun FamilyQrDialog(
                     
                     Button(
                         onClick = { selectedTab = 0; scanSuccess = false },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).heightIn(min = MinTouch),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (selectedTab == 0) medai.brand else Color.Transparent,
@@ -578,7 +578,7 @@ fun FamilyQrDialog(
 
                     Button(
                         onClick = { selectedTab = 1 },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).heightIn(min = MinTouch),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (selectedTab == 1) medai.brand else Color.Transparent,
