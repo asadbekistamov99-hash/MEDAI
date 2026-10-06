@@ -31,11 +31,15 @@ class HomeDirectionsScreenshotTest {
 
   @Test fun a_uz() = shot("A_uz") { HomeDirectionA(UZ) }
   @Test fun b_uz() = shot("B_uz") { HomeDirectionB(UZ) }
+  @Test fun c_uz() = shot("C_uz") { HomeDirectionC(UZ) }
 
   @Config(qualifiers = "w1245dp-h960dp-xxhdpi")
   @Test fun a_langs() = shot("A_uz_ru_en") { Sheet { HomeDirectionA(it) } }
   @Config(qualifiers = "w1245dp-h960dp-xxhdpi")
   @Test fun b_langs() = shot("B_uz_ru_en") { Sheet { HomeDirectionB(it) } }
+
+  @Config(qualifiers = "w1245dp-h960dp-xxhdpi")
+  @Test fun c_langs() = shot("C_uz_ru_en") { Sheet { HomeDirectionC(it) } }
 
   @Composable private fun Sheet(page: @Composable (S) -> Unit) {
     Row(Modifier.fillMaxSize().background(Color(0xFF94A3B8)), horizontalArrangement = Arrangement.spacedBy(2.dp)) {

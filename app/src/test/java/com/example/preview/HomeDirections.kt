@@ -376,3 +376,137 @@ fun HomeDirectionB(s: S) {
     Text(label, fontSize = 12.sp, lineHeight = 15.sp, fontWeight = FontWeight.Medium, color = Ink900, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
   }
 }
+
+// ======================================================================================
+// C — "Aralash": A's calm structure + B's gradient hero, pastel icons and filled active tab.
+// ======================================================================================
+@Composable
+fun HomeDirectionC(s: S) {
+  Column(Modifier.fillMaxSize().background(ACanvas)) {
+    Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)) {
+      Spacer(Modifier.height(20.dp))
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(48.dp).clip(CircleShape).background(ATint), contentAlignment = Alignment.Center) {
+          Text("A", color = ATealDeep, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(s.hello, Modifier.weight(1f), fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold, color = Ink900, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Box(Modifier.size(48.dp).clip(CircleShape).background(Color.White).border(1.dp, ABorder, CircleShape), contentAlignment = Alignment.Center) {
+          Icon(Icons.Rounded.Notifications, null, tint = Ink900, modifier = Modifier.size(24.dp))
+          Box(Modifier.align(Alignment.TopEnd).padding(12.dp).size(9.dp).clip(CircleShape).background(Color(0xFFDC2626)).border(1.5.dp, Color.White, CircleShape))
+        }
+      }
+      Spacer(Modifier.height(16.dp))
+      // hero: score + metrics + the one primary action
+      Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Brush.linearGradient(listOf(BTeal, BIndigo))).padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          Column(Modifier.weight(1f)) {
+            Text(s.score, fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Medium, color = Color.White.copy(alpha = 0.92f))
+            Spacer(Modifier.height(2.dp))
+            Text(s.sub, fontSize = 15.sp, lineHeight = 21.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+            Spacer(Modifier.height(12.dp))
+            Text(s.good, Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.2f)).padding(horizontal = 12.dp, vertical = 6.dp),
+              fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
+          }
+          Spacer(Modifier.width(12.dp))
+          Box(Modifier.size(104.dp), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize()) {
+              val st = 10.dp.toPx()
+              drawArc(Color.White.copy(alpha = 0.22f), -90f, 360f, false, topLeft = Offset(st / 2, st / 2), size = Size(size.width - st, size.height - st), style = Stroke(st, cap = StrokeCap.Round))
+              drawArc(Color.White, -90f, 360f * 0.82f, false, topLeft = Offset(st / 2, st / 2), size = Size(size.width - st, size.height - st), style = Stroke(st, cap = StrokeCap.Round))
+            }
+            Row(verticalAlignment = Alignment.Bottom) {
+              Text("82", fontSize = 32.sp, lineHeight = 36.sp, fontWeight = FontWeight.ExtraBold, color = Color.White)
+              Text("/100", fontSize = 12.sp, lineHeight = 16.sp, color = Color.White.copy(alpha = 0.92f), modifier = Modifier.padding(bottom = 5.dp))
+            }
+          }
+        }
+        Spacer(Modifier.height(16.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+          BPill(Modifier.weight(1f), Icons.Rounded.DirectionsWalk, "4 230", s.steps)
+          BPill(Modifier.weight(1f), Icons.Rounded.WaterDrop, "5 / 8", s.water)
+          BPill(Modifier.weight(1f), Icons.Rounded.Bedtime, "7h 20m", s.sleep)
+        }
+        Spacer(Modifier.height(16.dp))
+        Row(
+          Modifier.fillMaxWidth().heightIn(min = 64.dp).clip(RoundedCornerShape(20.dp)).background(Color.White).clickable { }.padding(horizontal = 14.dp, vertical = 10.dp),
+          verticalAlignment = Alignment.CenterVertically
+        ) {
+          Box(Modifier.size(40.dp).clip(CircleShape).background(Color(0xFFEDE9FE)), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.Psychology, null, tint = Color(0xFF4C1D95), modifier = Modifier.size(24.dp))
+          }
+          Spacer(Modifier.width(12.dp))
+          Column(Modifier.weight(1f)) {
+            Text(s.aiTitle, fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.Bold, color = Ink900, maxLines = 2)
+            Text(s.aiSub, fontSize = 12.sp, lineHeight = 16.sp, color = Ink500, maxLines = 2)
+          }
+          Icon(Icons.Rounded.ChevronRight, null, tint = BIndigo)
+        }
+      }
+      Spacer(Modifier.height(12.dp))
+      Row(
+        Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(14.dp)).background(Color(0xFFF5F3FF))
+          .border(1.dp, Color(0xFFE4DCFB), RoundedCornerShape(14.dp)).padding(start = 14.dp, end = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+      ) {
+        Icon(Icons.Rounded.WorkspacePremium, null, tint = Color(0xFF6D28D9), modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(10.dp))
+        Text(s.trial, Modifier.weight(1f), fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.Medium, color = Color(0xFF4C1D95), maxLines = 2)
+        Box(Modifier.heightIn(min = 48.dp).clickable { }.padding(horizontal = 12.dp), contentAlignment = Alignment.Center) {
+          Text(s.upgrade, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF6D28D9), maxLines = 1)
+        }
+      }
+      Spacer(Modifier.height(24.dp))
+      Text(s.quick, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Ink900)
+      Spacer(Modifier.height(12.dp))
+      Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        CQuick(Modifier.weight(1f), Icons.Rounded.MonitorHeart, s.symptoms, Color(0xFFD7F3EC), Color(0xFF064E46))
+        CQuick(Modifier.weight(1f), Icons.Rounded.Medication, s.meds, Color(0xFFFFE9D6), Color(0xFF7C2D12))
+        CQuick(Modifier.weight(1f), Icons.Rounded.Alarm, s.reminders, Color(0xFFDDEBFF), Color(0xFF1E3A8A))
+        CQuick(Modifier.weight(1f), Icons.Rounded.Emergency, s.sos, Color(0xFFFEE2E2), Color(0xFF991B1B))
+      }
+      Spacer(Modifier.height(24.dp))
+      Text(s.all, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Ink900)
+      Spacer(Modifier.height(12.dp))
+      Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(Color.White).border(1.dp, ABorder, RoundedCornerShape(20.dp))) {
+        ARow(Icons.Rounded.FamilyRestroom, s.family, s.familySub, true)
+        ARow(Icons.Rounded.Science, s.lab, s.labSub, true)
+        ARow(Icons.Rounded.Lightbulb, s.tips, s.tipsSub, true)
+        ARow(Icons.Rounded.BarChart, s.stats, s.statsSub, false)
+      }
+      Spacer(Modifier.height(20.dp))
+    }
+    CNav(s)
+  }
+}
+
+@Composable private fun CQuick(m: Modifier, icon: ImageVector, label: String, bg: Color, fg: Color) {
+  Column(
+    m.heightIn(min = 96.dp).clip(RoundedCornerShape(18.dp)).background(Color.White).border(1.dp, ABorder, RoundedCornerShape(18.dp))
+      .clickable { }.padding(vertical = 12.dp, horizontal = 2.dp),
+    horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center
+  ) {
+    Box(Modifier.size(44.dp).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) { Icon(icon, null, tint = fg, modifier = Modifier.size(24.dp)) }
+    Spacer(Modifier.height(8.dp))
+    Text(label, fontSize = 12.sp, lineHeight = 15.sp, fontWeight = FontWeight.Medium, color = Ink900, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
+  }
+}
+
+@Composable private fun CNav(s: S) {
+  Column(Modifier.background(Color.White)) {
+    Box(Modifier.fillMaxWidth().height(1.dp).background(ABorder))
+    Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)) {
+      listOf(Icons.Rounded.Home to s.nHome, Icons.Rounded.History to s.nHist, Icons.Rounded.Chat to s.nChat, Icons.Rounded.Person to s.nProf)
+        .forEachIndexed { i, (ic, label) ->
+          val sel = i == 0
+          Column(Modifier.weight(1f).heightIn(min = 56.dp).clickable { }, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            Box(Modifier.height(32.dp).width(60.dp).clip(CircleShape).background(if (sel) ATealDeep else Color.Transparent), contentAlignment = Alignment.Center) {
+              Icon(ic, null, tint = if (sel) Color.White else Ink500, modifier = Modifier.size(24.dp))
+            }
+            Text(label, fontSize = 12.sp, lineHeight = 16.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
+              color = if (sel) ATealDeep else Ink500, maxLines = 1, overflow = TextOverflow.Ellipsis)
+          }
+        }
+    }
+  }
+}
