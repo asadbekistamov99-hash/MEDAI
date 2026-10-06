@@ -1,49 +1,96 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package com.example.ui
 
 import android.widget.Toast
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.AddAlarm
+import androidx.compose.material.icons.filled.Alarm
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.EditNote
+import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.material.icons.filled.HealthAndSafety
+import androidx.compose.material.icons.filled.Medication
+import androidx.compose.material.icons.filled.NotificationsOff
+import androidx.compose.material.icons.filled.Quiz
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.example.data.ReminderLocal
-import com.example.i18n.Translations
-import com.example.ui.theme.*
+import com.example.ui.theme.MedAICorners
+import com.example.ui.theme.MedAIElevation
+import com.example.ui.theme.MedAIText
+import com.example.ui.theme.MedAITheme
+import com.example.ui.theme.MedAITint
+import com.example.ui.theme.MinTouch
 import kotlinx.coroutines.launch
 
-// Distinct accent used for the Statistika tab (indigo), sitting alongside the app's
-// existing PrimaryGreen / AccentCyan / WarningOrange tokens without adding a new theme token.
-private val TabStatsAccent = Color(0xFF6366F1)
-
 /**
- * MedAI Yordamchi — All-in-One Smart Medical Assistant
- * Features:
- * 1. Dori Aniqlash (Pill Identification & Drug Leaflet)
- * 2. Simptom Aniqlash (2-Step Dynamic Clinical Questionnaire & Triage)
- * 3. Statistika (Medication Adherence 4-Box Stats: Qabul qilindi, Kechikib qabul, O'tkazib yuborildi, Muntazamlik)
- * 4. Reminder (Medication Reminders Scheduling & Timeline)
+ * MedAI Yordamchi: all-in-one medical assistant.
+ * 1. Pill identification and drug leaflet
+ * 2. Symptom detection (2-step questionnaire)
+ * 3. Statistics (medication adherence)
+ * 4. Reminders
  */
 @Composable
 fun MedAIYordamchiScreen(
@@ -51,128 +98,29 @@ fun MedAIYordamchiScreen(
     onBack: () -> Unit,
     initialTab: Int = 0
 ) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
     var selectedTab by remember { mutableStateOf(initialTab) }
     val lang by viewModel.currentLanguage.collectAsState()
 
-    val tabs = listOf(
-        "Dori Aniqlash" to Icons.Default.Medication,
-        "Simptom Aniqlash" to Icons.Default.HealthAndSafety,
-        "Statistika" to Icons.Default.BarChart,
-        "Reminder" to Icons.Default.Alarm
-    )
-    // Distinct brand-consistent accent per tab (PrimaryGreen stays the anchor for the core feature)
-    val tabAccentColors = listOf(medai.brand, medai.info, TabStatsAccent, medai.warning)
+    val tabs = remember(lang) {
+        listOf(
+            supportText(lang, "Dori aniqlash", "Лекарства", "Pill ID"),
+            supportText(lang, "Simptomlar", "Симптомы", "Symptoms"),
+            supportText(lang, "Statistika", "Статистика", "Statistics"),
+            supportText(lang, "Eslatmalar", "График приёма", "Reminders"),
+        )
+    }
 
     Scaffold(
+        containerColor = c.canvas,
         topBar = {
-            Surface(
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 4.dp
-            ) {
-                Column(modifier = Modifier.fillMaxWidth().statusBarsPadding()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        IconButton(
-                            onClick = onBack,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(medai.brand.copy(alpha = 0.1f), CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ArrowBack,
-                                contentDescription = "Orqaga",
-                                tint = medai.brand
-                            )
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = "MedAI",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = medai.brand
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Surface(
-                                color = medai.brandStrong.copy(alpha = 0.12f),
-                                shape = RoundedCornerShape(6.dp)
-                            ) {
-                                Text(
-                                    text = "YORDAMCHI",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = medai.brandStrong,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(medai.brand.copy(alpha = 0.1f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SmartToy,
-                                contentDescription = null,
-                                tint = medai.brand,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-
-                    // Top Tab Navigation Bar — polished segmented pill switcher, each tab
-                    // carrying its own accent color (matching MedicalBottomNavigation's
-                    // selected/unselected pattern).
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState())
-                            .background(medai.canvas, RoundedCornerShape(18.dp))
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        tabs.forEachIndexed { index, (title, icon) ->
-                            val isSelected = selectedTab == index
-                            val accent = tabAccentColors[index]
-                            Surface(
-                                onClick = { selectedTab = index },
-                                shape = RoundedCornerShape(20.dp),
-                                color = if (isSelected) accent else Color.Transparent,
-                                shadowElevation = if (isSelected) 3.dp else 0.dp,
-                                border = if (isSelected) null else BorderStroke(1.dp, medai.border)
-                            ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = icon,
-                                        contentDescription = null,
-                                        tint = if (isSelected) Color.White else medai.textSecondary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Text(
-                                        text = title,
-                                        fontSize = 13.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                                        color = if (isSelected) Color.White else medai.textSecondary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
+            Column {
+                AppHeader(
+                    title = supportText(lang, "MedAI Yordamchi", "Помощник MedAI", "MedAI Assistant"),
+                    onBack = onBack,
+                )
+                YordamchiTabs(tabs, selectedTab) { selectedTab = it }
             }
         }
     ) { innerPadding ->
@@ -180,7 +128,8 @@ fun MedAIYordamchiScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(medai.canvas)
+                .background(c.canvas)
+                .imePadding()
         ) {
             when (selectedTab) {
                 0 -> DoriAniqlashTab(viewModel)
@@ -192,164 +141,136 @@ fun MedAIYordamchiScreen(
     }
 }
 
+private val TabContentPadding = PaddingValues(16.dp)
+
 /* ============================================================
-   TAB 1 — Dori Aniqlash
+   TAB 1: Dori Aniqlash
    ============================================================ */
 @Composable
 fun DoriAniqlashTab(viewModel: AppViewModel) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
+    val lang by viewModel.currentLanguage.collectAsState()
 
     val isIdentifying by viewModel.isIdentifyingPill.collectAsState()
     val pillResult by viewModel.pillIdentifyResult.collectAsState()
     var drugInput by remember { mutableStateOf("") }
     val context = LocalContext.current
 
-    val quickPills = listOf("Paracetamol", "Tsitramon", "Ibuprofen", "Amoksitsillin", "No-shpa", "Lisinopril")
+    val quickPills = remember { listOf("Paracetamol", "Tsitramon", "Ibuprofen", "Amoksitsillin", "No-shpa", "Lisinopril") }
+    val emptyToast = supportText(lang, "Iltimos, dori nomini kiriting", "Пожалуйста, введите название лекарства", "Please enter the medicine name")
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = TabContentPadding,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, medai.border)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .background(medai.brand.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Medication,
-                                contentDescription = null,
-                                tint = medai.brand,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "Dori vositasini aniqlash",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = medai.textPrimary
-                            )
-                            Text(
-                                text = "Dori nomi bo'yicha to'liq tibbiy yo'riqnomani oling",
-                                fontSize = 12.sp,
-                                color = medai.textSecondary
-                            )
-                        }
-                    }
+        item(key = "input") {
+            MedAICard {
+                YordamchiCardTitle(
+                    icon = Icons.Default.Medication,
+                    title = supportText(lang, "Dori vositasini aniqlash", "Определение лекарства", "Identify a medicine"),
+                    subtitle = supportText(
+                        lang,
+                        "Dori nomi bo'yicha to'liq tibbiy yo'riqnomani oling",
+                        "Получите полную инструкцию по названию лекарства",
+                        "Get the full medical leaflet by medicine name",
+                    ),
+                    tint = c.tintTeal,
+                )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
 
-                    OutlinedTextField(
-                        value = drugInput,
-                        onValueChange = { drugInput = it },
-                        placeholder = { Text("Dori nomini kiriting (masalan: Paracetamol)...") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                        keyboardActions = KeyboardActions(onSearch = {
-                            if (drugInput.isNotBlank()) {
-                                viewModel.identifyPill(drugInput.trim())
-                            } else {
-                                Toast.makeText(context, "Iltimos, dori nomini kiriting", Toast.LENGTH_SHORT).show()
-                            }
-                        }),
-                        trailingIcon = {
-                            if (drugInput.isNotEmpty()) {
-                                IconButton(onClick = { drugInput = "" }) {
-                                    Icon(imageVector = Icons.Default.Clear, contentDescription = "Tozalash")
-                                }
-                            }
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Quick drug chips
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        quickPills.forEach { pill ->
-                            SuggestionChip(
-                                onClick = {
-                                    drugInput = pill
-                                    viewModel.identifyPill(pill)
-                                },
-                                label = { Text(pill, fontSize = 12.sp) }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(
-                        onClick = {
-                            if (drugInput.isNotBlank()) {
-                                viewModel.identifyPill(drugInput.trim())
-                            } else {
-                                Toast.makeText(context, "Iltimos, dori nomini kiriting", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        enabled = !isIdentifying,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
-                    ) {
-                        if (isIdentifying) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                modifier = Modifier.size(22.dp),
-                                strokeWidth = 2.5.dp
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = "Dori ma'lumotlari izlanmoqda...",
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
+                YordamchiField(
+                    value = drugInput,
+                    onValueChange = { drugInput = it },
+                    label = supportText(lang, "Dori nomi", "Название лекарства", "Medicine name"),
+                    placeholder = supportText(lang, "Masalan: Paracetamol", "Например: Парацетамол", "e.g. Paracetamol"),
+                    leadingIcon = Icons.Default.Search,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                    keyboardActions = KeyboardActions(onSearch = {
+                        if (drugInput.isNotBlank()) {
+                            viewModel.identifyPill(drugInput.trim())
                         } else {
-                            Icon(imageVector = Icons.Default.Search, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = "Ma'lumot olish",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 15.sp,
-                                color = Color.White
-                            )
+                            Toast.makeText(context, emptyToast, Toast.LENGTH_SHORT).show()
                         }
+                    }),
+                    trailingContent = if (drugInput.isNotEmpty()) {
+                        {
+                            Box(
+                                Modifier.size(MinTouch).clip(CircleShape).clickable(role = Role.Button) { drugInput = "" },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    Icons.Default.Clear,
+                                    contentDescription = supportText(lang, "Tozalash", "Очистить", "Clear"),
+                                    tint = c.textSecondary,
+                                )
+                            }
+                        }
+                    } else null,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Text(
+                    supportText(lang, "Tezkor tanlov", "Быстрый выбор", "Quick picks"),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = c.textSecondary,
+                )
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    quickPills.forEach { pill ->
+                        MedAIFilterChip(
+                            text = pill,
+                            selected = false,
+                            onClick = {
+                                drugInput = pill
+                                viewModel.identifyPill(pill)
+                            },
+                        )
                     }
                 }
+
+                Spacer(Modifier.height(8.dp))
+
+                MedAIPrimaryButton(
+                    text = if (isIdentifying) {
+                        supportText(lang, "Dori ma'lumotlari izlanmoqda...", "Ищем информацию о лекарстве...", "Looking up medicine info...")
+                    } else {
+                        supportText(lang, "Ma'lumot olish", "Получить информацию", "Get information")
+                    },
+                    onClick = {
+                        if (drugInput.isNotBlank()) {
+                            viewModel.identifyPill(drugInput.trim())
+                        } else {
+                            Toast.makeText(context, emptyToast, Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    icon = Icons.Default.Search,
+                    enabled = !isIdentifying,
+                    loading = isIdentifying,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
 
         // Result display
         if (pillResult.isNotEmpty()) {
-            item {
+            item(key = "result") {
                 ResultCard(
-                    title = "Dori yo'rig'i",
-                    text = pillResult
+                    title = supportText(lang, "Dori yo'riqnomasi", "Инструкция к лекарству", "Medicine leaflet"),
+                    text = pillResult,
+                )
+            }
+            item(key = "disclaimer") {
+                MedAIInfoBanner(
+                    text = supportText(
+                        lang,
+                        "Ma'lumot AI tomonidan tayyorlangan va umumiy xarakterga ega. Dori ichishdan oldin shifokor yoki farmatsevt bilan maslahatlashing.",
+                        "Информация подготовлена ИИ и носит общий характер. Перед приёмом лекарства проконсультируйтесь с врачом или фармацевтом.",
+                        "This information is AI-generated and general in nature. Consult a doctor or pharmacist before taking any medicine.",
+                    ),
+                    tone = MedAITone.Warning,
                 )
             }
         }
@@ -357,11 +278,12 @@ fun DoriAniqlashTab(viewModel: AppViewModel) {
 }
 
 /* ============================================================
-   TAB 2 — Simptom Aniqlash (2-Step Smart Triage)
+   TAB 2: Simptom Aniqlash (2-step triage)
    ============================================================ */
 @Composable
 fun SimptomAniqlashTab(viewModel: AppViewModel) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
+    val lang by viewModel.currentLanguage.collectAsState()
 
     var complaintInput by remember { mutableStateOf("") }
     val isLoadingQuestions by viewModel.isLoadingSymptomQuestions.collectAsState()
@@ -378,272 +300,215 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
         }
     }
 
-    val quickComplaints = listOf(
-        "Boshim qattiq og'riyapti va ko'nglim aynyapti",
-        "Tana haroratim 38.5, quruq yo'tal bezovta qilyapti",
-        "Qornimning o'ng pastki qismida sanchuvchi og'riq bor",
-        "Yuragim tez urib, nafas yetishmayapti",
-        "Belim qattiq og'rib, oyog'imga beryapti"
-    )
+    val quickComplaints = remember(lang) {
+        when (lang) {
+            "ru" -> listOf(
+                "Сильно болит голова и тошнит",
+                "Температура 38,5, беспокоит сухой кашель",
+                "Колющая боль в правом нижнем отделе живота",
+                "Сердце быстро бьётся, не хватает воздуха",
+                "Сильно болит поясница, боль отдаёт в ногу",
+            )
+            "en" -> listOf(
+                "I have a severe headache and feel nauseous",
+                "My temperature is 38.5 and a dry cough bothers me",
+                "Stabbing pain in the lower right of my abdomen",
+                "My heart is racing and I am short of breath",
+                "Severe lower back pain spreading to my leg",
+            )
+            else -> listOf(
+                "Boshim qattiq og'riyapti va ko'nglim aynyapti",
+                "Tana haroratim 38.5, quruq yo'tal bezovta qilyapti",
+                "Qornimning o'ng pastki qismida sanchuvchi og'riq bor",
+                "Yuragim tez urib, nafas yetishmayapti",
+                "Belim qattiq og'rib, oyog'imga beryapti",
+            )
+        }
+    }
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = TabContentPadding,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Step 1: Input Complaint
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, medai.border)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .background(medai.info.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
+        // Step 1: input complaint
+        item(key = "step1") {
+            MedAICard {
+                YordamchiCardTitle(
+                    icon = Icons.Default.HealthAndSafety,
+                    title = supportText(lang, "1-qadam: Shikoyatingizni yozing", "Шаг 1: опишите жалобы", "Step 1: describe your symptoms"),
+                    subtitle = supportText(
+                        lang,
+                        "AI sizga mos shifokorlik savollarini tayyorlaydi",
+                        "ИИ подготовит подходящие вопросы врача",
+                        "AI will prepare relevant clinical questions",
+                    ),
+                    tint = c.tintSky,
+                )
+
+                Spacer(Modifier.height(16.dp))
+
+                YordamchiField(
+                    value = complaintInput,
+                    onValueChange = { complaintInput = it },
+                    label = supportText(lang, "Shikoyat", "Жалобы", "Symptoms"),
+                    placeholder = supportText(
+                        lang,
+                        "Qayeringiz og'riyapti yoki qanday alomatlar bor?",
+                        "Что болит или какие симптомы вас беспокоят?",
+                        "Where does it hurt, or what symptoms do you have?",
+                    ),
+                    singleLine = false,
+                    minHeight = 96.dp,
+                    maxLines = 4,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+
+                Spacer(Modifier.height(12.dp))
+
+                Text(
+                    supportText(lang, "Tezkor misollar", "Быстрые примеры", "Quick examples"),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = c.textSecondary,
+                )
+                Column {
+                    quickComplaints.forEachIndexed { i, sample ->
+                        if (i > 0) Box(Modifier.fillMaxWidth().height(1.dp).background(c.divider))
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = MinTouch)
+                                .clickable(role = Role.Button) { complaintInput = sample }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.HealthAndSafety,
-                                contentDescription = null,
-                                tint = medai.info,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "1-Qadam: Shikoyatingizni yozing",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = medai.textPrimary
-                            )
-                            Text(
-                                text = "AI sizga mos shifokorlik savollarini tayyorlaydi",
-                                fontSize = 12.sp,
-                                color = medai.textSecondary
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    OutlinedTextField(
-                        value = complaintInput,
-                        onValueChange = { complaintInput = it },
-                        placeholder = { Text("Qayeringiz og'riyapti yoki qanday alomatlar bor?...") },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 90.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        maxLines = 4
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Quick complaints chips
-                    Text(text = "Tezkor misollar:", fontSize = 11.sp, color = medai.textSecondary, fontWeight = FontWeight.SemiBold)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        quickComplaints.forEach { c ->
-                            SuggestionChip(
-                                onClick = { complaintInput = c },
-                                label = { Text(c.take(28) + "...", fontSize = 11.sp) }
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(
-                        onClick = {
-                            if (complaintInput.isNotBlank()) {
-                                viewModel.getSymptomQuestions(complaintInput.trim())
-                            } else {
-                                Toast.makeText(context, "Iltimos, shikoyatingizni kiriting", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        enabled = !isLoadingQuestions,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = medai.info)
-                    ) {
-                        if (isLoadingQuestions) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                modifier = Modifier.size(22.dp),
-                                strokeWidth = 2.5.dp
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(text = "Savollar yuklanmoqda...", fontWeight = FontWeight.Bold, color = Color.White)
-                        } else {
-                            Icon(imageVector = Icons.Default.Quiz, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "Savollarni olish", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                            Icon(Icons.Default.EditNote, contentDescription = null, tint = c.brand, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(10.dp))
+                            Text(sample, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary, modifier = Modifier.weight(1f))
                         }
                     }
                 }
+
+                Spacer(Modifier.height(12.dp))
+
+                MedAIPrimaryButton(
+                    text = if (isLoadingQuestions) {
+                        supportText(lang, "Savollar yuklanmoqda...", "Загрузка вопросов...", "Loading questions...")
+                    } else {
+                        supportText(lang, "Savollarni olish", "Получить вопросы", "Get questions")
+                    },
+                    onClick = {
+                        if (complaintInput.isNotBlank()) {
+                            viewModel.getSymptomQuestions(complaintInput.trim())
+                        } else {
+                            Toast.makeText(
+                                context,
+                                supportText(lang, "Iltimos, shikoyatingizni kiriting", "Пожалуйста, опишите жалобы", "Please describe your symptoms"),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    },
+                    icon = Icons.Default.Quiz,
+                    enabled = !isLoadingQuestions,
+                    loading = isLoadingQuestions,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
         }
 
-        // Step 2: Dynamic Questions List
+        // Step 2: dynamic questions
         if (questionsData != null) {
             val qData = questionsData!!
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(4.dp, RoundedCornerShape(20.dp)),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                    border = BorderStroke(1.dp, medai.border)
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text(
-                                text = "2-Qadam: Qo'shimcha savollar",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = medai.textPrimary
-                            )
+            item(key = "step2") {
+                MedAICard {
+                    YordamchiCardTitle(
+                        icon = Icons.Default.Quiz,
+                        title = supportText(lang, "2-qadam: Qo'shimcha savollar", "Шаг 2: уточняющие вопросы", "Step 2: follow-up questions"),
+                        subtitle = if (qData.medicalName.isNotBlank()) "${qData.title} • ${qData.medicalName}" else qData.title,
+                        tint = c.tintSky,
+                    )
 
-                            // Title / Medical Name badge
-                            Surface(
-                                color = medai.info.copy(alpha = 0.12f),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Text(
-                                    text = if (qData.medicalName.isNotBlank()) "${qData.title} • ${qData.medicalName}" else qData.title,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = medai.info,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
+                    Spacer(Modifier.height(16.dp))
 
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                            qData.questions.forEachIndexed { index, question ->
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = medai.canvas,
-                                    border = BorderStroke(1.dp, medai.border)
-                                ) {
-                                    Column(modifier = Modifier.padding(12.dp)) {
-                                        Row(verticalAlignment = Alignment.Top) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .size(20.dp)
-                                                    .background(medai.info.copy(alpha = 0.15f), CircleShape),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                Text(
-                                                    text = "${index + 1}",
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = medai.info
-                                                )
-                                            }
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(
-                                                text = question,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.SemiBold,
-                                                color = medai.textPrimary,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        OutlinedTextField(
-                                            value = userAnswers.getOrElse(index) { "" },
-                                            onValueChange = { newVal ->
-                                                val mutableList = userAnswers.toMutableList()
-                                                if (index < mutableList.size) {
-                                                    mutableList[index] = newVal
-                                                } else {
-                                                    while (mutableList.size < index) mutableList.add("")
-                                                    mutableList.add(newVal)
-                                                }
-                                                userAnswers = mutableList
-                                            },
-                                            placeholder = { Text("Javob yozing...", fontSize = 13.sp) },
-                                            modifier = Modifier.fillMaxWidth(),
-                                            shape = RoundedCornerShape(10.dp),
-                                            singleLine = true,
-                                            colors = OutlinedTextFieldDefaults.colors(
-                                                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
-                                                focusedContainerColor = MaterialTheme.colorScheme.surface
-                                            )
-                                        )
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        qData.questions.forEachIndexed { index, question ->
+                            Column {
+                                Row(verticalAlignment = Alignment.Top) {
+                                    Box(
+                                        Modifier.size(24.dp).clip(CircleShape).background(c.tintSky.bg),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Text("${index + 1}", style = MaterialTheme.typography.labelMedium, color = c.tintSky.fg)
                                     }
+                                    Spacer(Modifier.width(10.dp))
+                                    Text(
+                                        text = question,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        color = c.textPrimary,
+                                        modifier = Modifier.weight(1f),
+                                    )
                                 }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Button(
-                            onClick = {
-                                viewModel.analyzeSymptomAnswers(
-                                    complaint = complaintInput,
-                                    questions = qData.questions,
-                                    answers = userAnswers
+                                Spacer(Modifier.height(8.dp))
+                                YordamchiField(
+                                    value = userAnswers.getOrElse(index) { "" },
+                                    onValueChange = { newVal ->
+                                        val mutableList = userAnswers.toMutableList()
+                                        if (index < mutableList.size) {
+                                            mutableList[index] = newVal
+                                        } else {
+                                            while (mutableList.size < index) mutableList.add("")
+                                            mutableList.add(newVal)
+                                        }
+                                        userAnswers = mutableList
+                                    },
+                                    placeholder = supportText(lang, "Javob yozing...", "Напишите ответ...", "Type your answer..."),
+                                    modifier = Modifier.fillMaxWidth(),
                                 )
-                            },
-                            enabled = !isAnalyzingAnswers,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp),
-                            shape = RoundedCornerShape(14.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = medai.info)
-                        ) {
-                            if (isAnalyzingAnswers) {
-                                CircularProgressIndicator(
-                                    color = Color.White,
-                                    modifier = Modifier.size(22.dp),
-                                    strokeWidth = 2.5.dp
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(text = "Tahlil qilinmoqda...", fontWeight = FontWeight.Bold, color = Color.White)
-                            } else {
-                                Icon(imageVector = Icons.Default.FactCheck, contentDescription = null)
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(text = "Tahlil qilish", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
                             }
                         }
                     }
+
+                    Spacer(Modifier.height(20.dp))
+
+                    MedAIPrimaryButton(
+                        text = if (isAnalyzingAnswers) {
+                            supportText(lang, "Tahlil qilinmoqda...", "Анализируем...", "Analysing...")
+                        } else {
+                            supportText(lang, "Tahlil qilish", "Анализировать", "Analyse")
+                        },
+                        onClick = {
+                            viewModel.analyzeSymptomAnswers(
+                                complaint = complaintInput,
+                                questions = qData.questions,
+                                answers = userAnswers
+                            )
+                        },
+                        icon = Icons.Default.FactCheck,
+                        enabled = !isAnalyzingAnswers,
+                        loading = isAnalyzingAnswers,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }
 
-        // Final Diagnostic Result Card
+        // Final diagnostic result
         if (dynamicAnalysisResult.isNotEmpty()) {
-            item {
+            item(key = "result") {
                 ResultCard(
-                    title = "Tahlil natijasi",
-                    text = dynamicAnalysisResult
+                    title = supportText(lang, "Tahlil natijasi", "Результат анализа", "Analysis result"),
+                    text = dynamicAnalysisResult,
+                )
+            }
+            item(key = "disclaimer") {
+                MedAIInfoBanner(
+                    text = supportText(
+                        lang,
+                        "Bu tashxis emas, faqat AI taxlili. Holat og'irlashsa yoki xavotirli alomatlar bo'lsa, zudlik bilan shifokorga murojaat qiling yoki 103 ga qo'ng'iroq qiling.",
+                        "Это не диагноз, а анализ ИИ. При ухудшении или тревожных симптомах немедленно обратитесь к врачу или позвоните по номеру 103.",
+                        "This is not a diagnosis, only an AI analysis. If your condition worsens or you have alarming symptoms, see a doctor or call emergency services right away.",
+                    ),
+                    tone = MedAITone.Warning,
                 )
             }
         }
@@ -651,11 +516,12 @@ fun SimptomAniqlashTab(viewModel: AppViewModel) {
 }
 
 /* ============================================================
-   TAB 3 — Statistika
+   TAB 3: Statistika
    ============================================================ */
 @Composable
 fun StatistikaTab(viewModel: AppViewModel) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
+    val lang by viewModel.currentLanguage.collectAsState()
 
     val reminders by viewModel.reminders.collectAsState()
     val dailyMetrics by viewModel.allDailyMetrics.collectAsState()
@@ -665,8 +531,10 @@ fun StatistikaTab(viewModel: AppViewModel) {
 
     // Calculated adherence metrics based on real records (starts strictly at 0)
     val totalRemindersCount = reminders.size
-    val tookCount = dailyMetrics.sumOf { m ->
-        try { org.json.JSONArray(m.completedRemindersJson).length() } catch(e: Exception) { 0 }
+    val tookCount = remember(dailyMetrics) {
+        dailyMetrics.sumOf { m ->
+            try { org.json.JSONArray(m.completedRemindersJson).length() } catch (e: Exception) { 0 }
+        }
     }
     val lateTookCount = 0
     val missedCount = if (totalRemindersCount > tookCount) totalRemindersCount - tookCount else 0
@@ -674,255 +542,214 @@ fun StatistikaTab(viewModel: AppViewModel) {
     val adherencePercent = if (totalScheduled > 0) {
         ((tookCount.toDouble() / totalScheduled) * 100.0).coerceIn(0.0, 100.0)
     } else 0.0
+    val adherenceText = String.format(java.util.Locale.US, "%.1f%%", adherencePercent)
+
+    val resetToast = supportText(lang, "Hamma statistika 0 ga tushirildi", "Вся статистика обнулена", "All statistics reset to 0")
+    val countSuffix = if (lang == "uz") " ta" else ""
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = TabContentPadding,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, medai.border)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .background(TabStatsAccent.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.BarChart,
-                                contentDescription = null,
-                                tint = TabStatsAccent,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Dori va salomatlik statistikasi",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = medai.textPrimary
-                            )
-                            Text(
-                                text = "Foydalanish va intizomga qarab oshib boruvchi statistika",
-                                fontSize = 12.sp,
-                                color = medai.textSecondary
-                            )
-                        }
-                    }
+        item(key = "tiles") {
+            MedAICard {
+                YordamchiCardTitle(
+                    icon = Icons.Default.BarChart,
+                    title = supportText(lang, "Dori va salomatlik statistikasi", "Статистика лекарств и здоровья", "Medicine & health statistics"),
+                    subtitle = supportText(
+                        lang,
+                        "Foydalanish va intizomga qarab oshib boruvchi statistika",
+                        "Статистика растёт по мере использования и регулярности",
+                        "Statistics grow with your use and consistency",
+                    ),
+                    tint = c.tintSky,
+                )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                Spacer(Modifier.height(16.dp))
 
-                    // 4-Box Stats Grid (Starts at 0, grows with adherence)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        StatBox(
-                            value = "$tookCount",
-                            label = "Qabul qilindi",
-                            color = medai.brand,
-                            icon = Icons.Default.CheckCircle,
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatBox(
-                            value = "$lateTookCount",
-                            label = "Kechikib qabul",
-                            color = medai.warning,
-                            icon = Icons.Default.Schedule,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
+                // 2x2 stat tiles (starts at 0, grows with adherence)
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    StatBox(
+                        value = "$tookCount",
+                        label = supportText(lang, "Qabul qilindi", "Принято", "Taken"),
+                        tint = c.tintTeal,
+                        icon = Icons.Default.CheckCircle,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                    StatBox(
+                        value = "$lateTookCount",
+                        label = supportText(lang, "Kechikib qabul", "Принято с опозданием", "Taken late"),
+                        tint = c.tintPeach,
+                        icon = Icons.Default.Schedule,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    StatBox(
+                        value = "$missedCount",
+                        label = supportText(lang, "O'tkazib yuborildi", "Пропущено", "Missed"),
+                        tint = MedAITint(c.dangerSoft, c.onDangerSoft),
+                        icon = Icons.Default.Cancel,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                    StatBox(
+                        value = adherenceText,
+                        label = supportText(lang, "Muntazamlik", "Регулярность", "Adherence"),
+                        tint = c.tintSky,
+                        icon = Icons.Default.TrendingUp,
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                    )
+                }
+            }
+        }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        StatBox(
-                            value = "$missedCount",
-                            label = "O'tkazib yuborildi",
-                            color = medai.danger,
-                            icon = Icons.Default.Cancel,
-                            modifier = Modifier.weight(1f)
-                        )
-                        StatBox(
-                            value = String.format(java.util.Locale.US, "%.1f%%", adherencePercent),
-                            label = "Muntazamlik",
-                            color = TabStatsAccent,
-                            icon = Icons.Default.TrendingUp,
-                            modifier = Modifier.weight(1f)
-                        )
+        // Adherence progress + overview
+        item(key = "overview") {
+            MedAICard {
+                Text(
+                    supportText(lang, "Umumiy ko'rsatkichlar", "Общие показатели", "Overview"),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = c.textPrimary,
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        supportText(lang, "Muntazamlik", "Регулярность", "Adherence"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.textSecondary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        adherenceText,
+                        style = MedAIText.MetricSmall,
+                        color = if (adherencePercent > 0) c.brand else c.textSecondary,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                LinearProgressIndicator(
+                    progress = { (adherencePercent / 100.0).toFloat().coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(MedAICorners.pill)),
+                    color = c.brand,
+                    trackColor = c.brandSoft,
+                    strokeCap = StrokeCap.Round,
+                    gapSize = 0.dp,
+                    drawStopIndicator = {},
+                )
+                Spacer(Modifier.height(16.dp))
+                OverviewRow(
+                    supportText(lang, "Rejalashtirilgan eslatmalar soni", "Запланированных напоминаний", "Scheduled reminders"),
+                    "$totalRemindersCount$countSuffix",
+                )
+                Box(Modifier.padding(vertical = 10.dp).fillMaxWidth().height(1.dp).background(c.divider))
+                OverviewRow(
+                    supportText(lang, "Tekshirilgan simptomlar", "Проверок симптомов", "Symptom checks"),
+                    "${symptomChecks.size}$countSuffix",
+                )
+                Box(Modifier.padding(vertical = 10.dp).fillMaxWidth().height(1.dp).background(c.divider))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        supportText(lang, "Davolanish intizomi bahosi", "Оценка регулярности лечения", "Treatment adherence rating"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = c.textSecondary,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    when {
+                        adherencePercent >= 80.0 -> MedAIBadge(supportText(lang, "A'lo darajada", "Отлично", "Excellent"), MedAIBadgeTone.Success)
+                        adherencePercent > 0.0 -> MedAIBadge(supportText(lang, "Yaxshi", "Хорошо", "Good"), MedAIBadgeTone.Brand)
+                        else -> MedAIBadge(supportText(lang, "Boshlang'ich (0%)", "Начальный (0%)", "Starting (0%)"), MedAIBadgeTone.Info)
                     }
                 }
             }
         }
 
-        // Action card: Reset Statistics button requested by user
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(2.dp, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, medai.border)
-            ) {
-                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = "Statistikani boshqarish",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = medai.textPrimary
-                    )
-                    Text(
-                        text = "Agar barcha hisoblagichlarni 0 ga tushirmoqchi bo'lsangiz, quyidagi tugmani bosing.",
-                        fontSize = 12.sp,
-                        color = medai.textSecondary
-                    )
-
-                    OutlinedButton(
-                        onClick = {
-                            viewModel.resetAllStatistics {
-                                showResetSuccess = true
-                                Toast.makeText(context, "Hamma statistika 0 ga tushirildi ✅", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        border = BorderStroke(1.dp, medai.danger),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = medai.danger)
-                    ) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Hamma statistikani 0 ga tushirish", fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                    }
-                }
-            }
-        }
-
-        // Summary insights card
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(2.dp, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, medai.border)
-            ) {
-                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = "Umumiy ko'rsatkichlar".uppercase(),
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TabStatsAccent,
-                        letterSpacing = 1.sp
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(text = "Rejalashtirilgan eslatmalar soni:", fontSize = 13.sp, color = medai.textSecondary)
-                        Text(text = "$totalRemindersCount ta", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = medai.textPrimary)
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(text = "Tekshirilgan simptomlar:", fontSize = 13.sp, color = medai.textSecondary)
-                        Text(text = "${symptomChecks.size} ta", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = medai.textPrimary)
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(text = "Davolanish intizomi bahosi:", fontSize = 13.sp, color = medai.textSecondary)
-                        Text(
-                            text = when {
-                                adherencePercent >= 80.0 -> "A'lo darajada"
-                                adherencePercent > 0.0 -> "Yaxshi"
-                                else -> "Boshlang'ich (0%)"
-                            },
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (adherencePercent > 0) medai.brand else medai.textSecondary
-                        )
-                    }
+        // Reset statistics
+        item(key = "reset") {
+            MedAICard {
+                Text(
+                    supportText(lang, "Statistikani boshqarish", "Управление статистикой", "Manage statistics"),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = c.textPrimary,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    supportText(
+                        lang,
+                        "Agar barcha hisoblagichlarni 0 ga tushirmoqchi bo'lsangiz, quyidagi tugmani bosing.",
+                        "Чтобы обнулить все счётчики, нажмите кнопку ниже.",
+                        "To reset all counters to 0, tap the button below.",
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textSecondary,
+                )
+                Spacer(Modifier.height(12.dp))
+                YordamchiDangerOutlineButton(
+                    text = supportText(lang, "Hamma statistikani 0 ga tushirish", "Обнулить всю статистику", "Reset all statistics"),
+                    icon = Icons.Default.Refresh,
+                    onClick = {
+                        viewModel.resetAllStatistics {
+                            showResetSuccess = true
+                            Toast.makeText(context, resetToast, Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                if (showResetSuccess) {
+                    Spacer(Modifier.height(12.dp))
+                    MedAIInfoBanner(text = resetToast, tone = MedAITone.Success)
                 }
             }
         }
     }
 }
 
+@Composable
+private fun OverviewRow(label: String, value: String) {
+    val c = MedAITheme.colors
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = c.textSecondary, modifier = Modifier.weight(1f))
+        Spacer(Modifier.width(8.dp))
+        Text(value, style = MaterialTheme.typography.titleSmall, color = c.textPrimary)
+    }
+}
+
+/** One statistic: tinted icon disc, big number, wrapped label. */
 @Composable
 fun StatBox(
     value: String,
     label: String,
-    color: Color,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    tint: MedAITint,
+    icon: ImageVector,
     modifier: Modifier = Modifier
 ) {
-    val medai = MedAITheme.colors
-
-    Surface(
-        modifier = modifier,
-        shape = RoundedCornerShape(16.dp),
-        color = color.copy(alpha = 0.08f),
-        border = BorderStroke(1.dp, color.copy(alpha = 0.25f))
+    val c = MedAITheme.colors
+    val shape = RoundedCornerShape(MedAICorners.tile)
+    Column(
+        modifier = modifier
+            .clip(shape)
+            .background(c.surfaceSunken)
+            .padding(14.dp),
+        horizontalAlignment = Alignment.Start,
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier.size(24.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = value,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = color
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = label,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.Medium,
-                color = medai.textPrimary,
-                textAlign = TextAlign.Center
-            )
+        Box(Modifier.size(36.dp).clip(CircleShape).background(tint.bg), contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = tint.fg, modifier = Modifier.size(20.dp))
         }
+        Spacer(Modifier.height(10.dp))
+        Text(value, style = MedAIText.MetricMedium, color = c.textPrimary)
+        Spacer(Modifier.height(2.dp))
+        Text(label, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
     }
 }
 
 /* ============================================================
-   TAB 4 — Reminder (Dori eslatmalari)
+   TAB 4: Reminder
    ============================================================ */
 @Composable
 fun ReminderTab(viewModel: AppViewModel) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
+    val lang by viewModel.currentLanguage.collectAsState()
 
     val reminders by viewModel.reminders.collectAsState()
     val todayMetrics by viewModel.todayMetrics.collectAsState(initial = null)
@@ -938,252 +765,69 @@ fun ReminderTab(viewModel: AppViewModel) {
     var timeInput by remember { mutableStateOf("08:00") }
     var isSaving by remember { mutableStateOf(false) }
     var savedSuccessMsg by remember { mutableStateOf("") }
+    var showForm by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
 
-    val quickTimes = listOf("08:00", "13:00", "18:00", "21:00")
+    val quickTimes = remember { listOf("08:00", "13:00", "18:00", "21:00") }
+    val countSuffix = if (lang == "uz") " ta" else ""
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = TabContentPadding,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, medai.border)
-            ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .background(medai.warning.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Alarm,
-                                contentDescription = null,
-                                tint = medai.warning,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "Yangi eslatma qo'shish",
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = medai.textPrimary
-                            )
-                            Text(
-                                text = "Dorilarni o'z vaqtida ichish uchun eslatma o'rnating",
-                                fontSize = 12.sp,
-                                color = medai.textSecondary
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(text = "Dori nomi", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = medai.textPrimary)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = medNameInput,
-                        onValueChange = { medNameInput = it },
-                        placeholder = { Text("Dori nomini kiriting (masalan: Lisinopril 10mg)...") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text(text = "Qabul qilish vaqti (HH:mm)", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = medai.textPrimary)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = timeInput,
-                        onValueChange = { timeInput = it },
-                        placeholder = { Text("08:00") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        singleLine = true,
-                        leadingIcon = {
-                            Icon(imageVector = Icons.Default.AccessTime, contentDescription = null, tint = medai.warning)
-                        }
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Quick time picker chips
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        quickTimes.forEach { t ->
-                            FilterChip(
-                                selected = timeInput == t,
-                                onClick = { timeInput = t },
-                                label = { Text(t, fontSize = 12.sp) },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = medai.warning,
-                                    selectedLabelColor = Color.White
-                                )
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(
-                        onClick = {
-                            if (medNameInput.isBlank()) {
-                                Toast.makeText(context, "Iltimos, dori nomini kiriting", Toast.LENGTH_SHORT).show()
-                                return@Button
-                            }
-                            if (timeInput.isBlank()) {
-                                Toast.makeText(context, "Iltimos, vaqtni tanlang", Toast.LENGTH_SHORT).show()
-                                return@Button
-                            }
-
-                            isSaving = true
-                            coroutineScope.launch {
-                                viewModel.addSimpleReminder(medNameInput.trim(), timeInput.trim())
-                                isSaving = false
-                                savedSuccessMsg = "Eslatma muvaffaqiyatli saqlandi!"
-                                medNameInput = ""
-                            }
-                        },
-                        enabled = !isSaving,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = medai.warning)
-                    ) {
-                        if (isSaving) {
-                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(22.dp))
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(text = "Eslatma saqlanmoqda...", fontWeight = FontWeight.Bold, color = Color.White)
-                        } else {
-                            Icon(imageVector = Icons.Default.AddAlarm, contentDescription = null)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = "Eslatmani saqlash", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
-                        }
-                    }
-                }
-            }
+        item(key = "add") {
+            MedAIPrimaryButton(
+                text = supportText(lang, "Yangi eslatma qo'shish", "Добавить напоминание", "Add reminder"),
+                onClick = { showForm = true },
+                icon = Icons.Default.AddAlarm,
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
 
         // Success banner
         if (savedSuccessMsg.isNotEmpty()) {
-            item {
-                Surface(
-                    color = medai.success.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, medai.success.copy(alpha = 0.4f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier.size(22.dp).background(medai.success, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(14.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(text = savedSuccessMsg, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = medai.success)
-                    }
-                }
+            item(key = "saved") {
+                MedAIInfoBanner(text = savedSuccessMsg, tone = MedAITone.Success)
             }
         }
 
-        // Reminders List Header
-        item {
+        // Reminders list header
+        item(key = "list_header") {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Rejalashtirilgan eslatmalar",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = medai.textPrimary
+                    text = supportText(lang, "Rejalashtirilgan eslatmalar", "Запланированные напоминания", "Scheduled reminders"),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = c.textPrimary,
+                    modifier = Modifier.weight(1f),
                 )
-                Surface(
-                    color = medai.warning.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text(
-                        text = "${reminders.size} ta",
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = medai.warning,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
+                Spacer(Modifier.width(8.dp))
+                MedAIBadge("${reminders.size}$countSuffix", MedAIBadgeTone.Brand)
             }
         }
 
         if (reminders.isEmpty()) {
-            item {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(18.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    border = BorderStroke(1.dp, medai.border)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(56.dp)
-                                .background(medai.warning.copy(alpha = 0.1f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.NotificationsNone,
-                                contentDescription = null,
-                                tint = medai.warning.copy(alpha = 0.7f),
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Hali eslatmalar yo'q",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = medai.textPrimary
-                        )
-                    }
-                }
+            item(key = "empty") {
+                MedAIEmptyState(
+                    title = supportText(lang, "Hali eslatmalar yo'q", "Напоминаний пока нет", "No reminders yet"),
+                    message = supportText(
+                        lang,
+                        "Dori ichish vaqtini saqlash uchun yuqoridagi tugmani bosing.",
+                        "Нажмите кнопку выше, чтобы сохранить время приёма лекарств.",
+                        "Tap the button above to save a medicine time.",
+                    ),
+                    icon = Icons.Default.Alarm,
+                )
             }
         } else {
             items(reminders, key = { it.id }) { reminder ->
                 ReminderItemCard(
                     reminder = reminder,
+                    lang = lang,
                     isCompleted = completedReminderIds.contains(reminder.id),
                     onComplete = { viewModel.completeReminder(reminder.id) },
                     onToggle = { viewModel.toggleReminderActive(reminder) },
@@ -1192,195 +836,221 @@ fun ReminderTab(viewModel: AppViewModel) {
             }
         }
     }
-}
 
-@Composable
-fun ReminderItemCard(
-    reminder: ReminderLocal,
-    isCompleted: Boolean,
-    onComplete: () -> Unit,
-    onToggle: () -> Unit,
-    onDelete: () -> Unit
-) {
-    val medai = MedAITheme.colors
-
-    val contentAlpha = if (reminder.isActive) 1f else 0.5f
-
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(2.dp, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.dp, if (isCompleted) medai.brand.copy(alpha = 0.5f) else medai.border)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+    if (showForm) {
+        Dialog(
+            onDismissRequest = { showForm = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
+            val shape = RoundedCornerShape(MedAICorners.sheet)
+            Column(
+                Modifier
+                    .padding(16.dp)
+                    .widthIn(max = 480.dp)
+                    .fillMaxWidth()
+                    .shadow(MedAIElevation.floating, shape)
+                    .clip(shape)
+                    .background(c.surfaceRaised)
+                    .verticalScroll(rememberScrollState())
+                    .padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.weight(1f).alpha(contentAlpha)
-                ) {
-                    // Time badge with alarm icon
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .background(medai.warning.copy(alpha = 0.12f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.Alarm,
-                                contentDescription = null,
-                                tint = medai.warning,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Text(
-                                text = reminder.time,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = medai.warning
-                            )
-                        }
-                    }
+                YordamchiCardTitle(
+                    icon = Icons.Default.Alarm,
+                    title = supportText(lang, "Yangi eslatma qo'shish", "Новое напоминание", "New reminder"),
+                    subtitle = supportText(
+                        lang,
+                        "Dorilarni o'z vaqtida ichish uchun eslatma o'rnating",
+                        "Установите напоминание, чтобы принимать лекарства вовремя",
+                        "Set a reminder to take your medicine on time",
+                    ),
+                    tint = c.tintPeach,
+                )
 
-                    Column {
-                        Text(
-                            text = reminder.medicineName,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = medai.textPrimary
-                        )
-                        Text(
-                            text = reminder.frequency,
-                            fontSize = 12.sp,
-                            color = medai.textSecondary
-                        )
-                    }
-                }
+                MedAITextField(
+                    value = medNameInput,
+                    onValueChange = { medNameInput = it },
+                    label = supportText(lang, "Dori nomi", "Название лекарства", "Medicine name"),
+                    placeholder = supportText(lang, "Masalan: Lisinopril 10mg", "Например: Лизиноприл 10 мг", "e.g. Lisinopril 10mg"),
+                    modifier = Modifier.fillMaxWidth(),
+                )
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Switch(
-                        checked = reminder.isActive,
-                        onCheckedChange = { onToggle() },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.White,
-                            checkedTrackColor = medai.brand
-                        )
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    MedAITextField(
+                        value = timeInput,
+                        onValueChange = { timeInput = it },
+                        label = supportText(lang, "Qabul qilish vaqti (HH:mm)", "Время приёма (ЧЧ:мм)", "Time to take (HH:mm)"),
+                        placeholder = "08:00",
+                        leadingIcon = Icons.Default.Schedule,
+                        keyboardType = KeyboardType.Text,
+                        modifier = Modifier.fillMaxWidth(),
                     )
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "O'chirish",
-                            tint = medai.danger
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Action row: Mark as taken or taken badge
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (isCompleted) {
-                    Surface(
-                        color = medai.brand.copy(alpha = 0.12f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = medai.brand,
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = "Bugun qabul qilindi (+10 ball)",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = medai.brand
-                            )
+                    // Quick time picker chips
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        quickTimes.forEach { t ->
+                            MedAIFilterChip(text = t, selected = timeInput == t, onClick = { timeInput = t })
                         }
                     }
-                } else {
-                    Button(
-                        onClick = onComplete,
-                        modifier = Modifier.height(36.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "Qabul qildim",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
+                }
+
+                Column {
+                    MedAIPrimaryButton(
+                        text = if (isSaving) {
+                            supportText(lang, "Eslatma saqlanmoqda...", "Сохраняем напоминание...", "Saving reminder...")
+                        } else {
+                            supportText(lang, "Eslatmani saqlash", "Сохранить напоминание", "Save reminder")
+                        },
+                        onClick = {
+                            if (medNameInput.isBlank()) {
+                                Toast.makeText(
+                                    context,
+                                    supportText(lang, "Iltimos, dori nomini kiriting", "Пожалуйста, введите название лекарства", "Please enter the medicine name"),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@MedAIPrimaryButton
+                            }
+                            if (timeInput.isBlank()) {
+                                Toast.makeText(
+                                    context,
+                                    supportText(lang, "Iltimos, vaqtni tanlang", "Пожалуйста, выберите время", "Please choose a time"),
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@MedAIPrimaryButton
+                            }
+
+                            isSaving = true
+                            coroutineScope.launch {
+                                viewModel.addSimpleReminder(medNameInput.trim(), timeInput.trim())
+                                isSaving = false
+                                savedSuccessMsg = supportText(
+                                    lang,
+                                    "Eslatma muvaffaqiyatli saqlandi!",
+                                    "Напоминание успешно сохранено!",
+                                    "Reminder saved successfully!",
+                                )
+                                medNameInput = ""
+                                showForm = false
+                            }
+                        },
+                        icon = Icons.Default.AddAlarm,
+                        enabled = !isSaving,
+                        loading = isSaving,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    MedAITextButton(
+                        text = supportText(lang, "Bekor qilish", "Отмена", "Cancel"),
+                        onClick = { showForm = false },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
                 }
             }
         }
     }
 }
 
+@Composable
+fun ReminderItemCard(
+    reminder: ReminderLocal,
+    lang: String,
+    isCompleted: Boolean,
+    onComplete: () -> Unit,
+    onToggle: () -> Unit,
+    onDelete: () -> Unit
+) {
+    val c = MedAITheme.colors
+
+    val frequencyLabel = remember(lang, reminder.frequency) {
+        when (reminder.frequency.lowercase()) {
+            "har kuni", "daily" -> supportText(lang, "Har kuni", "Ежедневно", "Daily")
+            "weekly" -> supportText(lang, "Haftalik", "Еженедельно", "Weekly")
+            else -> reminder.frequency
+        }
+    }
+
+    MedAICard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(reminder.time, style = MedAIText.MetricSmall, color = if (reminder.isActive) c.brand else c.textSecondary)
+                Text(reminder.medicineName, style = MaterialTheme.typography.titleSmall, color = c.textPrimary)
+                Text(frequencyLabel, style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+            }
+            Spacer(Modifier.width(8.dp))
+            YordamchiSwitch(
+                checked = reminder.isActive,
+                onCheckedChange = { onToggle() },
+                description = supportText(lang, "Faol: ${reminder.medicineName}", "Активно: ${reminder.medicineName}", "Active: ${reminder.medicineName}"),
+            )
+        }
+
+        if (!reminder.isActive) {
+            Spacer(Modifier.height(8.dp))
+            MedAIBadge(
+                supportText(lang, "Eslatma o'chirilgan", "Напоминание отключено", "Reminder is off"),
+                MedAIBadgeTone.Info,
+                icon = Icons.Default.NotificationsOff,
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(c.divider))
+        Spacer(Modifier.height(8.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                if (isCompleted) {
+                    MedAIBadge(
+                        supportText(lang, "Bugun qabul qilindi (+10 ball)", "Сегодня принято (+10 баллов)", "Taken today (+10 points)"),
+                        MedAIBadgeTone.Success,
+                        icon = Icons.Default.CheckCircle,
+                    )
+                } else {
+                    MedAIPrimaryButton(
+                        text = supportText(lang, "Qabul qildim", "Принял(а)", "Mark as taken"),
+                        onClick = onComplete,
+                        icon = Icons.Default.Check,
+                    )
+                }
+            }
+            Box(
+                Modifier.size(MinTouch).clip(CircleShape).clickable(role = Role.Button, onClick = onDelete),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = supportText(lang, "O'chirish", "Удалить", "Delete"),
+                    tint = c.danger,
+                )
+            }
+        }
+    }
+}
+
 /* ============================================================
-   Helper: Result Card matching the web success card
+   Helper: result card (AI answer rendered as markdown)
    ============================================================ */
 @Composable
 fun ResultCard(
     title: String,
-    text: String
+    text: String,
 ) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(4.dp, RoundedCornerShape(20.dp)),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = BorderStroke(1.5.dp, medai.brand.copy(alpha = 0.35f))
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(10.dp)
-                        .background(medai.brand, CircleShape)
-                )
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = medai.brand
-                )
+    MedAICard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(36.dp).clip(CircleShape).background(c.tintTeal.bg), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = c.tintTeal.fg, modifier = Modifier.size(20.dp))
             }
-
-            Spacer(modifier = Modifier.height(14.dp))
-            Divider(color = medai.border)
-            Spacer(modifier = Modifier.height(14.dp))
-
-            RichMarkdownText(text = text)
+            Spacer(Modifier.width(12.dp))
+            Text(title, style = MaterialTheme.typography.titleMedium, color = c.textPrimary, modifier = Modifier.weight(1f))
+            Spacer(Modifier.width(8.dp))
+            MedAIBadge("AI", MedAIBadgeTone.Brand, icon = Icons.Default.AutoAwesome)
         }
+
+        Spacer(Modifier.height(12.dp))
+        Box(Modifier.fillMaxWidth().height(1.dp).background(c.divider))
+        Spacer(Modifier.height(12.dp))
+
+        RichMarkdownText(text = text)
     }
 }
