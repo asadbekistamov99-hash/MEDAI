@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class, androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 package com.example.ui
 
 import android.widget.Toast
@@ -39,6 +39,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.selection.selectable
 import com.example.data.*
 import com.example.i18n.Translations
 import com.example.ui.theme.*
@@ -48,32 +53,43 @@ import java.util.Date
 import java.util.Locale
 import java.text.SimpleDateFormat
 
-// --- SCREEN: PROFILE AND SETTINGS ---
+// --- SCREEN: PROFILE ---
+
+/** Achievement id, emoji, title key, description key. The ids are what the ViewModel stores. */
+private val ProfileAchievements = listOf(
+    listOf("first_reminder", "💊", "ach_first_title", "ach_first_desc"),
+    listOf("water_champ", "🥤", "ach_water_title", "ach_water_desc"),
+    listOf("ai_pioneer", "🧠", "ach_ai_title", "ach_ai_desc"),
+)
+
+// Allergy and document types are persisted as these Uzbek tokens; only their labels are localised.
+private val AllergyTypes = listOf("Dori", "Taom", "Boshqa")
+private val DocumentTypes = listOf("Analiz", "Rentgen", "Retsept")
+
+private const val MOCK_DOC_BASE64 =
+    "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA="
 
 @Composable
 fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
     val lang by viewModel.currentLanguage.collectAsState()
     val user by viewModel.currentUser.collectAsState()
     val isSuperAdmin = user?.email?.trim()?.equals(SUPER_ADMIN_EMAIL, ignoreCase = true) == true
     val medicalDocs by viewModel.medicalDocuments.collectAsState()
     val context = LocalContext.current
+    fun t(key: String) = Translations.getString(key, lang)
 
     var showLogoutDialog by remember { mutableStateOf(false) }
 
-    // Allergy Manager state
+    // Allergy form state
     var allergyName by remember { mutableStateOf("") }
     var allergyTypeSelected by remember { mutableStateOf("Dori") }
-    val allergyTypesList = listOf("Dori", "Taom", "Boshqa")
 
-    // Document Uploader state
+    // Document upload state
     var showDocUploadDialog by remember { mutableStateOf(false) }
     var docTitle by remember { mutableStateOf("") }
     var docType by remember { mutableStateOf("Analiz") }
-    val docTypesList = listOf("Analiz", "Rentgen", "Retsept")
-
-    val mockDocBase64 = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA="
 
     val unlockedAchievementsSet = remember(user) {
         val set = mutableSetOf<String>()
@@ -83,7 +99,7 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                 for (i in 0 until arr.length()) {
                     set.add(arr.getString(i))
                 }
-            } catch(e: Exception) {}
+            } catch (e: Exception) {}
         }
         set
     }
@@ -97,899 +113,477 @@ fun ProfileScreen(viewModel: AppViewModel, navController: NavController) {
                     val obj = arr.getJSONObject(i)
                     list.add(Pair(obj.getString("name"), obj.getString("type")))
                 }
-            } catch(e: Exception) {}
+            } catch (e: Exception) {}
         }
         list
     }
 
-    val achievementsList = listOf(
-        Triple("first_reminder", "Birinchi Qadam 💊", "Birinchi bor dorini o'z vaqtida qabul qildingiz"),
-        Triple("water_champ", "Suv Qiroli 🥤", "Bugun suv ichish maqsadiga to'liq erishdingiz"),
-        Triple("ai_pioneer", "AI Katta Shifokor 🧠", "Semptomlarni sun'iy intellekt orqali muvaffaqiyatli tahlil qildingiz")
-    )
+    fun allergyTypeLabel(stored: String) = when (stored) {
+        "Dori" -> t("type_med")
+        "Taom" -> t("type_food")
+        "Boshqa" -> t("type_other")
+        else -> stored
+    }
+    fun docTypeLabel(stored: String) = when (stored) {
+        "Analiz" -> t("doc_type_analysis")
+        "Rentgen" -> t("doc_type_xray")
+        "Retsept" -> t("doc_type_rx")
+        else -> stored
+    }
+
+    val isPremium = user?.hasPremiumAccess ?: false
+    val isPaid = user?.isPremium == true
+    val streakDays = user?.healthScore?.let { (it / 15).coerceAtLeast(1) } ?: 5
 
     LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        modifier = Modifier.fillMaxSize().statusBarsPadding(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        item {
-            val isPremium = user?.hasPremiumAccess ?: false
-            val heroBrush = if (isPremium) {
-                Brush.linearGradient(listOf(medai.premium, Color(0xFF4C1D95)))
-            } else {
-                Brush.linearGradient(listOf(medai.brand, medai.brandStrong))
-            }
-
-            // Hero card: gradient background + soft decorative circles, matching the richer
-            // treatment used on the home screen banner instead of a bare white header.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(10.dp, RoundedCornerShape(28.dp))
-                    .clip(RoundedCornerShape(28.dp))
-                    .background(heroBrush)
-            ) {
-                // Decorative background circles
-                Box(
-                    modifier = Modifier
-                        .size(180.dp)
-                        .offset(x = 220.dp, y = (-70).dp)
-                        .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.08f))
+        // Title + notifications
+        item(key = "title") {
+            Row(Modifier.fillMaxWidth().heightIn(min = 56.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = t("tab_profile"),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = c.textPrimary,
+                    modifier = Modifier.weight(1f)
                 )
                 Box(
                     modifier = Modifier
-                        .size(110.dp)
-                        .offset(x = (-40).dp, y = 130.dp)
+                        .size(MinTouch)
                         .clip(CircleShape)
-                        .background(Color.White.copy(alpha = 0.07f))
-                )
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .background(c.surface)
+                        .border(1.dp, c.border, CircleShape)
+                        .clickable(role = Role.Button) { navController.navigate("notifications") },
+                    contentAlignment = Alignment.Center
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "PROFIL",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.75f),
-                            letterSpacing = 1.5.sp
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        IconButton(
-                            onClick = { navController.navigate("notifications") },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(Color.White.copy(alpha = 0.15f), CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = "Sozlamalar",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
+                    Icon(Icons.Default.Notifications, contentDescription = t("feat_notifications"), tint = c.textPrimary)
+                }
+            }
+        }
 
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    // Avatar
+        // Identity
+        item(key = "identity") {
+            MedAICard(Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val tint = if (isPremium) c.tintViolet else c.tintTeal
                     Box(
-                        modifier = Modifier
-                            .size(96.dp)
-                            .shadow(6.dp, CircleShape)
-                            .background(medai.surface, CircleShape)
-                            .padding(4.dp),
+                        modifier = Modifier.size(72.dp).clip(CircleShape).background(tint.bg),
                         contentAlignment = Alignment.Center
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .clip(CircleShape)
-                                .background(if (isPremium) medai.premium.copy(alpha = 0.12f) else medai.brand.copy(alpha = 0.12f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            val initialChar = user?.name?.firstOrNull()?.toString()?.uppercase() ?: "U"
-                            Text(
-                                text = initialChar,
-                                style = MaterialTheme.typography.displayLarge.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isPremium) medai.premium else medai.brand,
-                                    fontSize = 38.sp
-                                )
-                            )
-                        }
+                        Text(
+                            text = user?.name?.firstOrNull()?.toString()?.uppercase() ?: "U",
+                            style = MedAIText.MetricMedium,
+                            color = tint.fg
+                        )
                     }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Text(
-                        text = user?.name ?: "Foydalanuvchi",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            color = Color.White,
-                            fontSize = 22.sp
-                        ),
-                        textAlign = TextAlign.Center
-                    )
-                    Text(
-                        text = user?.email ?: "email@example.com",
-                        fontSize = 13.sp,
-                        color = Color.White.copy(alpha = 0.8f),
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 2.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Row(
-                        modifier = Modifier
-                            .background(Color.White.copy(alpha = 0.16f), RoundedCornerShape(20.dp))
-                            .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(20.dp))
-                            .padding(horizontal = 18.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (isPremium) Icons.Default.WorkspacePremium else Icons.Default.Shield,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(15.dp)
+                    Spacer(Modifier.width(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = user?.name ?: "—",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = c.textPrimary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
-                            text = if (isPremium) "PREMIUM FOYDALANUVCHI" else "BEPUL REJIM",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.5.sp,
-                            letterSpacing = 1.sp
+                            text = user?.email ?: "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.textSecondary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
+                        Spacer(Modifier.height(8.dp))
+                        when {
+                            isPaid -> MedAIBadge(t("badge_premium"), MedAIBadgeTone.Premium, icon = Icons.Default.WorkspacePremium)
+                            isPremium -> MedAIBadge(t("badge_trial"), MedAIBadgeTone.Premium, icon = Icons.Default.WorkspacePremium)
+                            else -> MedAIBadge(t("plan_free"), MedAIBadgeTone.Brand, icon = Icons.Default.Shield)
+                        }
                     }
                 }
             }
+        }
 
-            // Super Admin Special Badge and Access Card (strictly and exclusively for SUPER_ADMIN_EMAIL)
-            // Uses a deep-teal brand gradient with a gold accent instead of pure black/orange,
-            // so it reads as "elevated" rather than clashing with the rest of the palette.
-            if (isSuperAdmin) {
-                Spacer(modifier = Modifier.height(12.dp))
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .shadow(8.dp, RoundedCornerShape(18.dp))
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(Brush.linearGradient(listOf(Color(0xFF012A24), medai.brandStrong)))
-                        .border(1.dp, Color(0xFFFFC978).copy(alpha = 0.35f), RoundedCornerShape(18.dp))
-                        .clickable { navController.navigate("admin") }
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(120.dp)
-                            .offset(x = 260.dp, y = (-40).dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFFFC978).copy(alpha = 0.08f))
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+        // Super admin entry (only for SUPER_ADMIN_EMAIL)
+        if (isSuperAdmin) {
+            item(key = "admin") {
+                MedAICard(Modifier.fillMaxWidth(), onClick = { navController.navigate("admin") }) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .background(Color(0xFFFFC978).copy(alpha = 0.18f), CircleShape),
+                            modifier = Modifier.size(44.dp).clip(CircleShape).background(c.tintPeach.bg),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.AdminPanelSettings,
-                                contentDescription = "Admin",
-                                tint = Color(0xFFFFC978),
-                                modifier = Modifier.size(24.dp)
-                            )
+                            Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = c.tintPeach.fg, modifier = Modifier.size(24.dp))
                         }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column(modifier = Modifier.weight(1f)) {
+                        Spacer(Modifier.width(14.dp))
+                        Column(Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "Admin Boshqaruv Paneli",
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(t("profile_admin_title"), style = MaterialTheme.typography.titleSmall, color = c.textPrimary, modifier = Modifier.weight(1f, fill = false))
+                                Spacer(Modifier.width(8.dp))
+                                MedAIBadge("SUPER", MedAIBadgeTone.Warning)
+                            }
+                            Text(t("profile_admin_sub"), style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                        }
+                        Icon(Icons.Default.ChevronRight, contentDescription = null, tint = c.textSecondary)
+                    }
+                }
+            }
+        }
+
+        // Body measurements
+        item(key = "body") {
+            MedAICard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                Row(Modifier.fillMaxWidth().padding(vertical = 16.dp)) {
+                    ProfileStat(Modifier.weight(1f), Icons.Default.Height, "${user?.height ?: 175.0} ${t("unit_cm")}", t("profile_height"), c.tintTeal)
+                    ProfileStat(Modifier.weight(1f), Icons.Default.MonitorWeight, "${user?.weight ?: 70.0} ${t("unit_kg")}", t("profile_weight"), c.tintSky)
+                    ProfileStat(Modifier.weight(1f), Icons.Default.Bloodtype, user?.bloodType?.ifBlank { "—" } ?: "—", t("blood_type_label"), c.tintPeach)
+                }
+            }
+        }
+
+        // Streak
+        item(key = "streak") {
+            val shape = RoundedCornerShape(MedAICorners.card)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape)
+                    .background(c.warningSoft)
+                    .border(1.dp, c.warning.copy(alpha = 0.3f), shape)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("🔥", fontSize = 28.sp)
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(t("streak_title").replace("{n}", streakDays.toString()), style = MaterialTheme.typography.titleSmall, color = c.onWarningSoft)
+                    Text(t("streak_desc"), style = MaterialTheme.typography.bodySmall, color = c.onWarningSoft)
+                }
+            }
+        }
+
+        // Allergies
+        item(key = "allergies") {
+            MedAICard(Modifier.fillMaxWidth()) {
+                ProfileSectionTitle(Icons.Default.Warning, t("allergy_title"), c.tintPeach)
+                Spacer(Modifier.height(12.dp))
+                if (allergiesList.isEmpty()) {
+                    Text(t("allergy_empty"), style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                } else {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        allergiesList.forEach { (name, type) ->
+                            val chipShape = RoundedCornerShape(MedAICorners.pill)
+                            Row(
+                                modifier = Modifier
+                                    .heightIn(min = MinTouch)
+                                    .clip(chipShape)
+                                    .background(c.dangerSoft)
+                                    .border(1.dp, c.danger.copy(alpha = 0.3f), chipShape)
+                                    .padding(start = 16.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("$name · ${allergyTypeLabel(type)}", style = MaterialTheme.typography.labelLarge, color = c.onDangerSoft)
                                 Box(
                                     modifier = Modifier
-                                        .background(Color(0xFFFFC978), RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                        .size(MinTouch)
+                                        .clip(CircleShape)
+                                        .clickable(role = Role.Button) { viewModel.deleteAllergy(name) },
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = "SUPER",
-                                        color = Color(0xFF012A24),
-                                        fontSize = 9.sp,
-                                        fontWeight = FontWeight.ExtraBold
-                                    )
+                                    Icon(Icons.Default.Close, contentDescription = "${t("allergy_remove")}: $name", tint = c.onDangerSoft, modifier = Modifier.size(18.dp))
                                 }
                             }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(16.dp))
+                MedAITextField(
+                    value = allergyName,
+                    onValueChange = { allergyName = it },
+                    label = t("allergy_name_label"),
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = t("allergy_name_ph"),
+                )
+                Spacer(Modifier.height(4.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AllergyTypes.forEach { type ->
+                        MedAIFilterChip(allergyTypeLabel(type), allergyTypeSelected == type, { allergyTypeSelected = type })
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                MedAISecondaryButton(
+                    text = t("allergy_add"),
+                    icon = Icons.Default.Add,
+                    enabled = allergyName.isNotBlank(),
+                    onClick = {
+                        if (allergyName.isNotBlank()) {
+                            viewModel.addAllergy(allergyName, allergyTypeSelected)
+                            allergyName = ""
+                            Toast.makeText(viewModel.getApplication(), t("allergy_added"), Toast.LENGTH_SHORT).show()
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        // Medical documents
+        item(key = "docs") {
+            MedAICard(Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    ProfileSectionTitle(Icons.Default.Folder, t("docs_title"), c.tintViolet, Modifier.weight(1f))
+                    MedAIBadge(t("badge_premium"), MedAIBadgeTone.Premium)
+                }
+                Spacer(Modifier.height(12.dp))
+                if (medicalDocs.isEmpty()) {
+                    Text(t("docs_empty"), style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                } else {
+                    Column {
+                        medicalDocs.forEach { doc ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(c.tintViolet.bg),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.InsertDriveFile, contentDescription = null, tint = c.tintViolet.fg, modifier = Modifier.size(22.dp))
+                                }
+                                Spacer(Modifier.width(12.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text(doc.title, style = MaterialTheme.typography.titleSmall, color = c.textPrimary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    Text(docTypeLabel(doc.docType), style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .size(MinTouch)
+                                        .clip(CircleShape)
+                                        .clickable(role = Role.Button) { viewModel.deleteMedicalDocument(doc.id) },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(Icons.Default.Delete, contentDescription = "${t("docs_delete")}: ${doc.title}", tint = c.danger)
+                                }
+                            }
+                        }
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                MedAISecondaryButton(
+                    text = t("docs_upload"),
+                    icon = Icons.Default.CloudUpload,
+                    onClick = { showDocUploadDialog = true },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
+        // Achievements
+        item(key = "achievements") {
+            Column {
+                Text(t("ach_title"), style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                Spacer(Modifier.height(12.dp))
+                MedAICard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                    ProfileAchievements.forEachIndexed { index, ach ->
+                        val unlocked = unlockedAchievementsSet.contains(ach[0])
+                        Row(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(if (unlocked) c.brandSoft else c.surfaceSunken),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(ach[1], fontSize = 20.sp, modifier = Modifier.alpha(if (unlocked) 1f else 0.5f))
+                            }
+                            Spacer(Modifier.width(14.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(t(ach[2]), style = MaterialTheme.typography.titleSmall, color = if (unlocked) c.textPrimary else c.textSecondary)
+                                Text(t(ach[3]), style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            if (unlocked) {
+                                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = c.success)
+                            } else {
+                                Icon(Icons.Default.Lock, contentDescription = null, tint = c.textSecondary, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                        if (index != ProfileAchievements.lastIndex) {
+                            Box(Modifier.padding(start = 74.dp).fillMaxWidth().height(1.dp).background(c.divider))
+                        }
+                    }
+                }
+            }
+        }
+
+        // Language
+        item(key = "language") {
+            MedAICard(Modifier.fillMaxWidth()) {
+                Text(t("select_language"), style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                Spacer(Modifier.height(12.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("uz" to "🇺🇿 UZ", "ru" to "🇷🇺 RU", "en" to "🇬🇧 EN").forEach { (code, label) ->
+                        val selected = lang == code
+                        val optionShape = RoundedCornerShape(MedAICorners.control)
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = MinTouch)
+                                .clip(optionShape)
+                                .background(if (selected) c.brandSoft else c.surface)
+                                .border(if (selected) 2.dp else 1.dp, if (selected) c.brand else c.borderStrong, optionShape)
+                                .selectable(selected = selected, role = Role.RadioButton, onClick = { viewModel.setLanguage(code) }),
+                            contentAlignment = Alignment.Center
+                        ) {
                             Text(
-                                text = "Faqat $SUPER_ADMIN_EMAIL uchun ruxsat berilgan",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 11.sp
+                                text = label,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = if (selected) c.onBrandSoft else c.textPrimary
                             )
                         }
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = Color(0xFFFFC978),
-                            modifier = Modifier.size(22.dp)
-                        )
                     }
                 }
             }
         }
 
-        // Streak Board — warm gradient card with a decorative watermark flame, not flat white
-        item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(6.dp, RoundedCornerShape(18.dp))
-                    .clip(RoundedCornerShape(18.dp))
-                    .background(Brush.linearGradient(listOf(Color(0xFFF57C00), Color(0xFFFFA726))))
-            ) {
-                Text(
-                    text = "🔥",
-                    fontSize = 90.sp,
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .offset(x = 26.dp, y = 6.dp)
-                        .alpha(0.16f)
+        // Links
+        item(key = "links") {
+            MedAICard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                MedAIListRow(
+                    icon = Icons.Default.HelpCenter,
+                    title = t("feat_help"),
+                    onClick = { navController.navigate("help") },
                 )
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(52.dp)
-                            .background(Color.White.copy(alpha = 0.22f), CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = "🔥", fontSize = 26.sp)
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "${user?.healthScore?.let { (it / 15).coerceAtLeast(1) } ?: 5} Kunlik Salomatlik Seriyasi!",
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 16.sp,
-                            color = Color.White
+                MedAIListRow(
+                    icon = Icons.Default.PrivacyTip,
+                    title = t("profile_privacy"),
+                    tint = c.tintSky,
+                    onClick = {
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://claude.ai/code/artifact/d55f2334-c8df-41ef-b060-65046cfa7965")
                         )
-                        Text(
-                            text = "Har kuni ilovaga kirib salomatligingizni nazorat qiling va seriyani davom ettiring!",
-                            fontSize = 12.sp,
-                            color = Color.White.copy(alpha = 0.85f),
-                            lineHeight = 16.sp,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
-                }
-            }
-        }
-
-        // Stats summary row — soft gradient-tinted cards instead of flat white
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .shadow(3.dp, RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.linearGradient(listOf(medai.brandSoft, Color.White)))
-                        .border(1.dp, medai.brand.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
-                        .padding(16.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(medai.surface, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(imageVector = Icons.Default.Height, contentDescription = null, tint = medai.brand, modifier = Modifier.size(20.dp))
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(text = "Bo'y", fontSize = 12.sp, color = medai.textSecondary, fontWeight = FontWeight.Medium)
-                            Text(text = "${user?.height ?: 175.0} sm", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = medai.textPrimary)
-                        }
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .shadow(3.dp, RoundedCornerShape(16.dp))
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Brush.linearGradient(listOf(medai.brandSoft, Color.White)))
-                        .border(1.dp, medai.brand.copy(alpha = 0.12f), RoundedCornerShape(16.dp))
-                        .padding(16.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(medai.surface, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(imageVector = Icons.Default.MonitorWeight, contentDescription = null, tint = medai.brand, modifier = Modifier.size(20.dp))
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(text = "Vazn", fontSize = 12.sp, color = medai.textSecondary, fontWeight = FontWeight.Medium)
-                            Text(text = "${user?.weight ?: 70.0} kg", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = medai.textPrimary)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Achievements Board
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = BorderStroke(1.dp, medai.border.copy(alpha = 0.4f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(imageVector = Icons.Default.EmojiEvents, contentDescription = null, tint = medai.brand)
-                        Text(text = "Mening Yutuqlarim (Achievements)", fontWeight = FontWeight.Bold, color = medai.textPrimary, fontSize = 15.sp)
-                    }
-                    
-                    Divider(color = medai.border.copy(alpha = 0.3f))
-                    
-                    achievementsList.forEach { ach ->
-                        val isUnlocked = unlockedAchievementsSet.contains(ach.first)
-                        val rowBg = if (isUnlocked) medai.brandSoft.copy(alpha = 0.3f) else Color.Transparent
-                        val rowBorder = if (isUnlocked) BorderStroke(1.dp, medai.brand.copy(alpha = 0.2f)) else null
-                        
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(rowBg)
-                                .then(if (rowBorder != null) Modifier.border(rowBorder, RoundedCornerShape(12.dp)) else Modifier)
-                                .padding(10.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(42.dp)
-                                    .background(if (isUnlocked) medai.brand.copy(alpha = 0.2f) else medai.textSecondary.copy(alpha = 0.1f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(text = ach.second.takeLast(2), fontSize = 18.sp)
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = ach.second.dropLast(2).trim(),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp,
-                                    color = if (isUnlocked) medai.textPrimary else medai.textSecondary
-                                )
-                                Text(
-                                    text = ach.third,
-                                    fontSize = 11.sp,
-                                    color = if (isUnlocked) medai.textSecondary else medai.textSecondary.copy(alpha = 0.7f),
-                                    lineHeight = 14.sp
-                                )
-                            }
-                            if (isUnlocked) {
-                                Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = medai.success)
-                            } else {
-                                Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = medai.textSecondary.copy(alpha = 0.6f), modifier = Modifier.size(16.dp))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Allergy CRUD Management
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = medai.surface),
-                border = BorderStroke(1.dp, medai.danger.copy(alpha = 0.2f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = medai.danger)
-                        Text(text = "Mening Allergiyalarim ⚠️", fontWeight = FontWeight.Bold, color = medai.danger, fontSize = 15.sp)
-                    }
-
-                    // Allergy List
-                    if (allergiesList.isEmpty()) {
-                        Text(
-                            text = "Allergiyalar kiritilmagan. Quyida yangi allergiya qo'shishingiz mumkin.",
-                            fontSize = 12.sp,
-                            color = medai.textSecondary,
-                            modifier = Modifier.padding(vertical = 4.dp)
-                        )
-                    } else {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            allergiesList.forEach { (name, type) ->
-                                AssistChip(
-                                    onClick = {},
-                                    label = { Text("$name ($type)", color = medai.textPrimary, fontWeight = FontWeight.Medium) },
-                                    leadingIcon = {
-                                        Box(modifier = Modifier.size(8.dp).background(medai.danger, CircleShape))
-                                    },
-                                    trailingIcon = {
-                                        IconButton(
-                                            onClick = { viewModel.deleteAllergy(name) },
-                                            modifier = Modifier.size(20.dp)
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Close,
-                                                contentDescription = "Delete",
-                                                tint = medai.danger,
-                                                modifier = Modifier.size(12.dp)
-                                            )
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-
-                    Divider(color = medai.border.copy(alpha = 0.2f))
-
-                    // Add Allergy Form
-                    Text(text = "Yangi Allergiya Qo'shish", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = medai.textPrimary)
-                    
-                    OutlinedTextField(
-                        value = allergyName,
-                        onValueChange = { allergyName = it },
-                        placeholder = { Text("Allergen nomi (masalan: Penitsillin, Yong'oq)") },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = medai.danger,
-                            unfocusedBorderColor = medai.border,
-                            focusedTextColor = medai.textPrimary,
-                            unfocusedTextColor = medai.textPrimary,
-                            focusedContainerColor = medai.surface,
-                            unfocusedContainerColor = medai.surface
-                        ),
-                        singleLine = true
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            modifier = Modifier.weight(1f).horizontalScroll(rememberScrollState()),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            allergyTypesList.forEach { type ->
-                                FilterChip(
-                                    selected = allergyTypeSelected == type,
-                                    onClick = { allergyTypeSelected = type },
-                                    label = { Text(type, fontSize = 12.sp) }
-                                )
-                            }
-                        }
-
-                        Button(
-                            onClick = {
-                                if (allergyName.isNotBlank()) {
-                                    viewModel.addAllergy(allergyName, allergyTypeSelected)
-                                    allergyName = ""
-                                    Toast.makeText(viewModel.getApplication(), "Allergiya muvaffaqiyatli qo'shildi!", Toast.LENGTH_SHORT).show()
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(containerColor = medai.danger),
-                            shape = RoundedCornerShape(12.dp),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Qo'shish", fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-        }
-
-        // Medical Documents Upload Section (Premium)
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = medai.surface),
-                border = BorderStroke(1.dp, medai.premium.copy(alpha = 0.2f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.Folder, contentDescription = null, tint = medai.premium)
-                            Text(text = "Tibbiy Hujjatlar G'aladoni (Premium)", fontWeight = FontWeight.Bold, color = medai.premium, fontSize = 15.sp)
-                        }
-                        
-                        IconButton(
-                            onClick = { showDocUploadDialog = true },
-                            modifier = Modifier
-                                .background(medai.premium.copy(alpha = 0.15f), CircleShape)
-                                .size(36.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.CloudUpload, contentDescription = "Upload", tint = medai.premium, modifier = Modifier.size(18.dp))
-                        }
-                    }
-
-                    Divider(color = medai.border.copy(alpha = 0.2f))
-
-                    if (medicalDocs.isEmpty()) {
-                        Text(
-                            text = "Hech qanday tibbiy hujjat yuklanmagan. Premium foydalanuvchilar o'z analizlari, rentgen va retseptlarini saqlashlari mumkin.",
-                            fontSize = 12.sp,
-                            color = medai.textSecondary,
-                            lineHeight = 16.sp
-                        )
-                    } else {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            medicalDocs.forEach { doc ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(medai.premiumSoft.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                                        .border(1.dp, medai.premium.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
-                                        .padding(10.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.weight(1f)
-                                    ) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(36.dp)
-                                                .background(medai.premium.copy(alpha = 0.15f), CircleShape),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(imageVector = Icons.Default.InsertDriveFile, contentDescription = null, tint = medai.premium, modifier = Modifier.size(18.dp))
-                                        }
-                                        Spacer(modifier = Modifier.width(12.dp))
-                                        Column {
-                                            Text(text = doc.title, fontWeight = FontWeight.Bold, fontSize = 13.sp, color = medai.textPrimary)
-                                            Text(text = "Turi: ${doc.docType}", fontSize = 11.sp, color = medai.textSecondary)
-                                        }
-                                    }
-
-                                    IconButton(
-                                        onClick = { viewModel.deleteMedicalDocument(doc.id) },
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", tint = medai.danger, modifier = Modifier.size(18.dp))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Language settings selection
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = medai.surface),
-                border = BorderStroke(1.dp, medai.border.copy(alpha = 0.4f))
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = Translations.getString("select_language", lang),
-                        fontWeight = FontWeight.Bold,
-                        color = medai.textPrimary,
-                        fontSize = 15.sp
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("uz" to "🇺🇿 UZ", "ru" to "🇷🇺 RU", "en" to "🇬🇧 EN").forEach { (code, label) ->
-                            val isSelected = lang == code
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(if (isSelected) medai.brand.copy(alpha = 0.15f) else Color.Transparent)
-                                    .border(
-                                        width = if (isSelected) 2.dp else 1.dp,
-                                        color = if (isSelected) medai.brand else medai.border.copy(alpha = 0.6f),
-                                        shape = RoundedCornerShape(12.dp)
-                                    )
-                                    .clickable { viewModel.setLanguage(code) }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = label,
-                                    fontWeight = FontWeight.Bold,
-                                    color = if (isSelected) medai.brand else medai.textSecondary,
-                                    fontSize = 14.sp
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Standard links list
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(16.dp)),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = medai.surface),
-                border = BorderStroke(1.dp, medai.border.copy(alpha = 0.4f))
-            ) {
-                Column {
-                    if (isSuperAdmin) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { navController.navigate("admin") }
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .background(medai.warning.copy(alpha = 0.15f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(imageVector = Icons.Default.AdminPanelSettings, contentDescription = null, tint = medai.warning, modifier = Modifier.size(20.dp))
-                            }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Admin Boshqaruv Paneli",
-                                    color = medai.textPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
-                                )
-                                Text(
-                                    text = "Foydalanuvchilar, to'lovlar va sozlamalar",
-                                    color = medai.textSecondary,
-                                    fontSize = 11.sp
-                                )
-                            }
-                            Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = medai.warning, modifier = Modifier.size(20.dp))
-                        }
-                        Divider(color = medai.border.copy(alpha = 0.4f))
-                    }
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { navController.navigate("help") }
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(medai.brandSoft, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(imageVector = Icons.Default.HelpCenter, contentDescription = null, tint = medai.brand, modifier = Modifier.size(18.dp))
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = Translations.getString("feat_help", lang),
-                            color = medai.textPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = medai.textSecondary, modifier = Modifier.size(20.dp))
-                    }
-
-                    Divider(color = medai.border.copy(alpha = 0.2f))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                val intent = Intent(
-                                    Intent.ACTION_VIEW,
-                                    Uri.parse("https://claude.ai/code/artifact/d55f2334-c8df-41ef-b060-65046cfa7965")
-                                )
-                                context.startActivity(intent)
-                            }
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(medai.info.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(imageVector = Icons.Default.PrivacyTip, contentDescription = null, tint = medai.info, modifier = Modifier.size(18.dp))
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = "Maxfiylik siyosati",
-                            color = medai.textPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 15.sp
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = medai.textSecondary, modifier = Modifier.size(20.dp))
-                    }
-
-                    Divider(color = medai.border.copy(alpha = 0.2f))
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showLogoutDialog = true }
-                            .padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(medai.danger.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(imageVector = Icons.Default.ExitToApp, contentDescription = null, tint = medai.danger, modifier = Modifier.size(18.dp))
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Text(
-                            text = Translations.getString("sign_out", lang),
-                            color = medai.danger,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = medai.danger.copy(alpha = 0.7f), modifier = Modifier.size(20.dp))
-                    }
-                }
+                        context.startActivity(intent)
+                    },
+                )
+                MedAIListRow(
+                    icon = Icons.Default.ExitToApp,
+                    title = t("sign_out"),
+                    tint = MedAITint(c.dangerSoft, c.onDangerSoft),
+                    showDivider = false,
+                    onClick = { showLogoutDialog = true },
+                )
             }
         }
     }
 
     if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
-            title = { Text(Translations.getString("sign_out", lang)) },
-            text = { Text(Translations.getString("sign_out_confirm", lang)) },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        viewModel.logout()
-                        showLogoutDialog = false
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = medai.danger)
-                ) {
-                    Text(Translations.getString("confirm", lang))
-                }
+        MedAIDialog(
+            title = t("sign_out"),
+            message = t("sign_out_confirm"),
+            confirmText = t("confirm"),
+            onConfirm = {
+                viewModel.logout()
+                showLogoutDialog = false
             },
-            dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
-                    Text(text = Translations.getString("cancel", lang))
-                }
-            }
+            onDismissRequest = { showLogoutDialog = false },
+            dismissText = t("cancel"),
+            destructive = true,
+            icon = Icons.Default.ExitToApp,
         )
     }
 
-    // Document upload dialog (Premium)
+    // Document upload dialog
     if (showDocUploadDialog) {
-        AlertDialog(
-            onDismissRequest = { showDocUploadDialog = false },
-            title = {
+        val dialogShape = RoundedCornerShape(MedAICorners.sheet)
+        Dialog(onDismissRequest = { showDocUploadDialog = false }) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 360.dp)
+                    .shadow(MedAIElevation.floating, dialogShape)
+                    .clip(dialogShape)
+                    .background(c.surfaceRaised)
+                    .padding(24.dp)
+            ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.CloudUpload, contentDescription = null, tint = medai.premium)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Hujjat yuklash", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Box(
+                        modifier = Modifier.size(44.dp).clip(CircleShape).background(c.tintViolet.bg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.CloudUpload, contentDescription = null, tint = c.tintViolet.fg)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Text(t("docs_upload_title"), style = MaterialTheme.typography.titleLarge, color = c.textPrimary)
                 }
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedTextField(
-                        value = docTitle,
-                        onValueChange = { docTitle = it },
-                        label = { Text("Hujjat nomi (masalan: Rentgen tahlili)") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        docTypesList.forEach { type ->
-                            FilterChip(
-                                selected = docType == type,
-                                onClick = { docType = type },
-                                label = { Text(type) }
-                            )
-                        }
+                Spacer(Modifier.height(16.dp))
+                MedAITextField(
+                    value = docTitle,
+                    onValueChange = { docTitle = it },
+                    label = t("docs_name_label"),
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = t("docs_name_ph"),
+                )
+                Spacer(Modifier.height(4.dp))
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DocumentTypes.forEach { type ->
+                        MedAIFilterChip(docTypeLabel(type), docType == type, { docType = type })
                     }
                 }
-            },
-            confirmButton = {
-                Button(
+                Spacer(Modifier.height(16.dp))
+                MedAIPrimaryButton(
+                    text = t("docs_upload"),
+                    enabled = docTitle.isNotBlank(),
                     onClick = {
                         if (docTitle.isNotBlank()) {
-                            viewModel.addMedicalDocument(docTitle, docType, mockDocBase64)
+                            viewModel.addMedicalDocument(docTitle, docType, MOCK_DOC_BASE64)
                             docTitle = ""
                             showDocUploadDialog = false
-                            Toast.makeText(viewModel.getApplication(), "Hujjat muvaffaqiyatli saqlandi!", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(viewModel.getApplication(), t("docs_saved"), Toast.LENGTH_SHORT).show()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = medai.premium)
-                ) {
-                    Text("Yuklash")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDocUploadDialog = false }) {
-                    Text("Bekor qilish", color = medai.textSecondary)
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
+                MedAITextButton(
+                    text = t("cancel"),
+                    onClick = { showDocUploadDialog = false },
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-        )
+        }
+    }
+}
+
+@Composable
+private fun ProfileSectionTitle(icon: ImageVector, title: String, tint: MedAITint, modifier: Modifier = Modifier) {
+    val c = MedAITheme.colors
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(tint.bg),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = tint.fg, modifier = Modifier.size(20.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(title, style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+    }
+}
+
+@Composable
+private fun ProfileStat(modifier: Modifier, icon: ImageVector, value: String, label: String, tint: MedAITint) {
+    val c = MedAITheme.colors
+    Column(modifier.padding(horizontal = 4.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier.size(40.dp).clip(CircleShape).background(tint.bg),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = tint.fg, modifier = Modifier.size(22.dp))
+        }
+        Spacer(Modifier.height(8.dp))
+        Text(value, style = MaterialTheme.typography.titleMedium, color = c.textPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(label, style = MaterialTheme.typography.labelMedium, color = c.textSecondary, maxLines = 2, textAlign = TextAlign.Center)
     }
 }

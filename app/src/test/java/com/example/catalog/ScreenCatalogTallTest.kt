@@ -26,13 +26,14 @@ import java.util.Date
 import java.util.Locale
 
 /**
+ * Full-length (2400dp) variant of ScreenCatalogTest for long scrolling screens.
  * One screenshot of every secondary screen, light and dark, with realistic sample data.
  * Output folder is picked with the SHOTS_DIR env var (default "screens/current"), language with SHOTS_LANG.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [36], qualifiers = "w411dp-h914dp-xxhdpi")
-class ScreenCatalogTest {
+@Config(sdk = [36], qualifiers = "w411dp-h2400dp-xxhdpi")
+class ScreenCatalogTallTest {
   @get:Rule val rule = createComposeRule()
   private val outDir = System.getenv("SHOTS_DIR") ?: "screens/current"
   private val lang = System.getenv("SHOTS_LANG") ?: "uz"
@@ -58,10 +59,6 @@ class ScreenCatalogTest {
 
   @Test fun profile_light() = shot("profile", false) { vm -> ProfileScreen(vm, rememberNavController()) }
   @Test fun profile_dark() = shot("profile", true) { vm -> ProfileScreen(vm, rememberNavController()) }
-  @Test fun history_light() = shot("history", false) { vm -> HistoryScreen(vm) }
-  @Test fun history_dark() = shot("history", true) { vm -> HistoryScreen(vm) }
-  @Test fun chat_light() = shot("chat", false) { vm -> GeneralChatScreen(vm) }
-  @Test fun chat_dark() = shot("chat", true) { vm -> GeneralChatScreen(vm) }
   @Test fun family_light() = shot("family", false) { vm -> FamilyScreen(vm) {} }
   @Test fun family_dark() = shot("family", true) { vm -> FamilyScreen(vm) {} }
   @Test fun upgrade_light() = shot("upgrade", false) { vm -> PremiumUpgradeScreen(vm) {} }
@@ -76,22 +73,8 @@ class ScreenCatalogTest {
   @Test fun notifications_dark() = shot("notifications", true) { vm -> NotificationsScreen(vm) {} }
   @Test fun yordamchi_light() = shot("yordamchi", false) { vm -> MedAIYordamchiScreen(vm, onBack = {}) }
   @Test fun yordamchi_dark() = shot("yordamchi", true) { vm -> MedAIYordamchiScreen(vm, onBack = {}) }
-  @Test fun symptoms_light() = shot("symptoms", false) { vm -> SymptomCheckerScreen(vm) {} }
-  @Test fun symptoms_dark() = shot("symptoms", true) { vm -> SymptomCheckerScreen(vm) {} }
-  @Test fun ai_doctor_light() = shot("ai_doctor", false) { vm -> AIDoctorScreen(vm) {} }
-  @Test fun ai_doctor_dark() = shot("ai_doctor", true) { vm -> AIDoctorScreen(vm) {} }
-  @Test fun ai_tips_light() = shot("ai_tips", false) { vm -> AITipsScreen(vm) {} }
-  @Test fun ai_tips_dark() = shot("ai_tips", true) { vm -> AITipsScreen(vm) {} }
-  @Test fun drugs_light() = shot("drugs", false) { vm -> DrugInfoScreen(vm) {} }
-  @Test fun drugs_dark() = shot("drugs", true) { vm -> DrugInfoScreen(vm) {} }
-  @Test fun lab_light() = shot("lab", false) { vm -> LabAnalysisScreen(vm) {} }
-  @Test fun lab_dark() = shot("lab", true) { vm -> LabAnalysisScreen(vm) {} }
   @Test fun reminder_light() = shot("reminder", false) { vm -> ReminderScreen(vm) {} }
   @Test fun reminder_dark() = shot("reminder", true) { vm -> ReminderScreen(vm) {} }
-  @Test fun sos_light() = shot("sos", false) { vm -> SOSScreen(vm) {} }
-  @Test fun sos_dark() = shot("sos", true) { vm -> SOSScreen(vm) {} }
-  @Test fun register_light() = shot("register", false) { vm -> RegisterScreen({}, {}, vm) }
-  @Test fun register_dark() = shot("register", true) { vm -> RegisterScreen({}, {}, vm) }
   @Test fun admin_light() = shot("admin", false) { vm -> AdminScreen(vm) {} }
   @Test fun admin_dark() = shot("admin", true) { vm -> AdminScreen(vm) {} }
 }

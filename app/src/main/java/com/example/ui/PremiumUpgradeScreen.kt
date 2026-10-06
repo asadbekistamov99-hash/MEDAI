@@ -39,6 +39,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.data.*
 import com.example.i18n.Translations
 import com.example.ui.theme.*
@@ -48,13 +51,14 @@ import java.util.Date
 import java.util.Locale
 import java.text.SimpleDateFormat
 
-// --- SCREEN: PREMIUM SUBSCRIPTION MANAGEMENT ---
+// --- SCREEN: PREMIUM SUBSCRIPTION ---
 
 @Composable
 fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
-    val medai = MedAITheme.colors
+    val c = MedAITheme.colors
 
     val lang by viewModel.currentLanguage.collectAsState()
+    val context = LocalContext.current
 
     var showCheckInput by remember { mutableStateOf(false) }
 
@@ -66,194 +70,167 @@ fun PremiumUpgradeScreen(viewModel: AppViewModel, onBack: () -> Unit) {
         }
     }
 
+    // Paid state is the only place violet is used; the whole screen is built on it.
+    val featureRows = listOf(
+        Triple(Icons.Default.SmartToy, getLangText("Cheksiz AI shifokor suhbati", "Безлимитный чат с AI-врачом", "Unlimited AI doctor chat"), c.tintViolet),
+        Triple(Icons.Default.MonitorHeart, getLangText("Chuqur simptom tekshiruvi", "Глубокий анализ симптомов", "Deep symptom analysis"), c.tintTeal),
+        Triple(Icons.Default.BarChart, getLangText("Batafsil tahlillar va grafiklar", "Подробная аналитика и графики", "Advanced analytics and charts"), c.tintSky),
+        Triple(Icons.Default.FamilyRestroom, getLangText("Oilaviy guruh va monitoring", "Семейные группы и мониторинг", "Family groups and monitoring"), c.tintPeach),
+        Triple(Icons.Default.NotificationsActive, getLangText("Cheksiz dori eslatmalari", "Безлимитные напоминания о лекарствах", "Unlimited medicine reminders"), c.tintViolet),
+    )
+    val cardNumber = "8600 1234 5678 9012"
+
     Scaffold(
+        containerColor = c.canvas,
         topBar = { AppHeader(title = Translations.getString("premium_upgrade_title", lang), onBack = onBack) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .background(MaterialTheme.colorScheme.background)
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // One premium hero instead of three stacked rows. This is the funnel moment, so
-            // the badge, the promise and the pitch belong in a single block of brand colour.
+            // Promise + price in one soft violet block.
+            val heroShape = RoundedCornerShape(MedAICorners.hero)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
-                    .background(PremiumGradient)
-                    .padding(horizontal = 24.dp, vertical = 26.dp),
+                    .clip(heroShape)
+                    .background(c.premiumSoft)
+                    .border(1.dp, c.premium.copy(alpha = 0.3f), heroShape)
+                    .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(64.dp)
-                        .background(Color.White.copy(alpha = 0.22f), CircleShape),
+                    modifier = Modifier.size(64.dp).clip(CircleShape).background(c.premium),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(34.dp)
-                    )
+                    Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = c.onPremium, modifier = Modifier.size(34.dp))
                 }
-                Spacer(Modifier.height(Spacing.md))
+                Spacer(Modifier.height(16.dp))
                 Text(
                     text = Translations.getString("premium_upgrade_title", lang),
                     style = MaterialTheme.typography.headlineMedium,
-                    color = Color.White,
+                    color = c.onPremiumSoft,
                     textAlign = TextAlign.Center
                 )
-                Spacer(Modifier.height(Spacing.sm))
+                Spacer(Modifier.height(8.dp))
                 Text(
                     text = Translations.getString("premium_upgrade_desc", lang),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White.copy(alpha = 0.88f),
+                    color = c.onPremiumSoft,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(Modifier.height(20.dp))
+                Text(
+                    text = Translations.getString("premium_price", lang),
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = c.onPremiumSoft,
                     textAlign = TextAlign.Center
                 )
             }
 
-            // Price tag card
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(8.dp, RoundedCornerShape(20.dp), ambientColor = medai.premium.copy(alpha = 0.3f), spotColor = medai.premium.copy(alpha = 0.3f))
-                    .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = medai.premium)
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Brush.horizontalGradient(listOf(Color(0xFF8B5CF6), Color(0xFF6D28D9))))
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = Translations.getString("premium_price", lang),
-                        style = MaterialTheme.typography.displaySmall,
-                        color = Color.White
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = getLangText(
-                            "Barcha professional imkoniyatlar to'liq ochiladi",
-                            "Все профессиональные функции разблокируются",
-                            "Unlock all professional features completely"
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.85f)
-                    )
-                }
-            }
-
-            // Feature Checklist (Premium Advantages)
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(1.dp, medai.border),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(
-                    modifier = Modifier.padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Text(
-                        text = getLangText("Premium Imkoniyatlari:", "Возможности Премиум:", "Premium Features:"),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = medai.brand
-                    )
-
-                    val features = listOf(
-                        getLangText("🤖 Cheksiz AI Shifokor bilan suhbat", "🤖 Безлимитный чат с ИИ-Врачом", "🤖 Unlimited AI Doctor Chat"),
-                        getLangText("🩺 Cheksiz va chuqur Simptom Tekshiruvi", "🩺 Полная и глубокая диагностика симптомов", "🩺 Complete & Deep Symptom Analysis"),
-                        getLangText("📊 Batafsil tahlillar va grafiklar", "📊 Детальная аналитика и графики", "📊 Advanced Health Analytics & Charts"),
-                        getLangText("👨‍👩‍👧‍👦 Oilaviy guruh va monitoring", "👨‍👩‍👧‍👦 Семейные группы и мониторинг", "👨‍👩‍👧‍👦 Family Groups & Remote Monitoring"),
-                        getLangText("🔔 Cheksiz dori eslatmalari", "🔔 Безлимитные напоминания о приеме лекарств", "🔔 Unlimited Pill Reminders")
-                    )
-
-                    features.forEach { feat ->
+            // Advantages
+            Column {
+                Text(
+                    getLangText("Premium imkoniyatlari", "Возможности Premium", "Premium features"),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = c.textPrimary
+                )
+                Spacer(Modifier.height(12.dp))
+                MedAICard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                    featureRows.forEachIndexed { index, (icon, text, tint) ->
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 60.dp).padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = null,
-                                tint = medai.success,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                text = feat,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = medai.textPrimary
-                            )
+                            Box(
+                                modifier = Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(tint.bg),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(icon, contentDescription = null, tint = tint.fg, modifier = Modifier.size(22.dp))
+                            }
+                            Spacer(Modifier.width(14.dp))
+                            Text(text, style = MaterialTheme.typography.bodyMedium, color = c.textPrimary, modifier = Modifier.weight(1f))
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = c.success, modifier = Modifier.size(20.dp))
+                        }
+                        if (index != featureRows.lastIndex) {
+                            Box(Modifier.padding(start = 70.dp).fillMaxWidth().height(1.dp).background(c.divider))
                         }
                     }
                 }
             }
 
-            // Pay details
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .shadow(4.dp, RoundedCornerShape(20.dp)),
-                shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(1.dp, medai.border),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-            ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            // Payment details
+            MedAICard(Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier.size(36.dp).clip(RoundedCornerShape(12.dp)).background(c.tintTeal.bg),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(imageVector = Icons.Default.Payment, contentDescription = null, tint = medai.brand, modifier = Modifier.size(20.dp))
-                        Text(
-                            text = getLangText("To'lov Tafsilotlari", "Детали платежа", "Payment Details"),
-                            fontWeight = FontWeight.Bold,
-                            color = medai.brand,
-                            fontSize = 15.sp
-                        )
+                        Icon(Icons.Default.Payment, contentDescription = null, tint = c.tintTeal.fg, modifier = Modifier.size(20.dp))
                     }
+                    Spacer(Modifier.width(12.dp))
                     Text(
-                        text = "Click / Payme karta raqami: 8600 1234 5678 9012",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = medai.textPrimary
-                    )
-                    Text(
-                        text = Translations.getString("premium_pay_details", lang),
-                        fontSize = 12.sp,
-                        color = medai.textSecondary
+                        getLangText("To'lov tafsilotlari", "Детали платежа", "Payment details"),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = c.textPrimary
                     )
                 }
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    getLangText("Click / Payme karta raqami", "Номер карты Click / Payme", "Click / Payme card number"),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = c.textSecondary
+                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(cardNumber, style = MaterialTheme.typography.titleLarge, color = c.textPrimary, modifier = Modifier.weight(1f))
+                    // Copy the number (48dp target).
+                    Box(
+                        modifier = Modifier
+                            .size(MinTouch)
+                            .clip(CircleShape)
+                            .clickable(role = Role.Button) {
+                                val cm = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                cm.setPrimaryClip(android.content.ClipData.newPlainText("card", cardNumber.replace(" ", "")))
+                                Toast.makeText(context, getLangText("Nusxalandi", "Скопировано", "Copied"), Toast.LENGTH_SHORT).show()
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.ContentCopy,
+                            contentDescription = getLangText("Karta raqamini nusxalash", "Скопировать номер карты", "Copy card number"),
+                            tint = c.brand
+                        )
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = Translations.getString("premium_pay_details", lang),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.textSecondary
+                )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
             if (!showCheckInput) {
-                MedAIButton(
+                MedAIPremiumButton(
                     text = Translations.getString("premium_upload_check", lang),
-                    onClick = { showCheckInput = true },
                     icon = Icons.Default.ReceiptLong,
-                    brush = PremiumGradient
+                    onClick = { showCheckInput = true },
+                    modifier = Modifier.fillMaxWidth()
                 )
             } else {
-                MedAIButton(
+                MedAIPrimaryButton(
                     text = Translations.getString("premium_submit", lang),
                     onClick = {
                         // Simulate check upload
                         viewModel.submitPaymentCheck("simulated_payment_check_base64_receipt")
                         showCheckInput = false
                     },
-                    icon = Icons.Default.CheckCircle
+                    icon = Icons.Default.CheckCircle,
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }
