@@ -590,7 +590,13 @@ fun VitalsTrendsContent(vitals: List<com.example.data.FirestoreVitalReading>, la
                     val plotW = size.width - left - right
                     val plotH = size.height - top - bottom
                     fun yOf(v: Float) = top + (1f - (v - yMin) / (yMax - yMin)) * plotH
-                    fun xOf(i: Int, n: Int) = if (n == 1) left + plotW / 2 else left + plotW * i / (n - 1)
+                    // Bars sit in the middle of equal slots so the first/last bar never overlaps the axis labels.
+                    val barMode = series.any { it.style == "bars" }
+                    fun xOf(i: Int, n: Int) = when {
+                        barMode -> left + plotW * (i + 0.5f) / n
+                        n == 1 -> left + plotW / 2
+                        else -> left + plotW * i / (n - 1)
+                    }
 
                     // grid + y labels
                     for (g in 0..3) {
@@ -611,7 +617,7 @@ fun VitalsTrendsContent(vitals: List<com.example.data.FirestoreVitalReading>, la
                     series.forEach { s ->
                         when (s.style) {
                             "bars" -> {
-                                val bw = (plotW / n * 0.55f).coerceAtMost(28.dp.toPx())
+                                val bw = (plotW / n * 0.6f).coerceAtMost(28.dp.toPx())
                                 s.values.forEachIndexed { i, v ->
                                     if (v != null) {
                                         val x = xOf(i, n) - bw / 2

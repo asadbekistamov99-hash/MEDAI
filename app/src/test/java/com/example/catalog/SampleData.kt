@@ -14,6 +14,14 @@ object SampleData {
   const val uid = "demo-uid"
 
   fun seededVm(lang: String = "uz", admin: Boolean = false): AppViewModel {
+    // Seeded reminders make the view model schedule WorkManager jobs; without an initialised
+    // WorkManager that throws on the main dispatcher and fails every following test.
+    try {
+      androidx.work.WorkManager.initialize(
+        ApplicationProvider.getApplicationContext(),
+        androidx.work.Configuration.Builder().setExecutor(java.util.concurrent.Executors.newSingleThreadExecutor()).build(),
+      )
+    } catch (e: IllegalStateException) { /* already initialised by an earlier test */ }
     val vm = AppViewModel(ApplicationProvider.getApplicationContext())
     val now = System.currentTimeMillis()
     val day = 86_400_000L
