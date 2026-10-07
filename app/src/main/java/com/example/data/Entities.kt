@@ -297,8 +297,11 @@ data class UserSystem(
     var lastScreenBeforeUpgrade: String = ""
 ) {
     val hasPremiumAccess: Boolean
-        get() = (isPremium && (premiumExpiry == null || premiumExpiry > System.currentTimeMillis())) ||
-            (trialStartedAt > 0L && trialEndsAt > System.currentTimeMillis())
+        get() {
+            val expiry = premiumExpiry
+            return (isPremium && (expiry == null || expiry > System.currentTimeMillis())) ||
+                (trialStartedAt > 0L && trialEndsAt > System.currentTimeMillis())
+        }
 
     val trialDaysRemaining: Int
         get() {

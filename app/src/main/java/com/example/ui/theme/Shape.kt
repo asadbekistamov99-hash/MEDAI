@@ -37,4 +37,17 @@ object MedAICorners {
     val cardLarge = 24.dp
     val control = 14.dp
     val pill = 999.dp
+    val tile = 18.dp
+    val hero = 28.dp
+    val sheet = 28.dp
 }
+
+/** Cards are flat with a hairline; only things that float above content get a shadow. */
+object MedAIElevation {
+    val none = 0.dp
+    val raised = 4.dp
+    val floating = 12.dp
+}
+
+/** Smallest touch target (Material and WCAG 2.5.5 both say 48dp). */
+val MinTouch = 48.dp

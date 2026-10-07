@@ -57,5 +57,15 @@ val Typography = Typography(
 
     labelLarge = style(14, 20, FontWeight.SemiBold, 0.2),
     labelMedium = style(12, 16, FontWeight.SemiBold, 0.3),
-    labelSmall = style(11, 15, FontWeight.Medium, 0.6),
+    labelSmall = style(12, 16, FontWeight.Medium, 0.4),
 )
+
+/** Styles that Material's scale has no slot for. */
+object MedAIText {
+    /** Big number in a summary card ("82"). */
+    val MetricLarge = style(48, 52, FontWeight.Bold, -1.0)
+    val MetricMedium = style(32, 36, FontWeight.ExtraBold, -0.5)
+    val MetricSmall = style(16, 22, FontWeight.Bold, 0.0)
+    /** Section eyebrow: small, tracked, always on a surface that gives it 4.5:1. */
+    val Eyebrow = style(12, 16, FontWeight.SemiBold, 0.8)
+}

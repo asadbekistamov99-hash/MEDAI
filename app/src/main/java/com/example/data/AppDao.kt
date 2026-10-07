@@ -58,7 +58,7 @@ interface AppDao {
     fun getRemindersFlow(userId: String): Flow<List<ReminderLocal>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertReminder(reminder: ReminderLocal)
+    suspend fun insertReminder(reminder: ReminderLocal): Long
 
     @Query("DELETE FROM reminders WHERE id = :id AND userId = :userId")
     suspend fun deleteReminder(id: Int, userId: String)

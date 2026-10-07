@@ -165,7 +165,7 @@ class DataIsolationTest {
         )
 
         // Bob's id, but Alice as the acting user: must affect nothing.
-        dao.deleteReminder(bobsReminder, alice)
+        dao.deleteReminder(bobsReminder.toInt(), alice)
 
         assertEquals(1, dao.getRemindersFlow(alice).first().size)
         assertEquals(1, dao.getRemindersFlow(bob).first().size)

@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +23,11 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -43,7 +49,7 @@ import com.example.ui.theme.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 
-// --- MAIN CONTAINER WITH CUSTOM PREMIUM BOTTOM BAR ---
+// --- MAIN CONTAINER ---
 
 @Composable
 fun MainContainer(
@@ -55,7 +61,6 @@ fun MainContainer(
     val lang by viewModel.currentLanguage.collectAsState()
     val user by viewModel.currentUser.collectAsState()
     val onboardingCompleted by viewModel.onboardingCompleted.collectAsState()
-    var showFamilyQrDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(user, onboardingCompleted) {
         if (user == null || !onboardingCompleted) {
@@ -78,177 +83,48 @@ fun MainContainer(
         return
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            containerColor = MedicalBackground,
-            bottomBar = {
-                MedicalBottomNavigation(
-                    selectedTab = selectedTab,
-                    onTabSelected = { selectedTab = it },
-                    onQrClicked = { showFamilyQrDialog = true },
-                    lang = lang
-                )
-            }
-        ) { innerPadding ->
-            Box(modifier = Modifier.padding(innerPadding)) {
-                when (selectedTab) {
-                    0 -> HomeScreen(viewModel, onNavigateToFeature)
-                    1 -> HistoryScreen(viewModel)
-                    2 -> GeneralChatScreen(
-                        viewModel = viewModel,
-                        onNavigateToUpgrade = { onNavigateToFeature("upgrade") }
-                    )
-                    3 -> ProfileScreen(viewModel, navController)
-                }
-            }
-        }
-    }
-
-    if (showFamilyQrDialog) {
-        FamilyQrDialog(viewModel = viewModel, onDismiss = { showFamilyQrDialog = false })
-    }
-}
-
-@Composable
-fun MedicalBottomNavigation(
-    selectedTab: Int,
-    onTabSelected: (Int) -> Unit,
-    onQrClicked: () -> Unit,
-    lang: String
-) {
-    Surface(
-        color = Color.White,
-        shadowElevation = 16.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(84.dp)
-            .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // Hairline so the bar separates from scrolling content even on light backgrounds.
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(1.dp)
-                    .background(DividerSoft)
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .navigationBarsPadding()
-                    .padding(horizontal = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                MedicalBottomTabItem(
-                    selected = selectedTab == 0,
-                    icon = Icons.Default.Home,
-                    label = Translations.getString("tab_home", lang),
-                    onClick = { onTabSelected(0) }
-                )
-                MedicalBottomTabItem(
-                    selected = selectedTab == 1,
-                    icon = Icons.Default.History,
-                    label = Translations.getString("tab_history", lang),
-                    onClick = { onTabSelected(1) }
-                )
-
-                // Center action: family QR. Lifted out of the bar with a white ring so it
-                // reads as the primary action rather than a fifth tab.
-                Box(
-                    modifier = Modifier
-                        .size(58.dp)
-                        .shadow(10.dp, CircleShape, ambientColor = PrimaryGreen, spotColor = PrimaryGreen)
-                        .background(Color.White, CircleShape)
-                        .padding(4.dp)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.linearGradient(listOf(Teal400, Teal700)),
-                            CircleShape
-                        )
-                        .clickable(onClick = onQrClicked),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.QrCodeScanner,
-                        contentDescription = "QR Scanner",
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp)
-                    )
-                }
-
-                MedicalBottomTabItem(
-                    selected = selectedTab == 2,
-                    icon = Icons.Default.Chat,
-                    label = Translations.getString("tab_chat", lang),
-                    onClick = { onTabSelected(2) }
-                )
-                MedicalBottomTabItem(
-                    selected = selectedTab == 3,
-                    icon = Icons.Default.Person,
-                    label = Translations.getString("tab_profile", lang),
-                    onClick = { onTabSelected(3) }
+    val colors = MedAITheme.colors
+    Scaffold(
+        containerColor = colors.canvas,
+        bottomBar = {
+            // The surface colour extends behind the system navigation bar.
+            Box(Modifier.background(colors.surface).navigationBarsPadding()) {
+                MedAIBottomBar(
+                    items = listOf(
+                        MedAIBottomItem(Icons.Default.Home, Translations.getString("tab_home", lang)),
+                        MedAIBottomItem(Icons.Default.History, Translations.getString("tab_history", lang)),
+                        MedAIBottomItem(Icons.Default.Chat, Translations.getString("tab_chat", lang)),
+                        MedAIBottomItem(Icons.Default.Person, Translations.getString("tab_profile", lang)),
+                    ),
+                    selectedIndex = selectedTab,
+                    onSelect = { selectedTab = it },
                 )
             }
         }
-    }
-}
-
-@Composable
-fun RowScope.MedicalBottomTabItem(
-    selected: Boolean,
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
-    val tint by animateColorAsState(
-        targetValue = if (selected) PrimaryGreen else TextSecondary,
-        animationSpec = tween(180),
-        label = "tabTint"
-    )
-    val pill by animateColorAsState(
-        targetValue = if (selected) PrimaryGreen.copy(alpha = 0.12f) else Color.Transparent,
-        animationSpec = tween(180),
-        label = "tabPill"
-    )
-    Column(
-        modifier = Modifier
-            .weight(1f)
-            .clickable(
-                onClick = onClick,
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null
-            )
-            .padding(vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Box(
-            modifier = Modifier
-                .size(46.dp, 30.dp)
-                .clip(RoundedCornerShape(15.dp))
-                .background(pill),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = tint,
-                modifier = Modifier.size(22.dp)
-            )
+    ) { innerPadding ->
+        Box(modifier = Modifier.padding(innerPadding)) {
+            when (selectedTab) {
+                0 -> HomeScreen(viewModel, onNavigateToFeature)
+                1 -> HistoryScreen(viewModel)
+                2 -> GeneralChatScreen(
+                    viewModel = viewModel,
+                    onNavigateToUpgrade = { onNavigateToFeature("upgrade") }
+                )
+                3 -> ProfileScreen(viewModel, navController)
+            }
         }
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = tint,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 
 // --- HOME SCREEN (FREE & PREMIUM) ---
+
+private data class HomeRowItem(
+    val route: String,
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector,
+    val tint: MedAITint,
+)
 
 @Composable
 fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
@@ -261,23 +137,141 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
     // hasPremiumAccess (paid subscription OR unexpired free trial) rather than the raw
     // isPremium column, so a trial account sees the same features a paying one does.
     val isPremium = user?.hasPremiumAccess ?: false
+    val isPaid = user?.isPremium == true
+    val score = user?.healthScore ?: 0
 
-    // Staggered enter animation for home screen rows
     var animateRows by remember { mutableStateOf(false) }
     var trialBannerDismissed by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        animateRows = true
+    LaunchedEffect(Unit) { animateRows = true }
+
+    val c = MedAITheme.colors
+    fun t(key: String) = Translations.getString(key, lang)
+
+    // What each tier can reach is unchanged: the four quick actions plus this list cover exactly
+    // the routes the old two-column grid offered (free: 8, premium: 12) and the help centre.
+    val serviceRows = if (isPremium) {
+        listOf(
+            HomeRowItem("yordamchi", "MedAI Yordamchi", t("feat_sub_yordamchi"), Icons.Default.SmartToy, c.tintTeal),
+            HomeRowItem("family", t("feat_family"), t("feat_sub_family"), Icons.Default.Group, c.tintPeach),
+            HomeRowItem("ai_doctor", t("feat_ai_doctor"), t("feat_sub_ai_doctor"), Icons.Default.SmartToy, c.tintViolet),
+            HomeRowItem("ai_tips", t("feat_ai_tips"), t("feat_sub_ai_tips"), Icons.Default.TipsAndUpdates, c.tintSky),
+            HomeRowItem("lab", t("feat_lab"), t("feat_sub_lab"), Icons.Default.Science, c.tintTeal),
+            HomeRowItem("analytics", t("feat_analytics"), t("feat_sub_analytics"), Icons.Default.BarChart, c.tintSky),
+            HomeRowItem("notifications", t("feat_notifications"), t("feat_sub_notifications"), Icons.Default.NotificationsActive, c.tintViolet),
+            HomeRowItem("services", t("feat_services"), t("feat_sub_services"), Icons.Default.LocalHospital, c.tintTeal),
+        )
+    } else {
+        listOf(
+            HomeRowItem("yordamchi", "MedAI Yordamchi", t("feat_sub_yordamchi"), Icons.Default.SmartToy, c.tintTeal),
+            HomeRowItem("family", t("feat_family"), t("feat_sub_family"), Icons.Default.Group, c.tintPeach),
+            HomeRowItem("notifications", t("feat_notifications"), t("feat_sub_notifications"), Icons.Default.NotificationsActive, c.tintViolet),
+            HomeRowItem("analytics", t("feat_analytics"), t("feat_sub_analytics"), Icons.Default.BarChart, c.tintSky),
+        )
+    } + HomeRowItem("help", t("feat_help"), t("feat_sub_help"), Icons.Default.SupportAgent, c.tintTeal)
+
+    @Composable
+    fun Reveal(durationMs: Int, content: @Composable () -> Unit) {
+        AnimatedVisibility(
+            visible = animateRows,
+            enter = fadeIn(tween(durationMs)) + slideInVertically(tween(durationMs)) { 40 },
+        ) { content() }
     }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Transparent),
-        contentPadding = PaddingValues(bottom = 24.dp)
+            .statusBarsPadding(),
+        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Trial countdown, above everything else. Dismissable for the session, but it comes back
-        // on next launch — a user should not be able to bury the one warning that their free
-        // access is finite.
+        // 1. Top bar: menu (all services), greeting, notifications.
+        item {
+            Reveal(300) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(MinTouch)
+                            .clip(CircleShape)
+                            .background(c.surface)
+                            .border(1.dp, c.border, CircleShape)
+                            .clickable(role = Role.Button) { onNavigate("services") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Menu, contentDescription = t("feat_services"), tint = c.textPrimary)
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = String.format(t("home_greeting"), user?.name ?: "").removeSuffix("👋").trimEnd(),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = c.textPrimary,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        if (isPremium) {
+                            Spacer(Modifier.height(2.dp))
+                            MedAIBadge(
+                                text = if (isPaid) t("badge_premium") else t("badge_trial"),
+                                tone = MedAIBadgeTone.Premium,
+                                icon = Icons.Default.WorkspacePremium
+                            )
+                        }
+                    }
+                    Spacer(Modifier.width(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(MinTouch)
+                            .clip(CircleShape)
+                            .background(c.surface)
+                            .border(1.dp, c.border, CircleShape)
+                            .clickable(role = Role.Button) { onNavigate("notifications") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Notifications, contentDescription = t("feat_notifications"), tint = c.textPrimary)
+                        if (unreadNotifications > 0) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 2.dp, end = 0.dp)
+                                    .defaultMinSize(minWidth = 20.dp, minHeight = 20.dp)
+                                    .background(c.danger, CircleShape)
+                                    .border(2.dp, c.surface, CircleShape)
+                                    .padding(horizontal = 4.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = if (unreadNotifications > 9) "9+" else unreadNotifications.toString(),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = c.onDanger,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. Hero: health score + (premium) activity + the one primary action.
+        item {
+            Reveal(400) {
+                HomeHealthHero(
+                    score = score,
+                    steps = steps,
+                    showActivity = isPremium,
+                    lang = lang,
+                    ctaTitle = if (isPremium) t("home_cta_ai_title") else t("home_cta_sym_title"),
+                    ctaSubtitle = if (isPremium) t("home_cta_ai_sub") else t("home_cta_sym_sub"),
+                    onCta = { onNavigate(if (isPremium) "ai_doctor" else "symptoms") }
+                )
+            }
+        }
+
+        // 3. Trial countdown. Dismissable for the session, but it comes back on next launch — a
+        // user should not be able to bury the one warning that their free access is finite.
         if (trialDays > 0 && !trialBannerDismissed) {
             item {
                 TrialBanner(
@@ -285,486 +279,66 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
                     lang = lang,
                     onUpgradeClick = { onNavigate("upgrade") },
                     onDismiss = { trialBannerDismissed = true },
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                 )
             }
         }
 
-        // 1. App Header: Hamburger, left-aligned brand block with slogan, Bell
+        // 4. Quick actions.
         item {
-            AnimatedVisibility(
-                visible = animateRows,
-                enter = slideInVertically(initialOffsetY = { -50 }) + fadeIn(animationSpec = tween(500))
-            ) {
-                // Branded gradient bar. The home screen used to open on a plain white strip
-                // that matched every other screen; carrying the brand colour here makes the
-                // launch feel like a product rather than a list.
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(BrandGradient)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 14.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Left: Medical Hamburger Icon inside styled light button
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.22f))
-                                .clickable { onNavigate("services") },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Menu,
-                                contentDescription = "Menu",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        // Center: MedAI title (left-aligned) with slogan underneath, PREMIUM pill inline
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = "MedAI",
-                                    fontWeight = FontWeight.ExtraBold,
-                                    fontSize = 22.sp,
-                                    color = Color.White,
-                                    letterSpacing = -0.5.sp
-                                )
-
-                                if (isPremium) {
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-                                    val shimmerTranslate by infiniteTransition.animateFloat(
-                                        initialValue = 0f,
-                                        targetValue = 100f,
-                                        animationSpec = infiniteRepeatable(
-                                            animation = tween(2000, easing = LinearEasing),
-                                            repeatMode = RepeatMode.Restart
-                                        ),
-                                        label = "shimmer"
-                                    )
-                                    Box(
-                                        modifier = Modifier
-                                            .background(
-                                                Brush.linearGradient(
-                                                    colors = listOf(PremiumPurple, Color(0xFF9333EA), PremiumPurple),
-                                                    start = Offset(shimmerTranslate, 0f),
-                                                    end = Offset(shimmerTranslate + 40f, 0f)
-                                                ),
-                                                RoundedCornerShape(8.dp)
-                                            )
-                                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                                    ) {
-                                        Text(
-                                            text = "PREMIUM",
-                                            fontSize = 9.sp,
-                                            color = Color.White,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                            }
-                            Text(
-                                text = Translations.getString("app_slogan", lang),
-                                fontSize = 11.sp,
-                                color = Color.White.copy(alpha = 0.78f),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        if (isPremium) {
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Icon(
-                                imageVector = Icons.Default.WorkspacePremium,
-                                contentDescription = "Premium",
-                                tint = Color(0xFFFFB300),
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-
-                        // Right: Bouncing notification bell with red badge inside light circular button
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(CircleShape)
-                                .background(Color.White.copy(alpha = 0.22f))
-                        ) {
-                            val bellTransition = rememberInfiniteTransition(label = "bell")
-                            val bellRotation by bellTransition.animateFloat(
-                                initialValue = -10f,
-                                targetValue = 10f,
-                                animationSpec = infiniteRepeatable(
-                                    animation = tween(400, easing = EaseInOutSine),
-                                    repeatMode = RepeatMode.Reverse
-                                ),
-                                label = "bell"
-                            )
-                            val rotationModifier = if (unreadNotifications > 0) {
-                                Modifier.rotate(bellRotation)
-                            } else Modifier
-
-                            IconButton(
-                                onClick = { onNavigate("notifications") },
-                                modifier = rotationModifier.fillMaxSize()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Notifications,
-                                    contentDescription = "Notifications",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-
-                            if (unreadNotifications > 0) {
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .offset(x = (-2).dp, y = 2.dp)
-                                    .size(16.dp)
-                                    .background(ErrorRed, CircleShape)
-                                    .border(2.dp, Teal700, CircleShape),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = unreadNotifications.toString(),
-                                        fontSize = 9.sp,
-                                        color = Color.White,
-                                        fontWeight = FontWeight.ExtraBold
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 2. Hero Banner: Nature photo background with greeting overlay
-        item {
-            AnimatedVisibility(
-                visible = animateRows,
-                enter = slideInVertically(initialOffsetY = { 100 }) + fadeIn(animationSpec = tween(600))
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp)
-                        .padding(horizontal = 20.dp, vertical = 12.dp)
-                        .shadow(8.dp, RoundedCornerShape(24.dp), ambientColor = PrimaryGreen.copy(alpha = 0.2f), spotColor = PrimaryGreen.copy(alpha = 0.2f))
-                        .clip(RoundedCornerShape(24.dp))
-                ) {
-                    // Soft nature background photo — kept bright and visible, like the reference design
-                    androidx.compose.foundation.Image(
-                        painter = painterResource(id = R.drawable.img_nature_bg),
-                        contentDescription = null,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.matchParentSize()
-                    )
-                    // Directional scrim: dense on the left where the greeting sits, clear on the
-                    // right so the photo still reads. A flat 12% wash made the copy fight the image.
-                    Box(
-                        modifier = Modifier
-                            .matchParentSize()
-                            .background(
-                                Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color.White.copy(alpha = 0.90f),
-                                        Color.White.copy(alpha = 0.66f),
-                                        Color.White.copy(alpha = 0.16f),
-                                    ),
-                                )
-                            )
-                    )
-
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(20.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = String.format(Translations.getString("home_greeting", lang), user?.name ?: ""),
-                                style = MaterialTheme.typography.headlineMedium,
-                                color = TextPrimary,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Bugun o'zingizni qanday his qilyapsiz?",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextPrimary.copy(alpha = 0.72f)
-                            )
-                        }
-
-                        // Right side: Doctor / Medical icon
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .background(Color.White.copy(alpha = 0.75f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = if (isPremium) Icons.Default.MilitaryTech else Icons.Default.LocalHospital,
-                                contentDescription = null,
-                                tint = if (isPremium) PremiumPurple else PrimaryGreen,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // 3. Health Score / Premium Dashboard Card
-        item {
-            AnimatedVisibility(
-                visible = animateRows,
-                enter = slideInVertically(initialOffsetY = { 100 }) + fadeIn(animationSpec = tween(700))
-            ) {
-                if (isPremium) {
-                    PremiumHealthCard(steps = steps, user = user, lang = lang)
-                } else {
-                    FreeHealthCard(user = user, lang = lang)
-                }
-            }
-        }
-
-        // 4. Feature Grid Title
-        item {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 6.dp)
-                    .clickable { onNavigate("yordamchi") },
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(containerColor = PrimaryGreen.copy(alpha = 0.1f)),
-                border = BorderStroke(1.dp, PrimaryGreen.copy(alpha = 0.3f))
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .background(PrimaryGreen, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SmartToy,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Column {
-                            Text(
-                                text = "MedAI Yordamchi (4-in-1)",
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 15.sp,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = "Dori aniqlash, Simptom, Statistika & Reminder",
-                                fontSize = 12.sp,
-                                color = TextSecondary
-                            )
-                        }
-                    }
-                    Icon(
-                        imageVector = Icons.Default.ChevronRight,
-                        contentDescription = null,
-                        tint = PrimaryGreen
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Text(
-                text = "MEDAI xizmatlari".uppercase(),
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.sp,
-                color = PrimaryGreen,
-                letterSpacing = 1.2.sp,
-                modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp)
-            )
-        }
-
-        // 5. Feature Grid Content
-        item {
-            // Features configuration
-            val freeFeatures = listOf(
-                FeatureItem("yordamchi", "MedAI Yordamchi", "Tezkor 4-in-1 yordam", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(PrimaryGreen, DarkGreen))),
-                FeatureItem("family", Translations.getString("feat_family", lang), "Oila a'zolari", Icons.Default.Group, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFFF6D00)))),
-                FeatureItem("symptoms", Translations.getString("feat_symptoms", lang), "Tahlil qilish", Icons.Default.Favorite, Brush.horizontalGradient(colors = listOf(Color(0xFF00897B), Color(0xFF00ACC1)))),
-                FeatureItem("drugs", Translations.getString("feat_med_info", lang), "Tarkibi va foydasi", Icons.Default.LocalPharmacy, Brush.horizontalGradient(colors = listOf(Color(0xFF1565C0), Color(0xFF1976D2)))),
-                FeatureItem("reminder", Translations.getString("feat_reminder", lang), "O'z vaqtida ichish", Icons.Default.Alarm, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFF57C00)))),
-                FeatureItem("notifications", Translations.getString("feat_notifications", lang), "Ogohlantirishlar", Icons.Default.NotificationsActive, Brush.horizontalGradient(colors = listOf(Color(0xFF6A1B9A), Color(0xFF8E24AA)))),
-                FeatureItem("analytics", Translations.getString("feat_analytics", lang), "Sog'liq ko'rsatkichlari", Icons.Default.BarChart, Brush.horizontalGradient(colors = listOf(Color(0xFF00838F), Color(0xFF00ACC1)))),
-                FeatureItem("sos", "Tez yordam SOS", "Favqulodda yordam", Icons.Default.Emergency, Brush.horizontalGradient(colors = listOf(Color(0xFFB71C1C), Color(0xFFE53935))))
-            )
-
-            val premiumFeatures = listOf(
-                FeatureItem("yordamchi", "MedAI Yordamchi", "Smart 4-in-1 yordam", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(PrimaryGreen, DarkGreen))),
-                FeatureItem("family", Translations.getString("feat_family", lang), "Oila a'zolari", Icons.Default.Group, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFFF6D00))))
-            ) + freeFeatures.drop(2).take(1) + listOf(
-                FeatureItem("ai_doctor", Translations.getString("feat_ai_doctor", lang), "AI Robot-Shifokor", Icons.Default.SmartToy, Brush.horizontalGradient(colors = listOf(Color(0xFF4527A0), Color(0xFF5E35B1)))),
-                FeatureItem("ai_tips", Translations.getString("feat_ai_tips", lang), "Aqlli maslahatlar", Icons.Default.TipsAndUpdates, Brush.horizontalGradient(colors = listOf(Color(0xFF0277BD), Color(0xFF0288D1)))),
-                FeatureItem("drugs", Translations.getString("feat_med_info", lang), "Dori vositalari", Icons.Default.LocalPharmacy, Brush.horizontalGradient(colors = listOf(Color(0xFFE65100), Color(0xFFF4511E))))
-            ) + listOf(
-                FeatureItem("lab", Translations.getString("feat_lab", lang), "Retsept tahlil qilish", Icons.Default.Science, Brush.horizontalGradient(colors = listOf(Color(0xFF00695C), Color(0xFF00897B)))),
-                FeatureItem("reminder", Translations.getString("feat_reminder", lang), "Dori eslatmalari", Icons.Default.Alarm, Brush.horizontalGradient(colors = listOf(Color(0xFFAD1457), Color(0xFFD81B60)))),
-                FeatureItem("analytics", Translations.getString("feat_analytics", lang), "Grafik ko'rsatkichlar", Icons.Default.BarChart, Brush.horizontalGradient(colors = listOf(Color(0xFF283593), Color(0xFF3949AB)))),
-                FeatureItem("notifications", Translations.getString("feat_notifications", lang), "Ogohlantirishlar", Icons.Default.NotificationsActive, Brush.horizontalGradient(colors = listOf(Color(0xFF6A1B9A), Color(0xFF8E24AA))))
-            ) + listOf(
-                FeatureItem("sos", "Favqulodda vaziyat", "SOS tezkor yordam", Icons.Default.Emergency, Brush.horizontalGradient(colors = listOf(Color(0xFFC62828), Color(0xFFD32F2F)))),
-                FeatureItem("services", Translations.getString("feat_services", lang), "Klinika xizmatlari", Icons.Default.LocalHospital, Brush.horizontalGradient(colors = listOf(Color(0xFF006064), Color(0xFF00838F))))
-            )
-
-            val activeFeatures = if (isPremium) premiumFeatures else freeFeatures
-            val columns = 2
-
-            Column(modifier = Modifier.padding(horizontal = 14.dp)) {
-                activeFeatures.chunked(columns).forEach { rowItems ->
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        rowItems.forEach { item ->
-                            HomeFeatureGridCard(
-                                title = item.title,
-                                subtitle = item.subtitle,
-                                icon = item.icon,
-                                brush = item.brush,
-                                isEmergency = item.id == "sos",
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { onNavigate(item.id) }
-                            )
-                        }
-                        repeat(columns - rowItems.size) {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
-                }
-            }
-        }
-
-        // 6. Quick access: Help Center row
-        item {
-            AnimatedVisibility(
-                visible = animateRows,
-                enter = slideInVertically(initialOffsetY = { 100 }) + fadeIn(animationSpec = tween(900))
-            ) {
-                MedicalCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 4.dp),
-                    onClick = { onNavigate("help") }
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .background(LightGreen, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.SupportAgent,
-                                contentDescription = "Yordam Markazi",
-                                tint = PrimaryGreen,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(16.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Yordam Markazi",
-                                fontWeight = FontWeight.Bold,
-                                color = TextPrimary,
-                                fontSize = 15.sp
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Savollar va qo'llab-quvvatlash",
-                                fontSize = 12.sp,
-                                color = TextSecondary
-                            )
-                        }
-                        Icon(
-                            imageVector = Icons.Default.ChevronRight,
-                            contentDescription = null,
-                            tint = TextSecondary
+            Reveal(500) {
+                Column {
+                    Text(t("home_quick_actions"), style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                    Spacer(Modifier.height(12.dp))
+                    MedAIQuickTileGrid(
+                        listOf(
+                            MedAIQuickItem(Icons.Default.MonitorHeart, t("quick_symptoms"), c.tintTeal, { onNavigate("symptoms") }),
+                            MedAIQuickItem(Icons.Default.Medication, t("quick_meds"), c.tintPeach, { onNavigate("drugs") }),
+                            MedAIQuickItem(Icons.Default.Alarm, t("quick_reminders"), c.tintSky, { onNavigate("reminder") }),
+                            MedAIQuickItem(Icons.Default.Emergency, t("quick_sos"), MedAITint(c.dangerSoft, c.onDangerSoft), { onNavigate("sos") }, danger = true),
                         )
+                    )
+                }
+            }
+        }
+
+        // 5. All other services.
+        item {
+            Reveal(600) {
+                Column {
+                    Text(t("home_all_services"), style = MaterialTheme.typography.titleMedium, color = c.textPrimary)
+                    Spacer(Modifier.height(12.dp))
+                    MedAICard(Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                        serviceRows.forEachIndexed { index, row ->
+                            MedAIListRow(
+                                icon = row.icon,
+                                title = row.title,
+                                subtitle = row.subtitle,
+                                tint = row.tint,
+                                showDivider = index != serviceRows.lastIndex,
+                                onClick = { onNavigate(row.route) },
+                            )
+                        }
                     }
                 }
             }
         }
 
-        // 7. Non-premium Upsell Banner
+        // 6. Non-premium upsell.
         if (!isPremium) {
             item {
-                AnimatedVisibility(
-                    visible = animateRows,
-                    enter = slideInVertically(initialOffsetY = { 100 }) + fadeIn(animationSpec = tween(1000))
-                ) {
-                    MedicalCard(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        onClick = { onNavigate("upgrade") }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                Reveal(700) {
+                    MedAICard(Modifier.fillMaxWidth(), onClick = { onNavigate("upgrade") }) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .background(PremiumLight, CircleShape),
+                                modifier = Modifier.size(48.dp).background(c.premiumSoft, CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.MilitaryTech,
-                                    contentDescription = "Upgrade",
-                                    tint = PremiumPurple,
-                                    modifier = Modifier.size(28.dp)
-                                )
+                                Icon(Icons.Default.MilitaryTech, contentDescription = null, tint = c.premium, modifier = Modifier.size(28.dp))
                             }
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Premium versiyaga o'ting!",
-                                    fontWeight = FontWeight.Bold,
-                                    color = PremiumPurple,
-                                    fontSize = 16.sp
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "AI Shifokor, Analizlarni skanerlash, Oila monitoringi va barcha xizmatlarni oching.",
-                                    fontSize = 12.sp,
-                                    color = TextSecondary
-                                )
+                            Spacer(Modifier.width(16.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(t("upsell_title"), style = MaterialTheme.typography.titleSmall, color = c.premium)
+                                Text(t("upsell_desc"), style = MaterialTheme.typography.bodySmall, color = c.textSecondary)
                             }
                         }
                     }
@@ -774,516 +348,95 @@ fun HomeScreen(viewModel: AppViewModel, onNavigate: (String) -> Unit) {
     }
 }
 
-// --- SUB-COMPONENTS FOR HOME SCREEN ---
-
-data class FeatureItem(
-    val id: String,
-    val title: String,
-    val subtitle: String,
-    val icon: ImageVector,
-    val brush: Brush
-)
-
+/** Score ring, status, optional activity pills and the primary action, on the brand gradient. */
 @Composable
-fun FreeHealthCard(user: UserLocal?, lang: String) {
-    val score = user?.healthScore ?: 0
-
-    val animatedProgress by animateFloatAsState(
-        targetValue = score / 100f,
-        animationSpec = tween(1200, easing = FastOutSlowInEasing),
-        label = "freeHealthProgress"
+private fun HomeHealthHero(
+    score: Int,
+    steps: Int,
+    showActivity: Boolean,
+    lang: String,
+    ctaTitle: String,
+    ctaSubtitle: String,
+    onCta: () -> Unit,
+) {
+    val c = MedAITheme.colors
+    fun t(key: String) = Translations.getString(key, lang)
+    val progress by animateFloatAsState(
+        targetValue = (score / 100f).coerceIn(0f, 1f),
+        animationSpec = tween(900, easing = FastOutSlowInEasing),
+        label = "heroScoreRing"
     )
+    val (statusKey, statusTone) = when {
+        score == 0 -> "status_start" to MedAIBadgeTone.Info
+        score <= 40 -> "status_poor" to MedAIBadgeTone.Danger
+        score <= 70 -> "status_average" to MedAIBadgeTone.Warning
+        else -> "status_good" to MedAIBadgeTone.Success
+    }
+    val stepsGoalPercent = ((steps / 10000f).coerceIn(0f, 1f) * 100).toInt()
 
-    MedicalCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
-        borderStroke = BorderStroke(1.5.dp, Color(0xFFE8F5F3))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .drawBehind {
-                    // Subtle background ECG wave line decoration
-                    val width = size.width
-                    val height = size.height
-                    val path = androidx.compose.ui.graphics.Path()
-                    path.moveTo(0f, height * 0.7f)
-                    path.lineTo(width * 0.4f, height * 0.7f)
-                    path.lineTo(width * 0.45f, height * 0.3f)
-                    path.lineTo(width * 0.5f, height * 0.9f)
-                    path.lineTo(width * 0.55f, height * 0.5f)
-                    path.lineTo(width * 0.6f, height * 0.7f)
-                    path.lineTo(width, height * 0.7f)
-
-                    drawPath(
-                        path = path,
-                        color = PrimaryGreen.copy(alpha = 0.04f),
-                        style = Stroke(width = 3.dp.toPx())
-                    )
-                }
-                .padding(20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Left content
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                // Animated beating heart icon
-                val infiniteTransition = rememberInfiniteTransition(label = "heart")
-                val heartScale by infiniteTransition.animateFloat(
-                    initialValue = 0.9f,
-                    targetValue = 1.15f,
-                    animationSpec = infiniteRepeatable(
-                        animation = tween(600, easing = FastOutSlowInEasing),
-                        repeatMode = RepeatMode.Reverse
-                    ),
-                    label = "heartScale"
-                )
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .background(LightGreen, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Favorite,
-                        contentDescription = "Sog'liq Balli",
-                        tint = PrimaryGreen,
-                        modifier = Modifier
-                            .size(24.dp)
-                            .graphicsLayer {
-                                scaleX = heartScale
-                                scaleY = heartScale
-                            }
-                    )
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = "SOG'LIQ BALLI",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextSecondary,
-                        letterSpacing = 1.2.sp
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = "$score / 100",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = TextPrimary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    val (statusText, statusColor) = when {
-                        score == 0 -> "Boshlang'ich (0 ball)" to TextSecondary
-                        score <= 40 -> Translations.getString("status_poor", lang) to ErrorRed
-                        score <= 70 -> Translations.getString("status_average", lang) to WarningOrange
-                        else -> Translations.getString("status_good", lang) to SuccessGreen
-                    }
-                    Box(
-                        modifier = Modifier
-                            .background(statusColor.copy(alpha = 0.15f), RoundedCornerShape(50.dp))
-                            .padding(horizontal = 8.dp, vertical = 2.dp)
-                    ) {
-                        Text(
-                            text = statusText,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = statusColor
-                        )
-                    }
-                }
+    MedAIHeroCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(t("home_health_score"), style = MaterialTheme.typography.labelLarge, color = c.onHeroMuted)
+                Spacer(Modifier.height(4.dp))
+                Text(t("home_subtitle"), style = MaterialTheme.typography.titleMedium, color = c.onHero)
+                Spacer(Modifier.height(12.dp))
+                MedAIBadge(text = t(statusKey), tone = statusTone)
             }
-
-            // Right: thick progress ring
+            Spacer(Modifier.width(12.dp))
             Box(
-                modifier = Modifier.size(72.dp),
+                modifier = Modifier
+                    .size(104.dp)
+                    .semantics(mergeDescendants = true) {
+                        contentDescription = "${t("home_health_score")}: $score / 100"
+                    },
                 contentAlignment = Alignment.Center
             ) {
-                CircularProgressIndicator(
-                    progress = { animatedProgress },
-                    modifier = Modifier.fillMaxSize(),
-                    color = PrimaryGreen,
-                    strokeWidth = 7.dp,
-                    trackColor = Color.LightGray.copy(alpha = 0.2f)
-                )
-                Text(
-                    text = "${(animatedProgress * 100).toInt()}%",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Black,
-                    color = TextPrimary
-                )
-            }
-        }
-    }
-}
-
-@Composable
-fun PremiumHealthCard(steps: Int, user: UserLocal?, lang: String) {
-    val score = user?.healthScore ?: 0
-
-    MedicalCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            // Header Row: VIP Pill and Status
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .background(PremiumPurple.copy(alpha = 0.08f), RoundedCornerShape(8.dp))
-                        .border(1.dp, PremiumPurple.copy(alpha = 0.25f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.WorkspacePremium,
-                        contentDescription = null,
-                        tint = PremiumPurple,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "PREMIUM VIP",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = PremiumPurple,
-                        letterSpacing = 0.8.sp
-                    )
-                }
-
-                val (statusText, statusColor) = when {
-                    score == 0 -> "Boshlang'ich (0 ball)" to TextSecondary
-                    score <= 40 -> Translations.getString("status_poor", lang) to ErrorRed
-                    score <= 70 -> Translations.getString("status_average", lang) to WarningOrange
-                    else -> Translations.getString("status_good", lang) to SuccessGreen
-                }
-                Box(
-                    modifier = Modifier
-                        .background(statusColor.copy(alpha = 0.12f), RoundedCornerShape(50.dp))
-                        .padding(horizontal = 10.dp, vertical = 3.dp)
-                ) {
-                    Text(
-                        text = statusText,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = statusColor
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Metrics
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(34.dp)
-                                .background(PrimaryGreen.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Favorite,
-                                contentDescription = null,
-                                tint = PrimaryGreen,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "SOG'LIQ DARAJASI",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextSecondary,
-                                letterSpacing = 1.sp
-                            )
-                            Text(
-                                text = "$score / 100",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = TextPrimary
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(34.dp)
-                                .background(WarningOrange.copy(alpha = 0.12f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.LocalFireDepartment,
-                                contentDescription = null,
-                                tint = WarningOrange,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = "KUNDALIK FAOLLIK",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = TextSecondary,
-                                letterSpacing = 1.sp
-                            )
-                            Text(
-                                text = "$steps qadam",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = TextPrimary
-                            )
-                        }
+                Canvas(Modifier.fillMaxSize()) {
+                    val stroke = 10.dp.toPx()
+                    val arcSize = Size(size.width - stroke, size.height - stroke)
+                    val topLeft = Offset(stroke / 2, stroke / 2)
+                    drawArc(Color.White.copy(alpha = 0.22f), -90f, 360f, false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+                    if (progress > 0f) {
+                        drawArc(Color.White, -90f, 360f * progress, false, topLeft = topLeft, size = arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
                     }
                 }
-
-                // Steps Progress ring
-                val stepsProgress = (steps / 10000f).coerceIn(0f, 1f)
-                val animatedStepsProgress by animateFloatAsState(
-                    targetValue = stepsProgress,
-                    animationSpec = tween(1200, easing = FastOutSlowInEasing),
-                    label = "premiumStepsRing"
-                )
-                Box(
-                    modifier = Modifier.size(80.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        progress = { animatedStepsProgress },
-                        modifier = Modifier.fillMaxSize(),
-                        color = PrimaryGreen,
-                        strokeWidth = 7.dp,
-                        trackColor = MedicalBorder.copy(alpha = 0.6f)
-                    )
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.DirectionsRun,
-                            contentDescription = null,
-                            tint = PrimaryGreen,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Text(
-                            text = "${(animatedStepsProgress * 100).toInt()}%",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = TextPrimary
-                        )
-                    }
+                Row(verticalAlignment = Alignment.Bottom) {
+                    Text("$score", style = MedAIText.MetricMedium, color = c.onHero)
+                    Text("/100", style = MaterialTheme.typography.labelMedium, color = c.onHeroMuted, modifier = Modifier.padding(bottom = 5.dp))
                 }
             }
         }
-    }
-}
-
-@Composable
-fun HomeFeatureGridCard(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    brush: Brush,
-    isEmergency: Boolean = false,
-    modifier: Modifier = Modifier
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(targetValue = if (isPressed) 0.96f else 1.0f, label = "cardScale")
-
-    // Pulsing outline for SOS card
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse_outline")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = EaseInOutSine),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse_alpha"
-    )
-    val cardBorder = if (isEmergency) {
-        BorderStroke(2.dp, Color.Red.copy(alpha = pulseAlpha))
-    } else null
-
-    Card(
-        modifier = modifier
-            .padding(6.dp)
-            .height(115.dp)
-            .scale(scale),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = cardBorder ?: BorderStroke(1.dp, MedicalBorder)
-    ) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Top Row: Icon Container on Left, Arrow on Right
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .background(brush, CircleShape),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-
-                    // Top Right: Neon Cyan Arrow
-                    Icon(
-                        imageVector = Icons.Default.ArrowOutward,
-                        contentDescription = "Batafsil",
-                        tint = PrimaryGreen,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-
-                // Text details
-                Column {
-                    Text(
-                        text = title,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TextPrimary,
-                        maxLines = 2,
-                        lineHeight = 18.sp,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(3.dp))
-                    Text(
-                        text = subtitle,
-                        fontSize = 11.sp,
-                        color = TextSecondary,
-                        maxLines = 2,
-                        lineHeight = 15.sp,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+        if (showActivity) {
+            Spacer(Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                MedAIMetricPill(Icons.Default.DirectionsRun, "$steps", t("home_steps"), Modifier.weight(1f))
+                MedAIMetricPill(Icons.Default.Flag, "$stepsGoalPercent%", t("home_goal"), Modifier.weight(1f))
             }
         }
-    }
-}
-
-// Full-color gradient tile used for the Premium feature grid
-@Composable
-fun HomeFeatureGridCardColored(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    brush: Brush,
-    isEmergency: Boolean = false,
-    modifier: Modifier = Modifier
-) {
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale by animateFloatAsState(targetValue = if (isPressed) 0.96f else 1.0f, label = "coloredCardScale")
-
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse_outline_colored")
-    val pulseAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.9f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = EaseInOutSine),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse_alpha_colored"
-    )
-    val cardBorder = if (isEmergency) BorderStroke(2.dp, Color.White.copy(alpha = pulseAlpha)) else null
-
-    Box(
-        modifier = modifier
-            .padding(6.dp)
-            .height(118.dp)
-            .scale(scale)
-            .shadow(4.dp, RoundedCornerShape(20.dp))
-            .clip(RoundedCornerShape(20.dp))
-            .background(brush)
-            .then(if (cardBorder != null) Modifier.border(cardBorder.width, cardBorder.brush, RoundedCornerShape(20.dp)) else Modifier)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(13.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
+        Spacer(Modifier.height(16.dp))
+        MedAICard(Modifier.fillMaxWidth(), onClick = onCta, contentPadding = 0.dp) {
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .background(Color.White.copy(alpha = 0.25f), CircleShape),
+                    modifier = Modifier.size(40.dp).background(c.tintViolet.bg, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
+                    Icon(Icons.Default.Psychology, contentDescription = null, tint = c.tintViolet.fg, modifier = Modifier.size(24.dp))
                 }
-
-                Icon(
-                    imageVector = Icons.Default.ArrowOutward,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.85f),
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-
-            Column {
-                Text(
-                    text = title,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White,
-                    maxLines = 2,
-                    lineHeight = 18.sp,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(3.dp))
-                Text(
-                    text = subtitle,
-                    fontSize = 11.sp,
-                    color = Color.White.copy(alpha = 0.9f),
-                    maxLines = 2,
-                    lineHeight = 15.sp,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text(ctaTitle, style = MaterialTheme.typography.titleSmall, color = c.textPrimary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(ctaSubtitle, style = MaterialTheme.typography.bodySmall, color = c.textSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                }
+                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = c.brand)
             }
         }
     }
 }
+
 
 @Composable
 fun QrCodeCanvas(modifier: Modifier = Modifier, color: Color = Color.Black) {
@@ -1330,6 +483,8 @@ fun FamilyQrDialog(
     viewModel: AppViewModel,
     onDismiss: () -> Unit
 ) {
+    val medai = MedAITheme.colors
+
     val lang by viewModel.currentLanguage.collectAsState()
     var selectedTab by remember { mutableStateOf(0) } // 0: Scan, 1: My QR
     
@@ -1385,7 +540,7 @@ fun FamilyQrDialog(
                         Icon(
                             imageVector = Icons.Default.QrCodeScanner,
                             contentDescription = null,
-                            tint = PrimaryGreen,
+                            tint = medai.brand,
                             modifier = Modifier.size(24.dp)
                         )
                         Text(
@@ -1410,10 +565,10 @@ fun FamilyQrDialog(
                     
                     Button(
                         onClick = { selectedTab = 0; scanSuccess = false },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).heightIn(min = MinTouch),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedTab == 0) PrimaryGreen else Color.Transparent,
+                            containerColor = if (selectedTab == 0) medai.brand else Color.Transparent,
                             contentColor = if (selectedTab == 0) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         elevation = if (selectedTab == 0) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
@@ -1423,10 +578,10 @@ fun FamilyQrDialog(
 
                     Button(
                         onClick = { selectedTab = 1 },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).heightIn(min = MinTouch),
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (selectedTab == 1) PrimaryGreen else Color.Transparent,
+                            containerColor = if (selectedTab == 1) medai.brand else Color.Transparent,
                             contentColor = if (selectedTab == 1) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         elevation = if (selectedTab == 1) ButtonDefaults.buttonElevation(defaultElevation = 2.dp) else ButtonDefaults.buttonElevation(defaultElevation = 0.dp)
@@ -1447,20 +602,20 @@ fun FamilyQrDialog(
                             Box(
                                 modifier = Modifier
                                     .size(72.dp)
-                                    .background(PrimaryGreen.copy(alpha = 0.15f), CircleShape),
+                                    .background(medai.brand.copy(alpha = 0.15f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = null,
-                                    tint = PrimaryGreen,
+                                    tint = medai.brand,
                                     modifier = Modifier.size(40.dp)
                                 )
                             }
                             Text(
                                 text = getLangText("Muvaffaqiyatli bog'landi!", "Успешно подключено!", "Successfully Linked!"),
                                 fontWeight = FontWeight.Bold,
-                                color = PrimaryGreen,
+                                color = medai.brand,
                                 fontSize = 18.sp
                             )
                             Card(
@@ -1508,7 +663,7 @@ fun FamilyQrDialog(
                                 onClick = onDismiss,
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                                colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                             ) {
                                 Text(text = getLangText("Yopish", "Закрыть", "Close"))
                             }
@@ -1549,17 +704,17 @@ fun FamilyQrDialog(
                                         val w = size.width
                                         val h = size.height
 
-                                        drawLine(SuccessGreen, Offset(0f, 0f), Offset(bracketLength, 0f), strokeWidth)
-                                        drawLine(SuccessGreen, Offset(0f, 0f), Offset(0f, bracketLength), strokeWidth)
+                                        drawLine(medai.success, Offset(0f, 0f), Offset(bracketLength, 0f), strokeWidth)
+                                        drawLine(medai.success, Offset(0f, 0f), Offset(0f, bracketLength), strokeWidth)
 
-                                        drawLine(SuccessGreen, Offset(w, 0f), Offset(w - bracketLength, 0f), strokeWidth)
-                                        drawLine(SuccessGreen, Offset(w, 0f), Offset(w, bracketLength), strokeWidth)
+                                        drawLine(medai.success, Offset(w, 0f), Offset(w - bracketLength, 0f), strokeWidth)
+                                        drawLine(medai.success, Offset(w, 0f), Offset(w, bracketLength), strokeWidth)
 
-                                        drawLine(SuccessGreen, Offset(0f, h), Offset(bracketLength, h), strokeWidth)
-                                        drawLine(SuccessGreen, Offset(0f, h), Offset(0f, h - bracketLength), strokeWidth)
+                                        drawLine(medai.success, Offset(0f, h), Offset(bracketLength, h), strokeWidth)
+                                        drawLine(medai.success, Offset(0f, h), Offset(0f, h - bracketLength), strokeWidth)
 
-                                        drawLine(SuccessGreen, Offset(w, h), Offset(w - bracketLength, h), strokeWidth)
-                                        drawLine(SuccessGreen, Offset(w, h), Offset(w, h - bracketLength), strokeWidth)
+                                        drawLine(medai.success, Offset(w, h), Offset(w - bracketLength, h), strokeWidth)
+                                        drawLine(medai.success, Offset(w, h), Offset(w, h - bracketLength), strokeWidth)
                                     }
 
                                     Box(
@@ -1569,14 +724,14 @@ fun FamilyQrDialog(
                                             .offset(y = (laserOffset * 190).dp)
                                             .background(
                                                 Brush.horizontalGradient(
-                                                    colors = listOf(Color.Transparent, SuccessGreen, Color.Transparent)
+                                                    colors = listOf(Color.Transparent, medai.success, Color.Transparent)
                                                 )
                                             )
                                     )
                                 }
 
                                 if (isScanning) {
-                                    CircularProgressIndicator(color = SuccessGreen)
+                                    CircularProgressIndicator(color = medai.success)
                                 } else {
                                     Icon(
                                         imageVector = Icons.Default.QrCodeScanner,
@@ -1610,7 +765,7 @@ fun FamilyQrDialog(
                                         text = if (showCustomInputs) getLangText("Shablonlar", "Шаблоны", "Templates") else getLangText("Boshqa ism", "Другое имя", "Custom Name"),
                                         fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
-                                        color = PrimaryGreen
+                                        color = medai.brand
                                     )
                                 }
                             }
@@ -1730,7 +885,7 @@ fun FamilyQrDialog(
                                         },
                                         modifier = Modifier.fillMaxWidth(),
                                         shape = RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                                        colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                                     ) {
                                         Text(text = getLangText("QR skanerlashni simulyatsiya qilish", "Имитировать сканирование QR", "Simulate QR Scan"))
                                     }
@@ -1799,7 +954,7 @@ fun FamilyQrDialog(
                                                         )
                                                     }
                                                 }
-                                                Icon(imageVector = Icons.Default.QrCode, contentDescription = null, tint = PrimaryGreen)
+                                                Icon(imageVector = Icons.Default.QrCode, contentDescription = null, tint = medai.brand)
                                             }
                                         }
                                     }
@@ -1826,7 +981,7 @@ fun FamilyQrDialog(
                             modifier = Modifier
                                 .size(220.dp)
                                 .border(1.dp, Color.LightGray.copy(alpha = 0.5f), RoundedCornerShape(16.dp)),
-                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            colors = CardDefaults.cardColors(containerColor = medai.surface),
                             elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                         ) {
                             Box(
@@ -1875,7 +1030,7 @@ fun FamilyQrDialog(
                             },
                             modifier = Modifier.fillMaxWidth(0.9f),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = PrimaryGreen)
+                            colors = ButtonDefaults.buttonColors(containerColor = medai.brand)
                         ) {
                             Text(text = getLangText("Ulashing / Saqlash", "Поделиться / Сохранить", "Share / Save"))
                         }
