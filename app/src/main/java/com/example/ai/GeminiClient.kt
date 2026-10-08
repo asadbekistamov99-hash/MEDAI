@@ -1,6 +1,13 @@
 package com.example.ai
 
 import android.util.Log
+import com.example.BuildConfig
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+import java.net.HttpURLConnection
+import java.net.URL
 import com.google.firebase.functions.FirebaseFunctions
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -18,6 +25,11 @@ import kotlin.coroutines.resume
  * The call now goes through the `generateContent` Cloud Function (see functions/index.js), which
  * holds the key, enforces a per-user daily rate limit, and is the single auditable hop. This is
  * what metadata.json already advertised as MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API.
+ *
+ * ## On-device key (optional)
+ *
+ * With no Firebase project the callable cannot work. If `GEMINI_API_KEY` is set in `.env` at the repo
+ * root (git-ignored; see .env.example) the app calls Gemini directly from the device instead.
  *
  * ## Fallback behaviour
  *
@@ -43,6 +55,7 @@ object GeminiClient {
      */
     suspend fun generate(prompt: String, systemInstruction: String? = null): Result {
         val response = callServer(prompt, systemInstruction)
+            ?: callDirect(prompt, systemInstruction)
         return if (response.isNullOrBlank()) {
             Result(generateLocalFallbackResponse(prompt), Source.LOCAL_FALLBACK)
         } else {
@@ -62,7 +75,7 @@ object GeminiClient {
             systemInstruction = null,
             inlineData = base64Image,
             mimeType = mimeType
-        )
+        ) ?: callDirect(prompt, null, base64Image, mimeType)
         return if (response.isNullOrBlank()) {
             Result(generateLocalFallbackResponse(prompt), Source.LOCAL_FALLBACK)
         } else {
@@ -84,6 +97,12 @@ object GeminiClient {
         inlineData: String? = null,
         mimeType: String? = null
     ): String? = suspendCancellableCoroutine { continuation ->
+        // Without a real google-services.json the app runs on a placeholder Firebase project; the
+        // callable can never succeed there and would only stall until its timeout.
+        if (!isFirebaseConfigured()) {
+            continuation.resume(null)
+            return@suspendCancellableCoroutine
+        }
         try {
             val data = hashMapOf<String, Any?>("prompt" to prompt)
             if (systemInstruction != null) {
@@ -109,6 +128,74 @@ object GeminiClient {
         } catch (e: Exception) {
             Log.w(TAG, "AI proxy unavailable: ${e.message}")
             if (continuation.isActive) continuation.resume(null)
+        }
+    }
+
+
+    private fun isFirebaseConfigured(): Boolean = try {
+        val key = com.google.firebase.FirebaseApp.getInstance().options.apiKey
+        !key.contains("Fake", ignoreCase = true)
+    } catch (e: Exception) {
+        false
+    }
+
+    /** True when a real key was provided through `.env` (GEMINI_API_KEY=...); the template placeholder does not count. */
+    private fun directKey(): String? =
+        BuildConfig.GEMINI_API_KEY.trim().takeIf { it.isNotEmpty() && !it.startsWith("MY_") }
+
+    private val DIRECT_MODELS = listOf("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash")
+
+    /**
+     * On-device call used when the Cloud Function is unavailable (it needs a Firebase project and
+     * a signed-in Firebase user, which this app does not have). The key is sent in a header, never
+     * in the URL. Note that a key shipped inside an APK can be extracted: use it for your own
+     * builds, not for a public release.
+     */
+    private suspend fun callDirect(
+        prompt: String,
+        systemInstruction: String?,
+        inlineData: String? = null,
+        mimeType: String? = null
+    ): String? {
+        val key = directKey() ?: return null
+        return withContext(Dispatchers.IO) {
+            val parts = JSONArray().put(JSONObject().put("text", prompt))
+            if (inlineData != null && mimeType != null) {
+                parts.put(JSONObject().put("inline_data", JSONObject().put("mime_type", mimeType).put("data", inlineData)))
+            }
+            val body = JSONObject().put("contents", JSONArray().put(JSONObject().put("role", "user").put("parts", parts)))
+            if (systemInstruction != null) {
+                body.put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", systemInstruction))))
+            }
+            val payload = body.toString().toByteArray()
+
+            for (model in DIRECT_MODELS) {
+                var conn: HttpURLConnection? = null
+                try {
+                    conn = (URL("https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent").openConnection() as HttpURLConnection).apply {
+                        requestMethod = "POST"
+                        connectTimeout = 15_000
+                        readTimeout = 60_000
+                        doOutput = true
+                        setRequestProperty("Content-Type", "application/json")
+                        setRequestProperty("x-goog-api-key", key)
+                    }
+                    conn.outputStream.use { it.write(payload) }
+                    if (conn.responseCode !in 200..299) {
+                        Log.w(TAG, "Gemini $model returned HTTP ${conn.responseCode}")
+                        continue
+                    }
+                    val json = JSONObject(conn.inputStream.bufferedReader().use { it.readText() })
+                    val text = json.optJSONArray("candidates")?.optJSONObject(0)
+                        ?.optJSONObject("content")?.optJSONArray("parts")?.optJSONObject(0)?.optString("text")
+                    if (!text.isNullOrBlank()) return@withContext text
+                } catch (e: Exception) {
+                    Log.w(TAG, "Gemini $model failed: ${e.message}")
+                } finally {
+                    conn?.disconnect()
+                }
+            }
+            null
         }
     }
 
