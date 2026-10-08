@@ -35,7 +35,8 @@ fun AdminScreen(
     fun t(uz: String, ru: String, en: String) = adminT(lang, uz, ru, en)
 
     val currentUser by viewModel.currentUser.collectAsState()
-    val isSuperAdmin = viewModel.isSuperAdmin
+    // viewModel.isSuperAdmin runs a blocking DB read; evaluate it once per user change, not on every recomposition.
+    val isSuperAdmin = remember(currentUser) { viewModel.isSuperAdmin }
 
     // Self-heals the server-side custom claim for accounts that signed in before the
     // Cloud Function existed, or after functions are (re)deployed — see functions/index.js.
